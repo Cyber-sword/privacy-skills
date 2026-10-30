@@ -3,7 +3,6 @@
 Custom hash reversal, CRC brute-force, noisy RSA oracles, sponge collisions, CBC/padding oracle tricks, SPN recovery, AES-CFB, three-round XOR, Unicode side channels, SHA-256 basis attacks, MAC forgery, HMAC bit oracles. For Blum-Goldwasser, hash length extension, compression oracles, OFB/HMAC-CRC/DES weak keys, SRP, square attack, AES-ECB/CBC oracles, Rabin, PBKDF2, and MD5 multi-collision, see [modern-ciphers-2.md](modern-ciphers-2.md).
 
 ## Table of Contents
-
 - [Custom Hash State Reversal via Known Intermediates (BackdoorCTF 2016)](#custom-hash-state-reversal-via-known-intermediates-backdoorctf-2016)
 - [CRC32 Brute-Force for Small Payloads (BackdoorCTF 2016)](#crc32-brute-force-for-small-payloads-backdoorctf-2016)
 - [Noisy RSA LSB Oracle with Post-Hoc Error Correction (SharifCTF 7 2016)](#noisy-rsa-lsb-oracle-with-post-hoc-error-correction-sharifctf-7-2016)
@@ -24,7 +23,7 @@ Custom hash reversal, CRC brute-force, noisy RSA oracles, sponge collisions, CBC
 - [Cross-Session Cube-Root Recovery via CRT (X-MAS 2018)](#cross-session-cube-root-recovery-via-crt-x-mas-2018)
 - [CBC Previous-Block Byte Flipping for Cookie Privilege Escalation (picoCTF 2018)](#cbc-previous-block-byte-flipping-for-cookie-privilege-escalation-picoctf-2018)
 
-------
+---
 
 ## Custom Hash State Reversal via Known Intermediates (BackdoorCTF 2016)
 
@@ -56,7 +55,7 @@ for target_hash in block_hashes:
 
 **Key insight:** When a custom hash function leaks intermediate states (after each block), each block becomes an independent 4-byte brute-force problem (~2^32 worst case, reduced to ~10^8 for printable ASCII). Inverting the state update equation isolates per-block targets. This pattern appears whenever iterative hashes expose partial state.
 
-------
+---
 
 ## CRC32 Brute-Force for Small Payloads (BackdoorCTF 2016)
 
@@ -78,7 +77,7 @@ for chars in itertools.product(string.printable[:95], repeat=5):
 
 **Key insight:** CRC32 stored in ZIP headers is not encrypted — it's always accessible even for password-protected ZIPs. For small files (≤ 6 bytes of printable ASCII), the search space is feasible. A C implementation is ~100x faster than Python. Multiple CRC collisions are expected for 5+ byte payloads; combine with language analysis or cross-reference multiple encrypted files to disambiguate.
 
-------
+---
 
 ## Noisy RSA LSB Oracle with Post-Hoc Error Correction (SharifCTF 7 2016)
 
@@ -105,7 +104,7 @@ def lsb_oracle_attack(ciphertext, e, n, oracle_fn, flips=None):
 
 **Key insight:** Sparse oracle errors produce localized corruption in the recovered plaintext. By inspecting character validity (e.g., expecting hex digits), the error position can be identified and corrected by flipping the oracle result at that query index.
 
-------
+---
 
 ## Sponge Hash Collision via Meet-in-the-Middle on Partial State (BKP 2017)
 
@@ -126,7 +125,7 @@ for _ in range(2**24):
 
 # Backward: compute AES_dec(target XOR random_c), check last 6 bytes
 target_state = b'\x77\x40\x56\x0a\x1d\x64'  # target hash
-for _ in range(2**40):
+for _ in range(2**24):   # same order as the forward table; 2^40 is 65536x the claim
     c_block = os.urandom(10) + target_state
     dec = aes.decrypt(c_block)
     if dec[-6:] in forward:
@@ -137,16 +136,18 @@ for _ in range(2**40):
 
 **Key insight:** When a sponge rate is smaller than the state size, the uncontrolled bytes create a meet-in-the-middle opportunity. Precompute one direction, search the other — reducing 2^48 to 2^24 space + 2^24 time.
 
-------
+---
 
 ## CBC IV Forgery + Block Truncation for Authentication Bypass (0CTF 2017)
 
-**Pattern:** Service encrypts `MD5(padded_name) || padded_name` with AES-CBC. The MD5 serves as an integrity check on login. Two attacks combine: (1) IV manipulation: XOR IV bytes to change the decrypted first block from the source MD5 to the target MD5. (2) Block truncation: register with `pad("admin") + 16_junk_bytes`, then strip trailing ciphertext blocks — AES-CBC has no length field, so shorter ciphertext decrypts validly if PKCS7 padding is correct.
+**Pattern:** Service encrypts `MD5(padded_name) || padded_name` with AES-CBC. The MD5 serves as an integrity check on login. Two attacks combine: (1) IV manipulation: XOR IV bytes to change the decrypted first block from the source MD5 to the target MD5. (2) Block truncation: register with `pad(b"admin", 16) + 16_junk_bytes`, then strip trailing ciphertext blocks — AES-CBC has no length field, so shorter ciphertext decrypts validly if PKCS7 padding is correct.
 
 ```python
+from Crypto.Util.Padding import pad
+
 # Forge IV to flip MD5 from registered user to "admin"
-source_md5 = md5(pad("admin") + b"A"*16)
-target_md5 = md5(pad("admin"))
+source_md5 = md5(pad(b"admin", 16) + b"A"*16)
+target_md5 = md5(pad(b"admin", 16))
 new_iv = bytes(a ^ b ^ c for a, b, c in zip(original_iv, source_md5, target_md5))
 
 # Strip last 2 blocks (junk + PKCS padding block)
@@ -155,7 +156,7 @@ forged_token = new_iv + ciphertext[16:-32]
 
 **Key insight:** AES-CBC decryption has no built-in length integrity. Truncating ciphertext blocks from the end is valid as long as the new last block decrypts to valid PKCS7 padding. Combined with IV manipulation of block 0, this forges arbitrary first-block content.
 
-------
+---
 
 ## Padding Oracle to CBC Bitflip Command Injection (BSidesSF 2017)
 
@@ -177,7 +178,7 @@ forged = ct.hex()
 
 **Key insight:** Padding oracle and CBC bitflipping are usually taught separately. Chaining them converts a pure cryptographic weakness into full command injection: the oracle recovers plaintext needed to compute the XOR mask, and the bitflip injects the payload.
 
-------
+---
 
 ## SPN Cipher Partial Key Recovery via S-box Intersection (SharifCTF 7 2016)
 
@@ -203,7 +204,7 @@ def recover_subkeys(pairs, sbox, perm):
 
 **Key insight:** SPN structures allow divide-and-conquer key recovery. Each S-box position can be attacked independently, and the intersection of valid key candidates across multiple plaintext-ciphertext pairs converges to a unique solution.
 
-------
+---
 
 ## AES-CFB IV Recovery from Timestamp-Seeded PRNG (SHA2017)
 
@@ -218,7 +219,7 @@ img = 'encrypted_file.enc'
 
 # File mtime IS the random seed used at encryption time
 random.seed(int(os.stat(img).st_mtime))
-iv = ''.join(random.choice(string.letters + string.digits) for _ in range(16))
+iv = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))
 
 aes = AES.new(password, AES.MODE_CFB, iv.encode())
 with open(img, 'rb') as f:
@@ -230,12 +231,11 @@ plaintext = aes.decrypt(ciphertext)
 
 **References:** SHA2017
 
-------
+---
 
 ## Three-Round XOR Protocol Key Cancellation (HITB 2017)
 
 **Pattern:** A custom protocol performs a three-message XOR key exchange:
-
 1. Client sends `c1 = msg XOR clientKey`
 2. Server responds `c2 = c1 XOR serverKey`
 3. Client sends `c3 = c2 XOR clientKey`
@@ -255,14 +255,13 @@ plaintext = bytes(a ^ b ^ c for a, b, c in zip(c1, c2, c3))
 
 **References:** HITB 2017
 
-------
+---
 
 ## AES-CBC UnicodeDecodeError Side-Channel Oracle (Kaspersky 2017)
 
 **Pattern:** Server decrypts AES-CBC ciphertext and attempts to UTF-8 decode the result. Invalid UTF-8 sequences raise a `UnicodeDecodeError` (or equivalent). This error is distinguishable from other errors (e.g., application-level errors), creating a decryption oracle analogous to a padding oracle.
 
 **Attack:** Standard CBC bit-flip oracle technique, using UTF-8 validity as the distinguisher:
-
 1. For each target plaintext byte at position `i` in block `b`, modify byte `i` in block `b-1`
 2. Cycle through all 256 XOR values; when the decrypted byte produces valid UTF-8 in context, the server returns a non-`UnicodeDecodeError` response
 3. From the XOR value that passes and the known modification to `c[b-1][i]`, recover `plaintext[b][i]`
@@ -281,11 +280,28 @@ for guess in range(256):
 
 **References:** Kaspersky CTF 2017
 
-------
+---
 
 ## SHA-256 Basis Attack for XOR-Aggregate Hash Bypass (34C3 CTF 2017)
 
 **Pattern:** Find 256 files whose SHA-256 hashes form a basis for Z_2^256. Then for any target hash, compute which subset of basis files XORs to produce the desired hash difference. This breaks systems that verify integrity via `XOR(sha256(file_i)) == expected`.
+
+```python
+# 1. Generate ~300 random valid Python files
+# 2. Compute SHA-256 of each -> 256-bit vectors over GF(2)
+# 3. Gaussian elimination to find 256 linearly independent vectors
+# 4. Target: h_new XOR (XOR of sha256(basis_files)) = h_orig
+# 5. Solve the linear system to find which basis files to include
+from sympy import Matrix
+
+M = Matrix([hash_to_bits(sha256(f)) for f in basis_files])
+target = Matrix([hash_to_bits(sha256(malicious_zip))[i] ^ hash_to_bits(original_hash)[i] for i in range(256)])
+# Solve M^T * x = target over GF(2) (solve_left => x*M = target => M^T*x = target)
+solution = M.T.gauss_jordan_solve(target)  # reduce mod 2; or use rref iszerofunc
+# For GF(2), reduce entries mod 2 after rref
+```
+
+<details><summary>Sage fallback (optional)</summary>
 
 ```python
 # 1. Generate ~300 random valid Python files
@@ -299,11 +315,13 @@ target = hash_to_bits(sha256(malicious_zip)) ^ hash_to_bits(original_hash)
 solution = M.solve_left(target)
 ```
 
+</details>
+
 **Key insight:** SHA-256 hashes are 256-bit vectors over GF(2). Given ~256 random hashes, they almost certainly span the full space, meaning you can XOR-combine them to produce any target 256-bit value. This breaks XOR-based aggregate hash verification: if the system checks `XOR(sha256(file_i)) == expected`, you can replace files while maintaining the aggregate. The attack does NOT find SHA-256 collisions -- it exploits the linearity of XOR aggregation over non-linear hash outputs.
 
 **References:** 34C3 CTF 2017
 
-------
+---
 
 ### Custom MAC Forgery via XOR Block Cancellation with Key Rotation (PlaidCTF 2018)
 
@@ -318,35 +336,43 @@ forged_mac = mac1 ^ mac2 ^ mac3  # XOR cancellation = fmac(cmdline)
 
 **Key insight:** When a MAC's internal key stream repeats periodically, arrange message blocks so that identical blocks at the same key-stream positions cancel via XOR across multiple queries. Three queries suffice to forge any target command's MAC.
 
-------
+---
 
 ### Bit-by-Bit HMAC Key Recovery via XOR Plus Addition Arithmetic (Midnight Sun CTF 2018)
 
 **Pattern:** Flawed HMAC computes `sha256((key XOR msg) + msg)` where `+` is bitwise addition (not concatenation). Sending `msg=0` gives `sha256(key)`. For bit position `i`, sending `msg=2^i`: if key bit `i` is set, XOR clears it and addition restores it, giving the same hash. (Midnight Sun CTF 2018)
 
 ```python
+from Crypto.Util.number import long_to_bytes
+
 key_hash = get_digest(b'\x00')  # sha256(key + 0) = sha256(key)
 key = 0
 for i in range(key_bits):
-    digest = get_digest(int_to_bytes(2**i))
+    digest = get_digest(long_to_bytes(2**i))
     if digest == key_hash:
         key |= (1 << i)  # bit i is set in key
 ```
 
 **Key insight:** When XOR and addition interact, setting bit `i` in the message XORs it away from the key but adds it back. If key bit `i` was already set, `XOR(1,1)=0` and `0+1=1`, restoring the original value. If key bit `i` was 0, `XOR(0,1)=1` and `1+1=0` with carry, changing the hash. This creates a per-bit oracle.
 
-------
+---
 
 ### CBC IV Recovery from Block-2 Known Plaintext (RITSEC 2018)
 
 **Pattern:** AES-CBC given: full ciphertext, known plaintext from block 2 onward, partial key. Recover the missing IV by first brute-forcing missing key bytes via block 2 (which does not depend on the IV), then XOR plaintext[0] with `AES_decrypt(ct[0], K)` to get the IV.
 
 ```python
+import itertools, string
+from Crypto.Cipher import AES
+
 for tail in itertools.product(string.printable, repeat=2):
     K = base_key + ''.join(tail).encode()
-    if AES.new(K, AES.MODE_ECB).decrypt(ct)[16:32] == plaintext[16:32]:
-        raw = AES.new(K, AES.MODE_ECB).decrypt(ct[:16])
-        IV = bytes(a ^ b for a, b in zip(raw, plaintext[:16]))
+    # Block 2 = AES_dec(ct[16:32]) XOR ct[0:16] -- IV-independent, so compare the
+    # CBC plaintext, not the raw ECB decryption.
+    raw = AES.new(K, AES.MODE_ECB).decrypt(ct[16:32])
+    if bytes(a ^ b for a, b in zip(raw, ct[:16])) == plaintext[16:32]:
+        IV = bytes(a ^ b for a, b in zip(AES.new(K, AES.MODE_ECB).decrypt(ct[:16]),
+                                         plaintext[:16]))
         break
 ```
 
@@ -354,7 +380,7 @@ for tail in itertools.product(string.printable, repeat=2):
 
 **References:** RITSEC CTF 2018 — Who drew on my program, writeup 12269
 
-------
+---
 
 ### Iterated SHA-256 Timing Oracle on Character Match (35C3 2018)
 
@@ -373,11 +399,46 @@ for ch in string.printable:
 
 **References:** 35C3 CTF 2018 — ultra secret, writeup 12820
 
-------
+---
 
 ### GF(p) Linear-System AES Key Recovery from PCAP Matrix (35C3 Junior 2018)
 
 **Pattern:** Service sends 40 plaintext/ciphertext pairs over the network. Extract from pcap with tshark, build a 40×40 matrix `A` and vector `b` over `GF(p)`, then solve for the unknown AES round-key bytes.
+
+```python
+from sympy import Matrix
+
+A = Matrix(A_rows)
+b_vec = Matrix(b)
+# Solve A * key = b over GF(p) (manual elimination, records pivot rows only)
+def solve_mod(A, b, mod):
+    n = A.cols
+    M = [[int(A[i,j] % mod) for j in range(n)] + [int(b[i] % mod)] for i in range(A.rows)]
+    # forward elimination
+    row = 0
+    sol = [0]*n
+    where = [-1]*n
+    for col in range(n):
+        sel = next((i for i in range(row, len(M)) if M[i][col] % mod != 0), None)
+        if sel is None: continue
+        M[row], M[sel] = M[sel], M[row]
+        where[col]=row
+        inv = pow(M[row][col], -1, mod)
+        M[row]=[(x*inv)%mod for x in M[row]]
+        for i in range(len(M)):
+            if i!=row and M[i][col]!=0:
+                f=M[i][col]
+                M[i]=[(M[i][j]-f*M[row][j])%mod for j in range(n+1)]
+        row+=1
+    for i in range(n):
+        if where[i]!=-1:
+            sol[i]=M[where[i]][n]
+    return Matrix(sol)
+
+key = solve_mod(A, b_vec, p)
+```
+
+<details><summary>Sage fallback (optional)</summary>
 
 ```python
 from sage.all import matrix, GF
@@ -385,13 +446,15 @@ A = matrix(GF(p), 40, A_rows)
 key = A.solve_right(vector(GF(p), b))
 ```
 
+</details>
+
 Use `tshark -r file.pcap -Y 'data.len>0' -T fields -e data` to dump the packet bytes, parse into rows, feed to Sage.
 
 **Key insight:** Any protocol that reveals multiple "key applied to known input" samples collapses to linear algebra when the transformation is linear (or linear in a subfield). Sage's `solve_right` handles the rest.
 
 **References:** 35C3 Junior CTF 2018 — pretty-linear, writeups 12788, 12789
 
-------
+---
 
 ### SHA-1 Length Extension with UTF-8 High-Byte Bypass (OTW Advent 2018)
 
@@ -403,14 +466,13 @@ h = hlextend.new('sha1')
 forged = h.extend(b';cat flag', b'A'*msg_len, key_len, old_mac)
 # Replace any 0x80-0xFF bytes with UTF-8 two-byte equivalents
 safe = forged.replace(b'\x80', b'\xc2\x80')
-
 ```
 
 **Key insight:** ASCII-only filters can be bypassed by substituting multi-byte Unicode sequences whose byte values stay below `0x80`. Any length-extension attack behind an ASCII validator is still exploitable with UTF-8 creativity.
 
 **References:** OverTheWire Advent Bonanza 2018 — Day 16, writeup 12754
 
-------
+---
 
 ### Cross-Session Cube-Root Recovery via CRT (X-MAS 2018)
 
@@ -422,14 +484,13 @@ from gmpy2 import iroot
 m_cubed, _ = crt([N1, N2, N3], [c1, c2, c3])
 m, exact = iroot(int(m_cubed), 3)
 assert exact
-
 ```
 
 **Key insight:** Håstad broadcast attack for `e = 3` generalises to any scenario where you see `m^e mod N_i` across enough moduli that `m^e < prod(N_i)`. CRT joins them; integer root extraction finishes.
 
 **References:** X-MAS CTF 2018 — Santa's list 2.0, writeup 12659
 
-------
+---
 
 ## CBC Previous-Block Byte Flipping for Cookie Privilege Escalation (picoCTF 2018)
 
@@ -447,13 +508,11 @@ buf    = bytearray(cookie)
 #   block 3: "ssword': ''}"
 
 # To flip byte 10 of plaintext block 2, XOR byte 10 of ciphertext block 1.
-# With IV-prefixed layout: index = 16 (IV) + 0*16 (C1) + 10 = 26
-#   (or 0*16 + 10 = 10 if there is no separate IV prepended)
-offset = 10
+# cookie is IV || C1 || C2 || ..., so C1 starts at index 16: 16 + 10 = 26
+offset = 26
 buf[offset] ^= ord('0') ^ ord('1')             # 0x30 ^ 0x31 = 0x01
 
 forged_cookie = b64encode(bytes(buf)).decode()
-
 ```
 
 **Key insight:** In AES-CBC, `P_{n+1} = AES_dec(C_{n+1}) XOR C_n`. Flipping byte `i` of `C_n` flips byte `i` of `P_{n+1}` with zero side effects on `P_{n+1}`, but turns `P_n` (which was `AES_dec(C_n) XOR C_{n-1}`) into pseudo-random garbage. Works whenever the server (a) uses CBC without integrity checks, (b) parses the JSON/cookie leniently enough to tolerate a corrupted earlier block (unknown-key field, ignored garbage, lenient JSON parser), and (c) exposes the block boundary offset of the target byte. Contrast with [AES-CBC IV Bit-Flip (Google CTF 2016)](modern-ciphers-2.md#aes-cbc-iv-bit-flip-authentication-bypass-google-ctf-2016), which targets block 0 by flipping the IV and leaves all later blocks intact.

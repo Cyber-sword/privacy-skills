@@ -5,7 +5,6 @@ Advanced tooling for commercial packers/protectors, binary diffing, deobfuscatio
 For advanced GDB scripting, Ghidra automation, patching frameworks, and GDB-driven CTF techniques, see [tools-advanced-2.md](tools-advanced-2.md).
 
 ## Table of Contents
-
 - [VMProtect Analysis](#vmprotect-analysis)
   - [Recognition](#recognition)
   - [Approach](#approach)
@@ -28,7 +27,7 @@ For advanced GDB scripting, Ghidra automation, patching frameworks, and GDB-driv
 - [RetDec (Retargetable Decompiler)](#retdec-retargetable-decompiler)
 - [Custom VM Bytecode Lifting to LLVM IR (Google CTF 2017)](#custom-vm-bytecode-lifting-to-llvm-ir-google-ctf-2017)
 
-------
+---
 
 ## VMProtect Analysis
 
@@ -45,7 +44,6 @@ readelf -S binary | grep ".vmp"
 ```
 
 **Key indicators:**
-
 - `push` / `pop` heavy prologues (VM entry pushes all registers to stack)
 - Large switch-case dispatcher (the VM handler loop)
 - Anti-debug checks embedded in VM handlers
@@ -96,20 +94,18 @@ Interceptor.attach(vm_dispatch, {
 
 **Key insight:** Full devirtualization is rarely needed for CTF. Focus on tracing what operations are performed on your input. Hook comparison/crypto functions called from within the VM.
 
-------
+---
 
 ## Themida / WinLicense Analysis
 
 Similar to VMProtect but with additional anti-debug layers.
 
 ### Themida Recognition
-
 - Sections: `.themida`, `.winlice`
 - Extremely heavy anti-debug (kernel-level checks, driver installation)
 - Code mutation + virtualization + packing combined
 
 ### Approach for CTF
-
 1. **Dump unpacked code:** Let it run, dump process memory after unpacking
 2. **Bypass anti-debug:** ScyllaHide in x64dbg with Themida-specific preset
 3. **Fix imports:** Use Scylla plugin for IAT reconstruction
@@ -125,7 +121,7 @@ Similar to VMProtect but with additional anti-debug layers.
 6. Analyze fixed dump in Ghidra/IDA
 ```
 
-------
+---
 
 ## Binary Diffing
 
@@ -144,7 +140,6 @@ bindiff primary.BinExport secondary.BinExport
 ```
 
 **Key metrics:**
-
 - Similarity score (0.0-1.0) per function pair
 - Changed instructions highlighted
 - Unmatched functions = new/removed code
@@ -163,7 +158,7 @@ Free, open-source alternative to BinDiff, runs as IDA plugin.
 
 **Useful for CTF:** When challenge provides "patched" and "original" binaries, diff reveals the vulnerability or hidden functionality.
 
-------
+---
 
 ## Deobfuscation Frameworks
 
@@ -220,12 +215,11 @@ ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 from miasm.ir.symbexec import SymbolicExecutionEngine
 sb = SymbolicExecutionEngine(lifter)
 # Execute symbolically, then simplify expressions
-
 ```
 
 **Use case:** Deobfuscate expression trees, simplify complex arithmetic, trace data flow through obfuscated code.
 
-------
+---
 
 ## Qiling Framework (Emulation)
 
@@ -257,24 +251,21 @@ def hook_isdebug(ql, address, params):
     return 0
 
 ql.run()
-
 ```
 
 **Advantages over Unicorn:**
-
 - OS emulation (file I/O, network, registry)
 - Multi-platform (Linux, Windows, macOS, Android, UEFI)
 - Built-in debugger interface
 - Rootfs for library loading
 
 **CTF use cases:**
-
 - Emulate binaries for foreign architectures (ARM, MIPS, RISC-V)
 - Bypass all anti-debug at once (no debugger artifacts)
 - Fuzz embedded/IoT firmware without hardware
 - Trace execution without code modification
 
-------
+---
 
 ## Triton (Dynamic Symbolic Execution)
 
@@ -309,22 +300,20 @@ while pc:
         break
 
     pc = ctx.getConcreteRegisterValue(ctx.registers.rip)
-
 ```
 
 **Triton vs angr:**
-
-| Feature        | Triton                                    | angr                        |
-| -------------- | ----------------------------------------- | --------------------------- |
-| Execution      | Concrete + symbolic (DSE)                 | Fully symbolic              |
-| Speed          | Faster (concrete-driven)                  | Slower (explores all paths) |
-| Path explosion | Less prone (follows one path)             | Major issue                 |
-| API            | C++ / Python                              | Python                      |
-| Best for       | Single-path deobfuscation, taint tracking | Multi-path exploration      |
+| Feature | Triton | angr |
+|---|---|---|
+| Execution | Concrete + symbolic (DSE) | Fully symbolic |
+| Speed | Faster (concrete-driven) | Slower (explores all paths) |
+| Path explosion | Less prone (follows one path) | Major issue |
+| API | C++ / Python | Python |
+| Best for | Single-path deobfuscation, taint tracking | Multi-path exploration |
 
 **Key use:** Triton excels at deobfuscation — run the program concretely, but track symbolic state, then simplify the collected constraints.
 
-------
+---
 
 ## Manticore (Symbolic Execution)
 
@@ -347,12 +336,11 @@ def fail(state):
     state.abandon()
 
 m.run()
-
 ```
 
 **Best for:** EVM/smart contract analysis, simpler Linux binaries. angr is generally more mature for complex RE tasks.
 
-------
+---
 
 ## Rizin / Cutter
 
@@ -368,17 +356,15 @@ rizin -d ./binary
 
 # Cutter GUI
 cutter binary           # Open in GUI with decompiler
-
 ```
 
 **Cutter advantages:**
-
 - Built-in Ghidra decompiler (via r2ghidra plugin)
 - Graph view, hex editor, debug panel in one GUI
 - Integrated Python/JavaScript scripting console
 - Free and open source
 
-------
+---
 
 ## RetDec (Retargetable Decompiler)
 
@@ -399,7 +385,7 @@ retdec-decompiler --select-ranges 0x401000-0x401100 binary
 
 **Strengths:** Multi-arch support (x86, ARM, MIPS, PowerPC, PIC32), free, produces compilable C. Good for architectures not well-supported by Ghidra.
 
-------
+---
 
 ## Custom VM Bytecode Lifting to LLVM IR (Google CTF 2017)
 

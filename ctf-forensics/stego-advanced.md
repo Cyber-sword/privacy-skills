@@ -3,7 +3,6 @@
 See also: [stego-advanced-2.md](stego-advanced-2.md) for video frame techniques, JPEG XL TOC permutation, Arnold's Cat Map, SSTV FM demodulation, MJPEG steganography, EXIF/Stegano pixel patterns, PDF xref covert channels, ANSI escape code stego, and ECB image recovery.
 
 ## Table of Contents
-
 - [FFT Frequency Domain Steganography (Pragyan 2026)](#fft-frequency-domain-steganography-pragyan-2026)
 - [SSTV Red Herring + LSB Audio Stego (0xFun 2026)](#sstv-red-herring--lsb-audio-stego-0xfun-2026)
 - [DotCode Barcode via SSTV (0xFun 2026)](#dotcode-barcode-via-sstv-0xfun-2026)
@@ -20,14 +19,13 @@ See also: [stego-advanced-2.md](stego-advanced-2.md) for video frame techniques,
 - [Byte-Reversed .docx ZIP Bidirectional Archive (Security Fest CTF 2018)](#byte-reversed-docx-zip-bidirectional-archive-security-fest-ctf-2018)
 - [MIDI Note-On/Note-Off Pitch Pair Encoding (X-MAS CTF 2018)](#midi-note-onnote-off-pitch-pair-encoding-x-mas-ctf-2018)
 
-------
+---
 
 ## FFT Frequency Domain Steganography (Pragyan 2026)
 
 **Pattern (H@rDl4u6H):** Image encodes data in frequency domain via 2D FFT.
 
 **Decoding workflow:**
-
 ```python
 import numpy as np
 from PIL import Image
@@ -56,7 +54,7 @@ for r in radii:
 
 **Identification:** Challenge mentions "transform", poem about "frequency", or image looks blank/noisy. Try FFT visualization first.
 
-------
+---
 
 ## SSTV Red Herring + LSB Audio Stego (0xFun 2026)
 
@@ -73,7 +71,7 @@ stegolsb wavsteg -r -i audio.wav -o out.bin -n 2 -b 1000
 
 **Lesson:** Obvious signals may be decoys. Always check LSB even when another encoding is found.
 
-------
+---
 
 ## DotCode Barcode via SSTV (0xFun 2026)
 
@@ -83,7 +81,7 @@ stegolsb wavsteg -r -i audio.wav -o out.bin -n 2 -b 1000
 
 **Tool:** Aspose online DotCode reader (free).
 
-------
+---
 
 ## DTMF Audio Decoding
 
@@ -96,14 +94,13 @@ sox phonehome.wav -t raw -r 22050 -e signed-integer -b 16 -c 1 - | \
 ```
 
 **Post-processing:** Phone number may contain octal-encoded ASCII after delimiter (#):
-
 ```python
 # Convert octal groups to ASCII
 octal_groups = ["115", "145", "164", "141"]  # M, e, t, a
 flag = ''.join(chr(int(g, 8)) for g in octal_groups)
 ```
 
-------
+---
 
 ## Custom Frequency DTMF / Dual-Tone Keypad Encoding (EHAX 2026)
 
@@ -112,7 +109,6 @@ flag = ''.join(chr(int(g, 8)) for g in octal_groups)
 **Identification:** Spectrogram shows two distinct frequency sets that don't match standard DTMF (697-1633 Hz). Look for evenly-spaced rows/columns of frequency tones.
 
 **Decoding workflow:**
-
 ```python
 import numpy as np
 from scipy.io import wavfile
@@ -154,21 +150,19 @@ def digits_to_ascii(digits):
 
 **Key insight:** When tones don't match standard DTMF frequencies, generate a spectrogram first to identify the custom frequency grid. The mapping is challenge-specific.
 
-------
+---
 
 ## Multi-Track Audio Differential Subtraction (EHAX 2026)
 
 **Pattern (Penguin):** MKV/video file with two nearly-identical audio tracks. Hidden data is embedded as a tiny difference between the tracks, invisible when listening to either individually.
 
 **Identification:**
-
 - `ffprobe` reveals multiple audio streams (e.g., two stereo FLAC tracks)
 - Metadata may contain a decoy flag (e.g., in comments)
 - Track labels may be misleading (e.g., stereo labeled as "5.1 surround")
 - `sox --info` / `sox -n stat` shows nearly identical RMS, amplitude, and frequency statistics for both tracks
 
 **Extraction workflow:**
-
 ```bash
 # 1. Extract both audio tracks
 ffmpeg -i challenge.mkv -map 0:a:0 -c copy track0.flac
@@ -195,12 +189,11 @@ sox filtered.wav -n spectrogram -o filtered_spec.png -X 2000 -Y 1000 -z 100 -h
 **Key insight:** When two audio tracks are nearly identical, subtracting one from the other (phase inversion + mix) cancels shared content and isolates hidden data. The flag is typically encoded as text in the spectrogram of the difference signal, visible in a specific frequency band (e.g., 5-12 kHz).
 
 **Common traps:**
-
 - Decoy flags in metadata/comments — always verify
 - Mislabeled channel configurations (stereo as 5.1)
 - Flag may only be visible in a narrow time window — use high-resolution spectrogram (`-X 2000+`)
 
-------
+---
 
 ## Cross-Channel Multi-Bit LSB Steganography (ApoorvCTF 2026)
 
@@ -233,7 +226,7 @@ print(data.decode('ascii', errors='ignore'))
 
 **Detection:** Standard `zsteg -a` and `stegsolve` produce no results on an image that metadata hints contain hidden data.
 
-------
+---
 
 ## Audio FFT Musical Note Identification (BYPASS CTF 2025)
 
@@ -279,7 +272,7 @@ print(f"Answer: {answer}")
 
 **Key insight:** Musical note names (A-G) can spell words. When a challenge involves music/piano, identify dominant frequencies via FFT and read the note letter names as text.
 
-------
+---
 
 ## Audio Metadata Octal Encoding (BYPASS CTF 2025)
 
@@ -297,12 +290,11 @@ decoded = ''.join(chr(int(v, 8)) for v in octal_values)
 # May decode to base64, requiring another layer
 result = base64.b64decode(decoded).decode()
 print(result)
-
 ```
 
 **Key insight:** When metadata contains underscore-separated numbers, try octal (digits 0-7 only), decimal, or hex interpretation. Multi-layer encoding (octal → base64 → plaintext) is common.
 
-------
+---
 
 ## Nested Tar Archive with Whitespace Encoding (UTCTF 2026)
 
@@ -311,7 +303,6 @@ print(result)
 **Detection:** Archive extracts to another archive (tar-in-tar chain). File content appears empty but contains invisible whitespace characters.
 
 **Decoding workflow:**
-
 ```python
 import tarfile
 import os
@@ -345,11 +336,9 @@ for root, dirs, files in os.walk('layer_0'):
 bits = ''.join(whitespace_data)
 message = bytes(int(bits[i:i+8], 2) for i in range(0, len(bits)-7, 8))
 print(message.decode(errors='replace'))
-
 ```
 
 **Whitespace encoding variants:**
-
 - Space = 0, Tab = 1 (binary encoding)
 - Whitespace Steganography: trailing spaces/tabs at end of lines
 - Zero-width characters (U+200B, U+200C, U+FEFF) in Unicode text
@@ -357,7 +346,7 @@ print(message.decode(errors='replace'))
 
 **Key insight:** "Silent" or "invisible" hints point to whitespace encoding. Use `xxd` or `cat -A` to reveal hidden whitespace characters. Deeply nested archives are misdirection — the data is in the whitespace, not the nesting depth.
 
-------
+---
 
 ## DeepSound Audio Steganography with Password Cracking (INShAck 2018)
 
@@ -374,11 +363,9 @@ python3 deepsound2john.py audio.wav > hash.txt
 john --wordlist=rockyou.txt hash.txt
 
 # Extract hidden file with DeepSound GUI or CLI using cracked password
-
 ```
 
 **DeepSound detection:**
-
 ```python
 # DeepSound embeds a signature in WAV files
 # Check for DeepSound header pattern in audio data
@@ -387,11 +374,9 @@ with open('audio.wav', 'rb') as f:
     # DeepSound uses specific byte patterns in the audio data section
     # deepsound2john.py from John the Ripper's bleeding-jumbo branch
     # handles detection and hash extraction automatically
-
 ```
 
 **Tool installation:**
-
 ```bash
 # deepsound2john.py is part of John the Ripper bleeding-jumbo
 git clone https://github.com/openwall/john.git
@@ -399,14 +384,13 @@ git clone https://github.com/openwall/john.git
 
 # DeepSound GUI (Windows): http://jpinsoft.net/deepsound/
 # For Linux: run under Wine or use the extracted hash + john approach
-
 ```
 
 **Key insight:** DeepSound embeds files in WAV audio with optional AES encryption. The password hash is extractable with `deepsound2john.py` from John the Ripper's bleeding-jumbo branch. Always check both spectrogram (visual stego) and DeepSound (data stego) in audio challenges.
 
 **Detection:** WAV file that seems normal but `deepsound2john.py` produces a hash. Challenge has two-part structure where first part is easy (spectrogram) and second part requires a tool. Challenge mentions "layers", "hidden", or "deep".
 
-------
+---
 
 ## Audio Waveform Binary Encoding (BackdoorCTF 2013)
 
@@ -428,12 +412,11 @@ for i in range(num_bits):
 
 # Decode binary to ASCII
 flag = ''.join(chr(int(bits[i:i+8], 2)) for i in range(0, len(bits)-7, 8))
-
 ```
 
 **Key insight:** Open in Audacity and zoom in — two visually distinct wave patterns alternate. Each pattern represents one bit. Count the patterns, group into 8-bit bytes, decode as ASCII.
 
-------
+---
 
 ## Audio Spectrogram Hidden QR Code (BaltCTF 2013)
 
@@ -447,19 +430,17 @@ sox audio.mp3 -n spectrogram -o spec.png
 # Look for visual patterns in specific frequency bands (often 5-12 kHz)
 # Extract/assemble QR code fragments from spectrogram
 # Scan with: zbarimg assembled_qr.png
-
 ```
 
 **Key insight:** Use Sonic Visualiser (Layer → Add Spectrogram) with adjustable window size and color mapping. QR codes or text often appear in the 2-15 kHz band. Multiple spectrogram fragments may need to be stitched together in an image editor before scanning.
 
-------
+---
 
 ## Byte-Reversed .docx ZIP Bidirectional Archive (Security Fest CTF 2018)
 
 **Pattern (Zion):** Distributed file is a valid `.docx` (ZIP archive). Extract it normally and you see only a decoy document. Reverse the entire file byte-for-byte and the result is *also* a valid ZIP archive — containing a second `word/media/*.png` whose contents are the flag.
 
 **Extraction:**
-
 ```bash
 # Verify the forward archive
 unzip -l doc.docx
@@ -468,7 +449,6 @@ unzip -l doc.docx
 python3 -c "import sys;sys.stdout.buffer.write(open('doc.docx','rb').read()[::-1])" > mirror.zip
 unzip -l mirror.zip
 unzip mirror.zip 'word/media/*' -d mirror/
-
 ```
 
 **Why both directions succeed:** ZIP's central directory sits at the end of the archive and the local file headers are parsed only via offsets in that directory. By placing a second set of local headers at the *start* of the file, and a matching central directory at the very end after reversing, the file satisfies the ZIP specification in both reading orders. Python's `zipfile` and `unzip -l` read the central directory from the tail, so they happily open whichever end is presented first.
@@ -477,7 +457,7 @@ unzip mirror.zip 'word/media/*' -d mirror/
 
 **References:** Security Fest CTF 2018 — writeup 10204
 
-------
+---
 
 ## MIDI Note-On/Note-Off Pitch Pair Encoding (X-MAS CTF 2018)
 
@@ -491,12 +471,11 @@ for ev in mid.tracks[0]:
     if ev.type == 'note_on':   ons.append(ev.note)
     elif ev.type == 'note_off': offs.append(ev.note)
 flag = ''.join(chr(o + f) for o, f in zip(ons, offs))
-
 ```
 
 **Key insight:** MIDI pitch values are 7-bit (0..127), so any byte can be split across two notes. When a MIDI sounds "atonal" but obeys strict note-pair alternation, test `on + off`, `(on<<4)|off`, `off - on`, and XOR combinations before assuming audio stego.
 
 **References:** X-MAS CTF 2018 — A Christmas Carol, writeup 12667
 
-------
+---
 

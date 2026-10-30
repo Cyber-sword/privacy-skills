@@ -1,7 +1,6 @@
 # CTF Crypto - Classic Ciphers
 
 ## Table of Contents
-
 - [Vigenere Cipher](#vigenere-cipher)
 - [Atbash Cipher](#atbash-cipher)
 - [Polybius Square Cipher (Qiwi-Infosec 2016)](#polybius-square-cipher-qiwi-infosec-2016)
@@ -27,12 +26,11 @@
 - [Flag Semaphore Photo Decoding (DefCamp CTF 2018)](#flag-semaphore-photo-decoding-defcamp-ctf-2018)
 - [Two-Byte Nibble Reassembly with Random Padding (Trend Micro 2018)](#two-byte-nibble-reassembly-with-random-padding-trend-micro-2018)
 
-------
+---
 
 ## Vigenere Cipher
 
 **Known Plaintext Attack (most common in CTFs):**
-
 ```python
 def vigenere_decrypt(ciphertext, key):
     result = []
@@ -120,13 +118,12 @@ def frequency_attack(ciphertext, key_length):
 **Key insight:** Repeated sequences in Vigenere ciphertext occur at distances that are multiples of the key length. The GCD of all such distances reveals the key length, after which each position becomes a simple Caesar cipher solvable by frequency analysis.
 
 **When standard keys don't work:**
-
 1. Key may not repeat - could be as long as message
 2. Key derived from challenge theme (character names, phrases)
 3. Key may have "padding" - repeated letters (IICCHHAA instead of ICHA)
 4. Try guessing plaintext words from theme, derive full key
 
-------
+---
 
 ## Atbash Cipher
 
@@ -142,7 +139,7 @@ def atbash(text):
 
 **Identification:** Challenge name hints ("Abashed" = Atbash), preserves spaces/punctuation, 1-to-1 substitution.
 
-------
+---
 
 ## Polybius Square Cipher (Qiwi-Infosec 2016)
 
@@ -170,7 +167,7 @@ print(polybius_decrypt("5211251521531412"))
 
 **Key insight:** Polybius ciphers produce digit-only ciphertext with values 1-5. The 5x5 grid merges I/J into one cell. Custom key alphabets change the grid layout but the two-digit coordinate structure remains constant.
 
-------
+---
 
 ## Substitution Cipher with Rotating Wheel
 
@@ -179,7 +176,6 @@ print(polybius_decrypt("5211251521531412"))
 **Automated solver:** Use [quipqiup.com](https://quipqiup.com/) for general substitution ciphers — it uses word pattern matching and language entropy to solve without knowing the key.
 
 **Brute force all rotations:**
-
 ```python
 outer = "ABCDEFGHIJKLMNOPQRSTUVWXYZ{}"
 inner = "QNFUVWLEZYXPTKMR}ABJICOSDHG{"  # Given
@@ -192,7 +188,7 @@ for rotation in range(len(outer)):
         print(decrypted)
 ```
 
-------
+---
 
 ## XOR Variants
 
@@ -254,13 +250,13 @@ print(bytes(c ^ key[i % len(key)] for i, c in enumerate(ct)))
 
 ```python
 # c[i] = p[i] ^ c[i-1] (or similar cascade)
-# Brute force first byte, rest follows deterministically
+# Brute force first plaintext byte, then recover each plaintext byte from the previous one
 for first_byte in range(256):
-    flag = [first_byte]
+    pt = [first_byte]
     for i in range(1, len(ct)):
-        flag.append(ct[i] ^ flag[i-1])
-    if all(32 <= b < 127 for b in flag):
-        print(bytes(flag))
+        pt.append(ct[i] ^ pt[i-1])
+    if all(32 <= b < 127 for b in pt):
+        print(bytes(pt))
 ```
 
 ### XOR with Rotation: Power-of-2 Bit Isolation (Pragyan 2026)
@@ -270,7 +266,6 @@ for first_byte in range(256):
 **Key insight:** When ALL rotation offsets are powers of 2 (2, 4, 8, 16, 32, 64), even-indexed and odd-indexed bits NEVER mix across any frame. This reduces N-bit recovery to just 2 bits of brute force.
 
 **Algorithm:**
-
 1. Express every bit of S in terms of two unknowns (s_0 for even bits, s_1 for odd bits) using the k=2 frame
 2. Only 4 candidate states -> try all, verify against all frames
 3. XOR valid state with ciphertext -> plaintext
@@ -289,14 +284,13 @@ for attempt in range(3000):
         break
 ```
 
-------
+---
 
 ## Deterministic OTP with Load-Balanced Backends (Pragyan 2026)
 
 **Pattern (DumCows):** Service encrypts data with deterministic keystream that resets per connection. Multiple backends with different keystreams behind a load balancer.
 
 **Attack:**
-
 1. Send known plaintext (e.g., 18 bytes of 'A'), XOR with ciphertext -> recover keystream
 2. XOR keystream with target ciphertext -> decrypt secret
 3. **Backend matching:** Must connect to same backend for keystream to match. Retry connections until patterns align.
@@ -311,7 +305,7 @@ def decrypt(keystream, target_ct):
 
 **Key insight:** When encryption is deterministic per connection with no nonce/IV, known-plaintext attack is trivial. The challenge is matching backends.
 
-------
+---
 
 ## OTP Key Reuse / Many-Time Pad XOR (BYPASS CTF 2025)
 
@@ -332,7 +326,6 @@ print(flag)
 ```
 
 **When plaintext is unknown — crib dragging:**
-
 ```python
 def crib_drag(c1, c2, crib, max_pos=None):
     """Slide known word across XOR of two ciphertexts."""
@@ -345,7 +338,7 @@ def crib_drag(c1, c2, crib, max_pos=None):
 
 **Key insight:** OTP (One-Time Pad) XOR encryption is only secure when the key is truly one-time. Reusing the key on two messages leaks `P1 XOR P2` — exploit with known plaintext or crib dragging.
 
-------
+---
 
 ## Book Cipher
 
@@ -353,7 +346,7 @@ def crib_drag(c1, c2, crib, max_pos=None):
 
 See [historical.md](historical.md) for full implementation.
 
-------
+---
 
 ## Variable-Length Homophonic Substitution (ASIS CTF Finals 2013)
 
@@ -362,7 +355,6 @@ See [historical.md](historical.md) for full implementation.
 **Analysis workflow:**
 
 1. Collapse whitespace and compute n-gram frequencies (1 through 6):
-
 ```python
 from collections import Counter
 
@@ -374,7 +366,6 @@ for n in range(1, 7):
 ```
 
 2. Identify constant-frequency groups — if `8f`, `fk`, and `kd` each appear exactly 36 times, check whether `8fkd` also appears 36 times. If so, it is a single substitution unit:
-
 ```python
 # Iteratively replace most-frequent fixed groups with single symbols
 substitutions = {
@@ -388,8 +379,8 @@ for pattern, symbol in sorted(substitutions.items(), key=lambda x: -len(x[0])):
 ```
 
 3. The reduced text is now a monoalphabetic substitution — solve with [quipqiup.com](https://quipqiup.com/) or statistical analysis on English.
-4. When some characters remain ambiguous after decryption, brute-force permutations against a known hash of the flag:
 
+4. When some characters remain ambiguous after decryption, brute-force permutations against a known hash of the flag:
 ```python
 from itertools import permutations
 from hashlib import sha256
@@ -408,7 +399,7 @@ for p in permutations(ambiguous_chars):
 
 **Key insight:** Variable-length homophonic substitution hides letter frequencies by mapping common plaintext letters to longer codegroups. The attack reverses this: find n-grams that always appear as a unit (identical frequency for all sub-n-grams), replace them with single symbols, then solve the resulting monoalphabetic substitution. When the flag format provides a hash for verification, brute-force remaining ambiguous character permutations offline.
 
-------
+---
 
 ## Grid Permutation Cipher Keyspace Reduction (BSidesSF 2026)
 
@@ -437,7 +428,7 @@ for row_perm in permutations(range(grid_size)):
 
 **When to recognize:** Challenge uses a grid-based cipher, mentions "row/column shuffling", or provides a substitution table that looks like a permuted matrix. Any grid cipher where rows and columns are shuffled independently has this n!^2 keyspace property.
 
-------
+---
 
 ## Image-Based Caesar Shift Ciphers (BSidesSF 2026)
 
@@ -490,14 +481,13 @@ for y in range(h):
                 prev_shift = offset
             break
 print(flag)
-
 ```
 
 **Key insight:** Image pixel shifts are a visual form of Caesar cipher. When comparing an original and shifted image, the shift amount per row/column directly encodes hidden data. Always compare row-by-row or column-by-column when given two versions of the same image.
 
 **When to recognize:** Challenge provides one or two image files with visible horizontal or vertical "shearing" artifacts. If an original image is provided alongside a shifted version, compute per-row or per-column offsets and check if they decode as ASCII.
 
-------
+---
 
 ## XOR Key Recovery via File Format Headers (MetaCTF Flash 2026)
 
@@ -535,21 +525,20 @@ with open('decrypted.pdf', 'wb') as f:
 import subprocess
 result = subprocess.run(['file', 'decrypted.pdf'], capture_output=True, text=True)
 print(result.stdout)  # Should show: PDF document
-
 ```
 
 **Key insight:** Every file format has known byte sequences at fixed positions -- magic bytes at the start, structural markers throughout, and trailer signatures at the end. XOR with a repeating key is fully recoverable when you know enough plaintext at known offsets. For a key of length N, you need N bytes of known plaintext at known positions (they need not be contiguous, but you must know their offset modulo the key length).
 
 **Common file format anchors for key recovery:**
 
-| Format | Header               | Trailer/Footer      |
-| ------ | -------------------- | ------------------- |
-| PDF    | `%PDF-1.`            | `%%EOF`             |
-| PNG    | `\x89PNG\r\n\x1a\n`  | `IEND\xaeB\x60\x82` |
-| ZIP    | `PK\x03\x04`         | `PK\x05\x06` (EOCD) |
-| JPEG   | `\xff\xd8\xff\xe0`   | `\xff\xd9`          |
-| ELF    | `\x7fELF`            | --                  |
-| GIF    | `GIF89a` or `GIF87a` | `\x3b` (trailer)    |
+| Format | Header | Trailer/Footer |
+|--------|--------|----------------|
+| PDF | `%PDF-1.` | `%%EOF` |
+| PNG | `\x89PNG\r\n\x1a\n` | `IEND\xaeB\x60\x82` |
+| ZIP | `PK\x03\x04` | `PK\x05\x06` (EOCD) |
+| JPEG | `\xff\xd8\xff\xe0` | `\xff\xd9` |
+| ELF | `\x7fELF` | -- |
+| GIF | `GIF89a` or `GIF87a` | `\x3b` (trailer) |
 
 **When to recognize:** Challenge provides a file that should be a known format (filename extension or description says so) but `file` reports "data" or wrong type. Hex dump shows no recognizable magic bytes. XOR the first few bytes against the expected header -- if the result looks like an ASCII string or repeating pattern, it is a repeating XOR key.
 
@@ -557,7 +546,7 @@ print(result.stdout)  # Should show: PDF document
 
 **References:** MetaCTF Flash CTF 2026 "In The Door"
 
-------
+---
 
 ## 3D Vigenere Palindrome Symmetry Key Recovery (SECCON 2017)
 
@@ -572,14 +561,14 @@ for c1 in range(len(s)):
     for c2 in range(len(s)):
         if (c1 + c2) % len(s) == known_sum:
             # test this key pair
-
+            pass
 ```
 
 **Key insight:** Palindrome key structure (k2 = reverse(k1)) halves the effective keyspace. Each plaintext position depends on the sum of two key characters at mirrored positions. Known plaintext of length >= key_length/2 fully constrains these sums, reducing the remaining brute-force dramatically. This generalizes to any polyalphabetic cipher where key symmetry reduces independent key variables.
 
 **References:** SECCON CTF 2017
 
-------
+---
 
 ## Nihilist Cipher Double-Crib Key Recovery (Security Fest CTF 2018)
 
@@ -588,21 +577,18 @@ for c1 in range(len(s)):
 **Key insight:** The flag format `midnight{...}` contains two `i` characters at known positions. Both must produce the same Polybius coordinates (e.g., `24`), so their ciphertext differences directly reveal two key digit pairs — enough to constrain the additive key. Every valid Polybius coordinate must be in range 1-5, which prunes invalid key candidates aggressively.
 
 **Recovery approach:**
-
 ```python
 # For each pair of key digits (k1, k2) in 1..9:
 #   for each ciphertext two-digit group:
 #     plain = ((c1 - k1) % 10, (c2 - k2) % 10)
 #     if plain[0] not in 1..5 or plain[1] not in 1..5: reject
 #   otherwise test frequency (most common letter => 'e') and look up Polybius
-
 ```
-
 Use the two repeated-character constraints from the flag prefix to cut the keyspace to a handful, then brute-force the Polybius square from remaining ciphertext frequency.
 
 **References:** Security Fest CTF 2018 — writeup 10210
 
-------
+---
 
 ## 16-Byte XOR Block Cipher Structural Reversal (h4ckc0n 2018)
 
@@ -623,14 +609,13 @@ def decrypt(ciphertext):
             for m in range(i + j*4, i + j*4 + 4):
                 out.append(ciphertext[m] ^ xorsum)
     return bytes(out)
-
 ```
 
 **Key insight:** Any unkeyed cipher built from XOR-only operations over fixed-size blocks is a linear system. If each output bit is a linear combination of input bits, invert by solving for the dependent lane — no key or brute force required.
 
 **References:** h4ckc0n 2018 — writeup 10806
 
-------
+---
 
 ## Flag Semaphore Photo Decoding (DefCamp CTF 2018)
 
@@ -650,7 +635,7 @@ letters = [SEMAPHORE[pose] for pose in pose_sequence]
 
 **References:** DefCamp CTF 2018 — Multiple Flags, writeup 12005
 
-------
+---
 
 ## Two-Byte Nibble Reassembly with Random Padding (Trend Micro 2018)
 

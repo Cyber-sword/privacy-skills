@@ -3,7 +3,6 @@
 Advanced CTF-specific PRNG attacks from 2017 onward. For foundational PRNG recovery (MT19937, LCG parameter recovery, ChaCha20, V8 XorShift128+, password cracking), see [prng.md](prng.md).
 
 ## Table of Contents
-
 - [Mersenne Twister Seed Recovery from Subset Sum (Tokyo Westerns 2017)](#mersenne-twister-seed-recovery-from-subset-sum-tokyo-westerns-2017)
 - [MT19937 State Recovery via Constraint Propagation (HITCON 2017)](#mt19937-state-recovery-via-constraint-propagation-hitcon-2017)
 - [Rule 86 Cellular Automaton PRNG Reversal via Z3 (Insomni'hack 2018)](#rule-86-cellular-automaton-prng-reversal-via-z3-insomnihack-2018)
@@ -15,18 +14,16 @@ Advanced CTF-specific PRNG attacks from 2017 onward. For foundational PRNG recov
 - [Time-Seeded PRNG Offset via Format-String Global Write (FireShell 2019)](#time-seeded-prng-offset-via-format-string-global-write-fireshell-2019)
 - [NTP-Poisoned PRNG State Leak via UUID XOR (RuCTFe 2018)](#ntp-poisoned-prng-state-leak-via-uuid-xor-ructfe-2018)
 
-------
+---
 
 ## Mersenne Twister Seed Recovery from Subset Sum (Tokyo Westerns 2017)
 
 **Pattern:** MT19937 seeded with a 32-bit value generates subset-sum problems (e.g., "which elements from this set sum to target?"). Solving small subset-sum problems leaks specific MT output values. Two recovered outputs at indices 0 and 227 are sufficient to invert the MT seeding process.
 
 **MT twist function relationship:**
-
 ```text
 mt[i] = mt[i-624] XOR twist(mt[i-624], mt[i-623])
 ```
-
 At the wrap-around: `mt[624]` depends on `mt[0]` (new cycle) and `mt[397]` (old cycle). Recovering `mt[0]` and `mt[227]` (which is related to `mt[624-227] = mt[397]`) via subset-sum solutions reveals enough to invert the twist recurrence.
 
 ```python
@@ -52,22 +49,19 @@ r.seed(recovered_seed)
 
 **References:** Tokyo Westerns CTF 2017
 
-------
+---
 
 ## MT19937 State Recovery via Constraint Propagation (HITCON 2017)
 
 **Pattern:** Server generates problems that leak 24-120 bits of PRNG output per round (e.g., partial bit-patterns, subset sums, modular reductions). Rather than collecting 624 full 32-bit outputs, model the MT state as an array of per-cell candidate sets and propagate constraints bidirectionally through the MT recurrence.
 
 **MT recurrence dependencies:**
-
 ```text
 state[i] = state[i-624] XOR twist(state[i-624], state[i-623])
 ```
-
 This means `state[x]` depends on `state[x-624]`, `state[x-623]`, and `state[x-227]` (via the generate step). Partial knowledge at any index propagates in both directions.
 
 **Constraint propagation approach:**
-
 ```python
 # Model: each state word starts as a set of 2^32 candidates
 # Partial observation: narrow candidates for observed indices
@@ -96,7 +90,7 @@ def propagate_backward(state_candidates, idx):
 
 **References:** HITCON CTF 2017
 
-------
+---
 
 ## Rule 86 Cellular Automaton PRNG Reversal via Z3 (Insomni'hack 2018)
 
@@ -126,7 +120,7 @@ model = s.model()
 
 **References:** Insomni'hack CTF 2018
 
-------
+---
 
 ## Java LCG Seed Meet-in-the-Middle via Partial Modulo (P.W.N. CTF 2018)
 
@@ -148,7 +142,7 @@ for low in candidates:
 
 **References:** P.W.N. CTF 2018 — PW API, writeup 12065
 
-------
+---
 
 ## LCG Backward Stepping via Multiplicative Inverse (P.W.N. CTF 2018)
 
@@ -164,7 +158,7 @@ prev_state = (a_inv * (state - 11)) % M
 
 **References:** P.W.N. CTF 2018 — PW API, writeup 12065
 
-------
+---
 
 ## LFSR Bit-Fold Recovery from ASCII Parity (X-MAS CTF 2018)
 
@@ -184,7 +178,7 @@ state = gf2_solve(A, b)
 
 **References:** X-MAS CTF 2018 — Probably Really Nice Goodies from Santa, writeup 12686
 
-------
+---
 
 ## Z3 Solve-Time Timing Oracle on PRNG (X-MAS CTF 2018)
 
@@ -200,14 +194,13 @@ for c in string.printable:
     if s.check() == sat and (time.time() - t) > 0.4:
         flag += c
         break
-
 ```
 
 **Key insight:** Many oracles run the solver internally; wrong guesses return fast because the SAT instance is already obviously satisfiable. Set a tight timeout and promote slow-solve candidates.
 
 **References:** X-MAS CTF 2018 — Probably Really Nice Goodies from Santa, writeup 12686
 
-------
+---
 
 ## randcrack-Fed DSA k Prediction (CSAW CTF 2018)
 
@@ -221,14 +214,13 @@ for _ in range(624 // 2):
     rc.submit(v & 0xffffffff); rc.submit(v >> 32)
 k = rc.predict_randrange(2, q)
 x = ((s*k - h) * pow(r, -1, q)) % q
-
 ```
 
 **Key insight:** Python's `random` is shared across all calls. Any endpoint that leaks `random` output poisons every other RNG consumer including DSA signing.
 
 **References:** CSAW CTF 2018 — Disastrous Security Apparatus, writeup 12495
 
-------
+---
 
 ## Time-Seeded PRNG Offset via Format-String Global Write (FireShell 2019)
 
@@ -247,7 +239,7 @@ predicted = [libc.rand() for _ in range(n)]
 
 **References:** FireShell CTF 2019 — casino, writeup 12916
 
-------
+---
 
 ## NTP-Poisoned PRNG State Leak via UUID XOR (RuCTFe 2018)
 

@@ -1,6 +1,13 @@
 ---
 name: solve-challenge
 description: Solves CTF challenges by performing first-pass triage, identifying the dominant category, and routing execution to the right specialized ctf-* skill. Use when the user gives you a challenge bundle, a remote service, a suspicious file, or only a vague challenge description and you must determine where to start. Do not use it when the category is already clear and a specialized skill can be invoked directly; this is the dispatcher and recon entrypoint, not the deepest reference for category-specific techniques.
+license: MIT
+compatibility: Requires filesystem-based agent (Claude Code or similar) with bash, Python 3, and internet access. Orchestrates other ctf-* skills.
+allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch Skill
+metadata:
+  user-invocable: "true"
+  argument-hint: "[category] [challenge-file-or-url]"
+  author: Lukasz Jagiello
 ---
 
 # CTF Challenge Solver
@@ -38,6 +45,10 @@ Each category skill's `SKILL.md` has a **Prerequisites** section listing only th
 
 ## Workflow
 
+Before selecting or escalating a model, read
+[difficulty-routing.md](difficulty-routing.md). Use its evidence-based scoring,
+stop-loss rules, and tier gates throughout the workflow.
+
 ### Step 0: CTFd Platform Detection
 
 If the CTF platform URL is known, check if it runs CTFd and switch to API-driven navigation:
@@ -57,6 +68,38 @@ export CTF_TOKEN="ctfd_..."  # Ask user for this
 
 Invoke `/ctf-misc` and load its `ctfd-navigation.md` for the full API reference and Python client class.
 
+#### CTF Platform Interaction via Playwright MCP
+
+When the platform is **not** CTFd, has no usable API, or gates challenges behind a
+JS-rendered UI / login, drive the platform in a real browser with **Playwright
+MCP** (`https://github.com/microsoft/playwright-mcp`). This lets the agent read
+challenge text, download attachments, keep a login session, and submit flags
+directly through the site.
+
+```text
+browser_navigate "https://ctf.example.com/challenges"
+browser_snapshot                 # list challenges, points, categories (rendered)
+browser_click <challenge ref>    # open a challenge card
+browser_snapshot                 # read description, hints, attachment links
+browser_click <attachment ref>   # download the challenge file (saved by the browser)
+# ... solve the challenge ...
+browser_type <flag input ref> "flag{...}"
+browser_click <submit ref>
+browser_find text="Correct"      # cheaper than a full snapshot to check the verdict
+```
+
+`browser_find` (text or regex over the accessibility tree) is the right tool
+whenever you only need to confirm one value — reserve full `browser_snapshot`
+for when you need element refs to click or type into.
+
+Login sessions (cookies/localStorage) persist across tool calls, so authenticate
+once and every later navigation is authorized. For general browser-automation
+tooling see [../ctf-web/tools-mcp.md](../ctf-web/tools-mcp.md#playwright-mcp-browser-automation).
+
+**Prefer a native API when one exists** (CTFd token flow above is faster and more
+reliable); use Playwright MCP for platforms without an API or when the challenge
+list only renders client-side.
+
 ### Step 1: Recon
 
 1. **Explore files** -- List the challenge directory, run `file *` on everything
@@ -70,26 +113,25 @@ Invoke `/ctf-misc` and load its `ctfd-navigation.md` for the full API reference 
 Determine the primary category, then invoke the matching skill.
 
 **By file type:**
-
 - `.pcap`, `.pcapng`, `.evtx`, `.raw`, `.dd`, `.E01` -> forensics
 - `.elf`, `.exe`, `.so`, `.dll`, binary with no extension -> reverse or pwn (check if remote service provided -- if yes, likely pwn)
 - `.py`, `.sage`, `.txt` with numbers -> crypto
 - `.apk`, `.wasm`, `.pyc` -> reverse
+- `.safetensors`, `.pt`, `.pth`, `.bin`, `.onnx` -> ai-ml
 - Web URL or source code with HTML/JS/PHP/templates -> web
 - Images, audio, PDFs with no obvious content -> forensics (steganography)
 
 **By challenge description keywords:**
-
 - "buffer overflow", "ROP", "shellcode", "libc", "heap" -> pwn
 - "RSA", "AES", "cipher", "encrypt", "prime", "modulus", "lattice", "LWE", "GCM" -> crypto
 - "XSS", "SQL", "injection", "cookie", "JWT", "SSRF" -> web
 - "disk image", "memory dump", "packet capture", "registry", "power trace", "side-channel", "spectrogram", "audio tracks", "MKV" -> forensics
 - "find", "locate", "identify", "who", "where" -> osint
 - "obfuscated", "packed", "C2", "malware", "beacon" -> malware
+- "prompt injection", "LoRA", "adversarial", "model weights", "embedding" -> ai-ml
 - "jail", "sandbox", "escape", "encoding", "signal", "game", "Nim", "commitment", "Gray code" -> misc
 
 **By service behavior:**
-
 - Port with interactive prompt, crash on long input -> pwn
 - HTTP service -> web
 - netcat with math/crypto puzzles -> crypto
@@ -99,16 +141,17 @@ Determine the primary category, then invoke the matching skill.
 
 Once you identify the category, **invoke the matching skill** to get specialized techniques:
 
-| Category  | Invoke           | When to Use                                                  |
-| --------- | ---------------- | ------------------------------------------------------------ |
-| Web       | `/ctf-web`       | XSS, SQLi, SSTI, SSRF, JWT, file uploads, prototype pollution |
-| Pwn       | `/ctf-pwn`       | Buffer overflow, format string, heap, ROP, sandbox escape    |
-| Crypto    | `/ctf-crypto`    | RSA, AES, ECC, PRNG, ZKP, classical ciphers                  |
-| Reverse   | `/ctf-reverse`   | Binary analysis, game clients, VMs, obfuscated code          |
+| Category | Invoke | When to Use |
+|----------|--------|-------------|
+| Web | `/ctf-web` | XSS, SQLi, SSTI, SSRF, JWT, file uploads, prototype pollution |
+| Pwn | `/ctf-pwn` | Buffer overflow, format string, heap, ROP, sandbox escape |
+| Crypto | `/ctf-crypto` | RSA, AES, ECC, PRNG, ZKP, classical ciphers |
+| Reverse | `/ctf-reverse` | Binary analysis, game clients, VMs, obfuscated code |
 | Forensics | `/ctf-forensics` | Disk images, memory dumps, event logs, stego, network captures |
-| OSINT     | `/ctf-osint`     | Social media, geolocation, DNS, public records               |
-| Malware   | `/ctf-malware`   | Obfuscated scripts, C2 traffic, PE/.NET analysis             |
-| Misc      | `/ctf-misc`      | Jails, encodings, RF/SDR, esoteric languages, constraint solving |
+| OSINT | `/ctf-osint` | Social media, geolocation, DNS, public records |
+| Malware | `/ctf-malware` | Obfuscated scripts, C2 traffic, PE/.NET analysis |
+| AI/ML | `/ctf-ai-ml` | Model weights (`.safetensors`, `.pt`, `.pth`, `.bin`, `.onnx`), prompt injection, LoRA adapters, adversarial examples |
+| Misc | `/ctf-misc` | Jails, encodings, RF/SDR, esoteric languages, constraint solving |
 
 You can also invoke `/ctf-<category>` to load the full skill instructions with detailed techniques.
 
@@ -123,7 +166,6 @@ If your first approach doesn't work:
 5. **Check edge cases** -- Off-by-one, race conditions, integer overflow, encoding mismatches.
 
 **Common multi-category patterns:**
-
 - Forensics + Crypto: encrypted data in PCAP/disk image, need crypto to decrypt
 - Web + Reverse: WASM or obfuscated JS in web challenge
 - Web + Crypto: JWT forgery, custom MAC/signature schemes
@@ -144,13 +186,11 @@ After solving the challenge, invoke `/ctf-writeup` to generate a standardized su
 ## Flag Formats
 
 Flags vary by CTF. Common formats:
-
 - `flag{...}`, `FLAG{...}`, `CTF{...}`, `TEAM{...}`
 - Custom prefixes: check the challenge description or CTF rules for the format (e.g., `ENO{...}`, `HTB{...}`, `picoCTF{...}`)
 - Sometimes just a plaintext string with no wrapper
 
 **Validation rule (important):**
-
 - If you find multiple flag-like strings, treat them as candidates and validate before finalizing.
 - Prefer the token tied to the intended artifact/workflow (not random metadata noise or obvious decoys).
 - Do a corpus-wide uniqueness check and include the source file/path when reporting.

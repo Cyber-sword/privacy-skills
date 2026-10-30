@@ -3,13 +3,12 @@
 2018-era additions: bucket-collision hash auth bypass, Unicode username homograph collision, SRP A=0/A=N bypass, ArangoDB AQL MERGE privilege escalation. For foundational auth/access techniques see [auth-and-access.md](auth-and-access.md). For JWT attacks see [auth-jwt.md](auth-jwt.md). For OAuth/OIDC/SAML/CI-CD, see [auth-infra.md](auth-infra.md).
 
 ## Table of Contents
-
 - [std::unordered_set Bucket Collision Auth Bypass (Hackover 2018)](#stdunordered_set-bucket-collision-auth-bypass-hackover-2018)
 - [nodeprep.prepare Homograph Username Collision (HCTF 2018)](#nodeprepprepare-homograph-username-collision-hctf-2018)
 - [SRP A=0, A=N Auth Bypass (OTW Advent 2018)](#srp-a0-an-auth-bypass-otw-advent-2018)
 - [ArangoDB AQL MERGE Injection for Privilege Escalation (P.W.N. CTF 2018)](#arangodb-aql-merge-injection-for-privilege-escalation-pwn-ctf-2018)
 
-------
+---
 
 ## std::unordered_set Bucket Collision Auth Bypass (Hackover 2018)
 
@@ -36,7 +35,7 @@ requests.post("http://target/login", data={"name": "root", "password": "anything
 
 **References:** Hackover CTF 2018 — secure-hash, writeup 11502
 
-------
+---
 
 ## nodeprep.prepare Homograph Username Collision (HCTF 2018)
 
@@ -51,7 +50,7 @@ nodeprep.prepare("ᴬdmin") == "admin"
 
 **References:** HCTF 2018 — admin, writeup 12132
 
-------
+---
 
 ## SRP A=0, A=N Auth Bypass (OTW Advent 2018)
 
@@ -67,7 +66,7 @@ Session key: K = H(0)   # attacker knows this
 
 **References:** OverTheWire Advent Bonanza 2018 — writeup 12750
 
-------
+---
 
 ## ArangoDB AQL MERGE Injection for Privilege Escalation (P.W.N. CTF 2018)
 

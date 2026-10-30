@@ -1,6 +1,12 @@
 ---
 name: ctf-ai-ml
 description: Provides AI and machine learning techniques for CTF challenges. Use when attacking ML models, crafting adversarial examples, performing model extraction, prompt injection, membership inference, training data poisoning, fine-tuning manipulation, neural network analysis, LoRA adapter exploitation, LLM jailbreaking, or solving AI-related puzzles.
+license: MIT
+compatibility: Requires filesystem-based agent (Claude Code or similar) with bash, Python 3, and internet access for tool installation.
+allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch
+metadata:
+  user-invocable: "false"
+  author: Lukasz Jagiello
 ---
 
 # CTF AI/ML
@@ -10,19 +16,16 @@ Quick reference for AI/ML CTF challenges. Each technique has a one-liner here; s
 ## Prerequisites
 
 **Python packages (all platforms):**
-
 ```bash
 pip install torch transformers numpy scipy Pillow safetensors scikit-learn
 ```
 
 **Linux (apt):**
-
 ```bash
 apt install python3-dev
 ```
 
 **macOS (Homebrew):**
-
 ```bash
 brew install python@3
 ```
@@ -33,7 +36,7 @@ brew install python@3
 - [adversarial-ml.md](adversarial-ml.md) - Adversarial example generation (FGSM, PGD, C&W), adversarial patch generation, evasion attacks on ML classifiers, data poisoning, backdoor detection in neural networks
 - [llm-attacks.md](llm-attacks.md) - Prompt injection (direct/indirect), LLM jailbreaking, token smuggling, context window manipulation, tool use exploitation
 
-------
+---
 
 ## When to Pivot
 

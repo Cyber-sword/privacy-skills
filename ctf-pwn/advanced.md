@@ -1,7 +1,6 @@
 # CTF Pwn - Advanced Techniques
 
 ## Table of Contents
-
 - [Seccomp Advanced Techniques](#seccomp-advanced-techniques)
   - [openat2 Bypass (New Age Pattern)](#openat2-bypass-new-age-pattern)
   - [Conditional Buffer Address Restrictions](#conditional-buffer-address-restrictions)
@@ -22,14 +21,13 @@
 
 **See also:** [heap-techniques.md](heap-techniques.md) — House of Apple 2, House of Einherjar, House of Orange/Spirit/Lore/Force, heap grooming, custom allocator exploitation (nginx, talloc), classic unlink, musl libc heap, tcache stashing unlink
 
-------
+---
 
 ## Seccomp Advanced Techniques
 
 ### openat2 Bypass (New Age Pattern)
 
 `openat2` (syscall 437, Linux 5.6+) frequently missed in seccomp filters blocking `open`/`openat`:
-
 ```python
 # struct open_how { u64 flags; u64 mode; u64 resolve; }  = 24 bytes
 # openat2(AT_FDCWD, filename, &open_how, sizeof(open_how))
@@ -38,12 +36,10 @@
 ### Conditional Buffer Address Restrictions
 
 Seccomp `SCMP_CMP_LE`/`SCMP_CMP_GE` on buffer addresses:
-
 - `read()` KILL if buf <= code_region + X → read to high addresses
 - `write()` KILL if buf >= code_region + Y → write from low addresses
 
 **Bypass:** Read into allowed region, `rep movsb` copy to write-allowed region:
-
 ```nasm
 lea rsi, [r14 + 0xc01]   ; buf > code_region+0xc00 (passes read check)
 xor rax, rax              ; __NR_read
@@ -95,20 +91,19 @@ SCMP_CMP operators: `NE=1, LT=2, LE=3, EQ=4, GE=5, GT=6, MASKED_EQ=7`
 
 Default action `0x7fff0000` = `SCMP_ACT_ALLOW`
 
-------
+---
 
 ## rdx Control in ROP Chains
 
 See [rop-and-shellcode.md](rop-and-shellcode.md#rdx-control-in-rop-chains) for full details and code examples.
 
-------
+---
 
 ## Use-After-Free (UAF) Exploitation
 
 **Pattern:** Menu create/delete/view where `free()` doesn't NULL pointer.
 
 **Classic UAF flow:**
-
 1. Create object A (allocates chunk with function pointer)
 2. Leak address via inspect/view (bypass PIE)
 3. Free object A (creates dangling pointer)
@@ -129,14 +124,13 @@ create_signal(b"A"*56 + p64(win_addr))  # Same-size struct overwrites callback
 analyze_report(0)             # Calls dangling pointer -> win()
 ```
 
-------
+---
 
 ## JIT Compilation Exploits
 
 **Pattern (Santa's Christmas Calculator):** Off-by-one in instruction encoding causes misaligned machine code.
 
 **Exploitation flow:**
-
 1. Find the boundary value that triggers wrong instruction form (e.g., 128 vs 127)
 2. Misaligned bytes become executable instructions
 3. Control `rax` to survive invalid dereferences (point to writable memory)
@@ -144,7 +138,6 @@ analyze_report(0)             # Calls dangling pointer -> win()
 5. Chain 4-byte shellcode blocks with 2-byte `jmp` instructions between them
 
 **2-byte instruction shellcode tricks:**
-
 - `push rdx; pop rsi` = `mov rsi, rdx` in 2 bytes
 - `xor eax, eax` = 2 bytes (set syscall number)
 - `not dl` = 2 bytes (adjust pointer)
@@ -155,7 +148,6 @@ analyze_report(0)             # Calls dangling pointer -> win()
 **Pattern (Pikalang):** Brainfuck/Pikalang interpreter with unbounded tape allows arbitrary memory access.
 
 **Exploitation:**
-
 1. Tape pointer starts at known buffer address
 2. Move pointer backward/forward to reach GOT entry (e.g., `strlen@GOT`)
 3. Overwrite GOT entry byte-by-byte with `system()` address
@@ -168,7 +160,6 @@ analyze_report(0)             # Calls dangling pointer -> win()
 **Pattern (Santa's Base Converter):** Number stored as string in different bases has different lengths.
 
 **Exploitation:**
-
 1. Store number in base with short representation (e.g., base-36)
 2. Convert to base with longer representation (e.g., base-2/binary)
 3. Longer string overflows into adjacent heap chunk metadata
@@ -184,7 +175,7 @@ analyze_report(0)             # Calls dangling pointer -> win()
 
 **Exploitation:** Craft tree structure that causes traversal to overflow buffer → overwrite return address → ret2win (partial overwrite if PIE).
 
-------
+---
 
 ## ret2dlresolve
 
@@ -208,7 +199,6 @@ io.sendline(dlresolve.payload)
 ```
 
 **Manual approach (understanding the internals):**
-
 ```python
 # Forge at a writable address (e.g., .bss)
 # 1. Fake Elf64_Rela: points PLT slot to our fake Elf64_Sym
@@ -230,7 +220,7 @@ fake_sym_st_name = fake_string_addr - STRTAB
 
 **Requirements:** Partial RELRO (Full RELRO resolves all symbols at load time, defeating this). Writable memory to place forged structures.
 
-------
+---
 
 ## Kernel Exploitation
 
@@ -244,7 +234,6 @@ For comprehensive kernel exploitation techniques, see [kernel.md](kernel.md). Qu
 - Kernel config recon checklist
 
 **Basic patterns (userland-adjacent):**
-
 - OOB via vulnerable `lseek` handlers
 - Heap grooming with forked processes
 - SUID binary exploitation via kernel-to-userland buffer overflow
@@ -252,7 +241,7 @@ For comprehensive kernel exploitation techniques, see [kernel.md](kernel.md). Qu
   - `CONFIG_SLAB_FREELIST_RANDOM=n` → sequential heap chunks
   - `CONFIG_SLAB_MERGE_DEFAULT=n` → predictable allocations
 
-------
+---
 
 ## 9-Byte test+je Timing Leak (hxp 2018)
 
@@ -267,7 +256,7 @@ f6 05 02 00 00 00 X    test BYTE PTR [rip+0x2], X
 
 **References:** hxp CTF 2018 — yunospace, writeup 12570
 
-------
+---
 
 ## RtlCaptureContext Deterministic Windows Stack Leak (Insomnihack 2017)
 
@@ -283,7 +272,7 @@ printf("rsp = %p\n", (void*)ctx.Rsp);
 
 **References:** Insomnihack 2017 — winworld, writeup 12876
 
-------
+---
 
 ## IEEE 754 Double-as-Shellcode via Exponent Fixing (Kaspersky 2018)
 
@@ -308,7 +297,7 @@ d6 = 6*target_int - (d1_int + d2_int + d3_int + d4_int + d5_int)
 
 **References:** Kaspersky Industrial CTF 2018 — doubles, writeups 12324, 12326
 
-------
+---
 
 ## PIE Bypass via Consistent glibc Load Base 0x56555000 (TAMUctf 2019)
 

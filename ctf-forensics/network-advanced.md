@@ -3,7 +3,6 @@
 For USB/HID/Bluetooth peripheral capture analysis (mouse/pen drawing recovery, keyboard scan codes, LED Morse exfiltration, RFCOMM reassembly), see [peripheral-capture.md](peripheral-capture.md). For basic network forensics, see [network.md](network.md).
 
 ## Table of Contents
-
 - [Packet Interval Timing-Based Encoding (EHAX 2026)](#packet-interval-timing-based-encoding-ehax-2026)
 - [NTLMv2 Hash Cracking from PCAP (Pragyan 2026)](#ntlmv2-hash-cracking-from-pcap-pragyan-2026)
 - [TCP Flag Covert Channel (BearCatCTF 2026)](#tcp-flag-covert-channel-bearcatctf-2026)
@@ -22,7 +21,7 @@ For USB/HID/Bluetooth peripheral capture analysis (mouse/pen drawing recovery, k
 - [RC4 Stream Identification in Shellcode PCAP (CODE BLUE 2017)](#rc4-stream-identification-in-shellcode-pcap-code-blue-2017)
 - [ICMP Ping Time-Delay Covert Channel (DefCamp 2018)](#icmp-ping-time-delay-covert-channel-defcamp-2018)
 
-------
+---
 
 ## Packet Interval Timing-Based Encoding (EHAX 2026)
 
@@ -31,7 +30,6 @@ For USB/HID/Bluetooth peripheral capture analysis (mouse/pen drawing recovery, k
 **Identification:** Challenge mentions "breathing", "void", "silence", or timing. PCAP has many interfaces but only one has interesting traffic. Packets are identical but spaced at two distinct intervals.
 
 **Decoding workflow:**
-
 ```python
 from scapy.all import rdpcap
 
@@ -62,7 +60,7 @@ print(data.decode(errors='replace'))
 
 **Scale tip:** Large PCAPs (millions of packets) often have the signal in a tiny subset. Triage with `tshark -q -z io,phs` to find which interface has the fewest packets — that's likely the data carrier.
 
-------
+---
 
 ## NTLMv2 Hash Cracking from PCAP (Pragyan 2026)
 
@@ -71,7 +69,6 @@ print(data.decode(errors='replace'))
 **Extraction:** From NTLMSSP_AUTH packet, extract: server challenge, NTProofStr, and blob.
 
 **Brute-force with known password format:**
-
 ```python
 import hashlib, hmac
 from Crypto.Hash import MD4
@@ -84,14 +81,13 @@ def try_password(password, username, domain, server_challenge, blob, expected_pr
     return proof == expected_proof
 ```
 
-------
+---
 
 ## TCP Flag Covert Channel (BearCatCTF 2026)
 
 **Pattern (pCapsized):** Suspicious TCP packets with chaotic flag combinations (FIN+SYN, SYN+RST+PSH+URG, etc.). The 6 TCP flag bits encode base64 characters.
 
 **Decoding:**
-
 ```python
 from scapy.all import rdpcap, TCP
 
@@ -110,7 +106,7 @@ flag = base64.b64decode(encoded).decode()
 
 **Detection:** Packets with nonsensical flag combinations (e.g., FIN+SYN simultaneously). Consistent destination port. Packet count is a multiple of 4 (base64 alignment).
 
-------
+---
 
 ## DNS Query Name Last-Byte Steganography (UTCTF 2026)
 
@@ -119,7 +115,6 @@ flag = base64.b64decode(encoded).decode()
 **Identification:** Many DNS queries to unusual or sequential subdomains. The meaningful data is NOT in the query name itself but in the final byte/character of each name.
 
 **Decoding workflow:**
-
 ```python
 from scapy.all import rdpcap, DNS, DNSQR
 
@@ -139,7 +134,6 @@ print(message)
 ```
 
 **Variants:**
-
 - Last byte of each subdomain label (split on `.`)
 - Specific character position (first, Nth, last)
 - Hex-encoded bytes across multiple queries
@@ -155,7 +149,6 @@ print(message)
 **Pattern (Last Byte Standing variant):** Each DNS query packet contains a single extra byte appended AFTER the standard DNS question structure (after the null terminator + Type A + Class IN fields). The extra byte is `0x30` ('0') or `0x31` ('1'), encoding one bit per packet.
 
 **Decoding workflow:**
-
 ```python
 from scapy.all import rdpcap, DNS, DNSQR, Raw
 
@@ -184,7 +177,7 @@ print(flag)
 
 **Detection:** DNS packets slightly larger than expected for their query name. Hex dump shows `0x30`/`0x31` bytes after the Class IN field (`00 01`). Consistent query domain across all packets.
 
-------
+---
 
 ## Multi-Layer PCAP with XOR + ZIP (UTCTF 2026)
 
@@ -235,13 +228,12 @@ print(flag)
 **Key insight:** When a PCAP contains two XOR-decoded byte arrays of equal length where neither alone produces readable text, merge them character-by-character using printability as the selector — take whichever byte at each position is a printable ASCII character. The XOR key is often hidden in an in-band protocol like mDNS TXT records rather than requiring brute-force.
 
 **Indicators:**
-
 - HTTP stream with meta-instructions ("not every TCP blob is what it pretends to be")
 - TCP stream with mismatched protocol dissection (Wireshark shows TLS but raw bytes contain PK/ZIP headers)
 - mDNS queries for suspicious service names (e.g., `key.version.local`)
 - Two data files of identical length in extracted archive
 
-------
+---
 
 ## Brotli Decompression Bomb Seam Analysis (BearCatCTF 2026)
 
@@ -272,7 +264,7 @@ result = dec.process(data[seam_offset:seam_offset+block_size])
 
 **Detection:** File with extreme compression ratio (MB → GB), HTTP Content-Encoding: br, or file identified as Brotli. Tools hang or OOM when trying to decompress.
 
-------
+---
 
 ## SMB RID Recycling via LSARPC (Midnight 2026)
 
@@ -281,7 +273,6 @@ result = dec.process(data[seam_offset:seam_offset+block_size])
 **Identification:** SMB2 session setup with multiple authentication attempts (null session, Guest, random username), followed by RPC bind to LSARPC and repeated `LsaLookupSids` calls with incrementing RIDs.
 
 **Wireshark analysis:**
-
 ```bash
 # Filter SMB2 authentication attempts from attacker IP
 tshark -r capture.pcapng -Y "ip.src == 198.51.100.16 && smb2.cmd == 1"
@@ -291,7 +282,6 @@ tshark -r capture.pcapng -Y "dcerpc.cn_bind_to_str contains lsarpc"
 ```
 
 **RPC call sequence:**
-
 1. `LsaOpenPolicy` — opens a policy handle on the target
 2. `LsaQueryInformationPolicy` — extracts the domain SID (e.g., `S-1-5-21-...`)
 3. `LsaLookupSids` — resolves SIDs to account names by iterating RIDs (1000, 1001, 1002, ...)
@@ -299,12 +289,11 @@ tshark -r capture.pcapng -Y "dcerpc.cn_bind_to_str contains lsarpc"
 **Key insight:** Guest account authentication (often enabled by default) grants enough access to enumerate domain accounts via LSARPC. The attacker constructs SIDs by appending incrementing RIDs to the domain SID and calling `LsaLookupSids` for each. Valid accounts return their name; invalid RIDs return errors. This technique is called **RID cycling** or **RID brute-forcing**.
 
 **Detection indicators:**
-
 - Multiple `LsaLookupSids` requests with sequential RIDs
 - Guest authentication success followed by RPC pipe connection
 - High volume of LSARPC traffic from a single source
 
-------
+---
 
 ## Timeroasting / MS-SNTP Hash Extraction (Midnight 2026)
 
@@ -313,14 +302,16 @@ tshark -r capture.pcapng -Y "dcerpc.cn_bind_to_str contains lsarpc"
 **Background:** Microsoft's MS-SNTP extends standard NTP with Netlogon authentication in Active Directory environments. The client places a domain RID in the NTP `Key Identifier` field (4 bytes, little-endian). The domain controller responds with an HMAC-MD5 signature derived from the machine account's NTLM hash — leaking crackable authentication material.
 
 **Wireshark extraction:**
-
 ```bash
-# Filter NTP traffic from attacker
-tshark -r capture.pcapng -Y "ntp && ip.src == 10.16.13.13" -T fields -e udp.payload
+# Count attacker NTP requests (requests carry the RID but no HMAC — nothing to crack here)
+tshark -r capture.pcapng -Y "ntp && ip.src == 198.51.100.16" | wc -l
+
+# Extract DC responses for the parser below (48B salt + 4B KeyID + 16B HMAC = 68B payload)
+# <DC_IP> = domain controller address (responses come FROM the DC)
+tshark -r capture.pcapng -Y "ntp && ip.src == <DC_IP>" -T fields -e udp.payload
 ```
 
 **Convert Key Identifier to RID:**
-
 ```bash
 # NTP Key Identifier is 4 bytes, little-endian
 echo "<key_id_hex>" | sed 's/\(..\)/\1 /g' | awk '{print "0x"$4$3$2$1}' | xargs printf "%d\n"
@@ -328,14 +319,13 @@ echo "<key_id_hex>" | sed 's/\(..\)/\1 /g' | awk '{print "0x"$4$3$2$1}' | xargs 
 
 **NTP response payload structure (68 bytes):**
 
-| Offset | Length | Field                               |
-| ------ | ------ | ----------------------------------- |
-| 0-47   | 48     | Salt (NTP header + extensions)      |
-| 48-51  | 4      | Key Identifier (RID, little-endian) |
-| 52-67  | 16     | HMAC-MD5 crypto-checksum            |
+| Offset | Length | Field |
+|--------|--------|-------|
+| 0-47 | 48 | Salt (NTP header + extensions) |
+| 48-51 | 4 | Key Identifier (RID, little-endian) |
+| 52-67 | 16 | HMAC-MD5 crypto-checksum |
 
 **Hash reconstruction for Hashcat (mode 31300):**
-
 ```python
 import sys
 from struct import unpack
@@ -355,14 +345,12 @@ print(to_hashcat_form(sys.argv[1]))
 ```
 
 **Cracking with Hashcat:**
-
 ```bash
 # Mode 31300 = MS-SNTP (Timeroasting)
 hashcat -m 31300 -a 0 -O hashes.txt rockyou.txt --username
 ```
 
 **Example hash format:**
-
 ```text
 1108:$sntp-ms$d7d0422d66705c6189c1d20aed76baa4$1c0111e900000000000a09314c4f434ced4c979d652b89f1e1b8428bffbfcd0aed4ca3bbb1338716ed4ca3bbb133cf3a
 ```
@@ -370,14 +358,13 @@ hashcat -m 31300 -a 0 -O hashes.txt rockyou.txt --username
 **Key insight:** MS-SNTP responses from domain controllers leak HMAC-MD5 authentication material tied to machine account NTLM hashes. Unlike Kerberoasting (which targets service accounts), Timeroasting targets **machine accounts** whose passwords are often weak or predictable (e.g., lowercase hostname). Any valid RID triggers a response — no special privileges required beyond network access to the DC's NTP service (UDP 123).
 
 **Full attack chain:**
-
 1. Authenticate to SMB as Guest
 2. Enumerate valid RIDs via LSARPC RID recycling
 3. Send MS-SNTP requests with discovered RIDs
 4. Extract HMAC-MD5 hashes from NTP responses
 5. Crack offline with Hashcat mode 31300
 
-------
+---
 
 ## ICMP Payload Steganography with Byte Rotation (HackIM 2016)
 
@@ -403,7 +390,7 @@ plaintext = base64.b64decode(decoded)
 
 **Key insight:** ICMP payloads are often ignored by analysts focused on TCP/UDP. Check for non-standard payload sizes or non-zero data in ICMP packets. Common encoding layers: byte rotation -> base64 -> shell commands.
 
-------
+---
 
 ## Packet Reconstruction via Checksum Validation (Break In 2016)
 
@@ -435,7 +422,7 @@ for candidate in range(256):
 
 **Key insight:** Protocol checksums constrain missing data. For single missing bytes, brute-force is instant. For multiple missing bytes, use TCP sequence numbers and MAC/IP header structure to reduce the search space.
 
-------
+---
 
 ## dnscat2 Traffic Reassembly from DNS PCAP (BSidesSF 2017)
 
@@ -470,7 +457,7 @@ with open('extracted.png', 'wb') as f:
 
 **Key insight:** dnscat2 encodes data in DNS query subdomain labels (hex or base32). Each query carries a 9-byte header (session ID, sequence, acknowledgment). Retransmissions are common — deduplicate by comparing consecutive payloads. The reassembled stream may contain files (PNG, documents) identifiable by magic bytes.
 
-------
+---
 
 ## Unreferenced PDF Objects with Hidden Pages (SharifCTF 7 2016)
 
@@ -488,12 +475,11 @@ strings suspicious.pdf | grep -E '/Type /Page|/Contents|/Kids'
 # Change: /Count 1  ->  /Count 2
 # Rewrite xref table or use qpdf --linearize to fix offsets
 qpdf --linearize modified.pdf fixed.pdf
-
 ```
 
 **Key insight:** PDF viewers only render pages reachable from the `/Pages` tree root. Unreferenced objects are invisible but still present in the file. Check object cross-references: any content stream object not in `/Kids` may contain hidden data. `mutool clean -d` and `qpdf --show-object N` help inspect individual objects.
 
-------
+---
 
 ## RDP Session Decryption via Extracted PKCS12 Key (HITB 2017)
 
@@ -505,12 +491,11 @@ openssl pkcs12 -in cert.p12 -out key.pem -nocerts -nodes
 
 # In Wireshark: Edit > Preferences > Protocols > TLS > RSA keys list
 # Add entry: IP=<rdp_server_ip>, Port=3389, Protocol=tpkt, Key file=key.pem
-
 ```
 
 **Key insight:** PKCS12 files in network captures provide the private key needed to decrypt encrypted RDP sessions in Wireshark. Look for .p12/.pfx file transfers (often in UDP or FTP streams) before the RDP session begins.
 
-------
+---
 
 ## RADIUS Shared Secret Cracking (UConn CyberSEED 2017)
 
@@ -523,14 +508,13 @@ john radius_hash.txt --wordlist=rockyou.txt
 
 # Wireshark: Edit > Preferences > Protocols > RADIUS > Shared Secret = <cracked_secret>
 # RADIUS Access-Request packets will now show decrypted User-Password fields
-
 ```
 
 `radius2john.pl` is part of the JohnTheRipper jumbo package (`src/radius2john.pl`).
 
 **Key insight:** RADIUS uses MD5(shared_secret + authenticator + password) for password obfuscation — cracking the shared secret via john exposes all credentials in the capture. The shared secret is typically a short dictionary word.
 
-------
+---
 
 ## RC4 Stream Identification in Shellcode PCAP (CODE BLUE 2017)
 
@@ -566,16 +550,15 @@ def rc4(key, data):
     return bytes(out)
 
 plaintext = rc4(key, ciphertext)
-
 ```
 
 **Key insight:** RC4 in shellcode is identifiable by the 256-byte permutation table initialization loop (KSA). The key is typically the first N bytes transmitted over the connection before encrypted data begins. Look for a fixed-length initial burst followed by encrypted traffic.
 
-------
+---
 
 See also: [network.md](network.md) for basic network forensics techniques (tcpdump, TLS/SSL decryption, Wireshark, port scanning, SMB3 decryption, credential extraction, 5G protocols).
 
-------
+---
 
 ## ICMP Ping Time-Delay Covert Channel (DefCamp 2018)
 
@@ -597,7 +580,6 @@ for p in pkts:
         bits.append("1" if dt > 1.0 else "0")
 data = int("".join(bits), 2).to_bytes(len(bits)//8, "big")
 print(data)
-
 ```
 
 **Key insight:** ICMP timing covert channels split a continuous latency distribution into discrete bins. The two thresholds matter more than the exact values: any bimodal "fast vs slow" distribution flanked by a "filler" region lets the receiver self-clock. Detect this channel by plotting the histogram of `reply_time - request_time` for all ICMP pairs — legit traffic forms a single Gaussian, covert traffic shows clear modes.

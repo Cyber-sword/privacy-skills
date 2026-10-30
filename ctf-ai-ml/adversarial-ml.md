@@ -3,7 +3,6 @@
 Adversarial machine learning techniques: generating adversarial examples, physical-world patches, evasion attacks, data poisoning, and backdoor detection. For model weight manipulation and extraction attacks, see [model-attacks.md](model-attacks.md). For LLM-specific attacks, see [llm-attacks.md](llm-attacks.md).
 
 ## Table of Contents
-
 - [Adversarial Example Generation (FGSM, PGD, C&W)](#adversarial-example-generation-fgsm-pgd-cw)
   - [FGSM (Fast Gradient Sign Method)](#fgsm-fast-gradient-sign-method)
   - [PGD (Projected Gradient Descent)](#pgd-projected-gradient-descent)
@@ -15,7 +14,7 @@ Adversarial machine learning techniques: generating adversarial examples, physic
 - [foolbox L1BasicIterativeAttack on Keras MNIST-Auth (nullcon 2019)](#foolbox-l1basiciterativeattack-on-keras-mnist-auth-nullcon-2019)
 - [Hand-Rolled Keras FGSM via K.gradients (UTCTF 2019)](#hand-rolled-keras-fgsm-via-kgradients-utctf-2019)
 
-------
+---
 
 ## Adversarial Example Generation (FGSM, PGD, C&W)
 
@@ -56,12 +55,12 @@ loss.backward()
 
 # Generate adversarial example
 epsilon = 0.03  # perturbation budget (L-inf norm)
-x_adv = x + epsilon * x.grad.sign()
-x_adv = torch.clamp(x_adv, x.min(), x.max())
+perturbed_image = x + epsilon * x.grad.sign()
+perturbed_image = torch.clamp(perturbed_image, 0, 1)
 
 # Check adversarial prediction
 with torch.no_grad():
-    adv_output = model(x_adv)
+    adv_output = model(perturbed_image)
     adv_class = adv_output.argmax(dim=1).item()
     print(f"Adversarial prediction: class {adv_class}")
     print(f"Attack successful: {adv_class != original_class}")
@@ -185,7 +184,7 @@ x_adv = cw_attack(model, x, target_class=42)
 
 **Key insight:** FGSM is fast (single step) but crude. PGD is the standard iterative attack for robustness evaluation. C&W finds minimal perturbations but is slow. In CTF challenges, start with FGSM/PGD (fast); if those fail (e.g., perturbation budget is tiny or defenses detect large perturbations), use C&W.
 
-------
+---
 
 ## Adversarial Patch Generation
 
@@ -261,7 +260,7 @@ save_image(final_patch, "adversarial_patch.png")
 
 **Key insight:** Adversarial patches work because neural networks rely on local texture patterns more than global shape. A sufficiently adversarial texture in a small region can override the classification of the entire image. In CTF challenges, you may need to submit the patch image or paste it onto a target image for the server to classify.
 
-------
+---
 
 ## Evasion Attacks on ML Classifiers (Foundational)
 
@@ -343,7 +342,7 @@ print(f"Visually same but bytes differ: {original.encode() != evaded.encode()}")
 
 **Key insight:** Evasion attacks exploit the gap between a model's learned features and the actual semantic content. Byte histograms can be shifted with padding. Text classifiers can be fooled with homoglyphs. Image classifiers can be bypassed with adversarial examples. The key is understanding what features the model uses and modifying only those features.
 
-------
+---
 
 ## Data Poisoning (Foundational)
 
@@ -424,7 +423,7 @@ def verify_backdoor(model, clean_image, trigger="pixel", target_class=0):
 
 **Key insight:** Data poisoning requires only a small fraction (1-5%) of training data to be modified. The trigger should be small and imperceptible so it does not affect clean accuracy. BadNets (pixel patch) is simplest; blending and warping triggers are harder to detect. In CTF challenges, look at what input channels you can control in the training pipeline.
 
-------
+---
 
 ## Backdoor Detection in Neural Networks (Foundational)
 
@@ -554,7 +553,7 @@ backdoor_class, trigger_info = neural_cleanse(
 
 **Key insight:** Neural Cleanse finds the smallest perturbation that universally causes misclassification to each class. Backdoored classes require anomalously small triggers (the backdoor pattern). Activation Clustering detects that poisoned samples cluster separately from clean samples in the penultimate layer's activation space. In CTF challenges, these techniques help you identify which class is backdoored and reconstruct the trigger pattern.
 
-------
+---
 
 ## foolbox L1BasicIterativeAttack on Keras MNIST-Auth (nullcon 2019)
 
@@ -586,7 +585,7 @@ profile = ''.join('0x%02x' % int(v) for v in adv.ravel())
 
 **References:** nullcon HackIM 2019 — ML-Auth, writeup 13058
 
-------
+---
 
 ## Hand-Rolled Keras FGSM via K.gradients (UTCTF 2019)
 

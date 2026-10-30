@@ -3,7 +3,6 @@
 HD44780 LCD GPIO reconstruction, RISC-V advanced extensions and debugging, ARM64/AArch64 reversing and exploitation.
 
 ## Table of Contents
-
 - [HD44780 LCD Controller GPIO Reconstruction (32C3 2015)](#hd44780-lcd-controller-gpio-reconstruction-32c3-2015)
 - [RISC-V (Advanced)](#risc-v-advanced)
   - [Custom Extensions](#custom-extensions)
@@ -17,7 +16,7 @@ HD44780 LCD GPIO reconstruction, RISC-V advanced extensions and debugging, ARM64
 - [KVM Guest Analysis via ioctl + KVM_EXIT_HLT Block Chaining (CSAW 2018)](#kvm-guest-analysis-via-ioctl--kvm_exit_hlt-block-chaining-csaw-2018)
 - [Coreboot ROM XOR-Pair Bit-Flip Address Discovery (Hack.lu 2018)](#coreboot-rom-xor-pair-bit-flip-address-discovery-hacklu-2018)
 
-------
+---
 
 ## HD44780 LCD Controller GPIO Reconstruction (32C3 2015)
 
@@ -49,7 +48,7 @@ for timestamp, gpio_state in sorted(gpio_log):
 
 **Key insight:** GPIO pin-to-signal mapping is rarely documented; identify CLK by finding the pin with most transitions, RS by correlation with data patterns (alternating command/data phases).
 
-------
+---
 
 ## RISC-V (Advanced)
 
@@ -101,7 +100,7 @@ qemu-riscv64 -g 1234 -L /usr/riscv64-linux-gnu/ ./binary
 riscv64-linux-gnu-gdb -ex 'target remote :1234' ./binary
 ```
 
-------
+---
 
 ## ARM64/AArch64 Reversing and Exploitation
 
@@ -195,14 +194,13 @@ elf = ELF('./arm64_binary')
 
 **References:** Google CTF 2016 "Forced Puns", Insomni'hack 2018 "onecall"
 
-------
+---
 
 ## MIPS64 Cavium OCTEON Coprocessor 2 Crypto (SEC-T CTF 2017)
 
 Cavium OCTEON network processors implement hardware AES and SHA256 via MIPS Coprocessor 2 (CP2) using `dmtc2` (move to CP2) and `dmfc2` (move from CP2) instructions. These look like ordinary register moves to a disassembler but drive the hardware crypto engine.
 
 **Key CP2 register layout (OCTEON):**
-
 ```text
 AES key registers:
   0x0104 – AES key quadword 0
@@ -219,7 +217,6 @@ dmtc2  rN, 0x0105   ; ...next quadword
 ```
 
 **Approach:**
-
 1. Disassemble in IDA/Ghidra — `dmtc2`/`dmfc2` with selector in 0x100-0x40FF range indicates OCTEON CP2
 2. Cross-reference the Cavium OCTEON Hardware Reference Manual for register semantics
 3. Trace the key loading sequence to recover the AES or HMAC key material
@@ -228,14 +225,13 @@ dmtc2  rN, 0x0105   ; ...next quadword
 
 **References:** SEC-T CTF 2017
 
-------
+---
 
 ## EFM32 ARM Microcontroller MMIO AES (SEC-T CTF 2017)
 
 Silicon Labs EFM32 Cortex-M binary — a flat binary loaded at 0x1000 in Thumb mode.
 
 **IDA setup:**
-
 ```text
 Processor: ARM Little-endian (ARMv7-M)
 Load address: 0x1000
@@ -243,7 +239,6 @@ Set T register = 1 (force Thumb mode decoding)
 ```
 
 **AES accelerator MMIO layout (EFM32 AES peripheral at 0x400E0000):**
-
 ```text
 0x400E0000 + 0x000  CTRL   – enable, decrypt mode
 0x400E0000 + 0x004  CMD    – start/stop
@@ -270,7 +265,7 @@ plaintext = cipher.decrypt(ciphertext)
 
 **References:** SEC-T CTF 2017
 
-------
+---
 
 ## MBR/Bootloader Reversing with QEMU + GDB (Square CTF 2017)
 
@@ -309,14 +304,13 @@ open('disk_patched.img', 'wb').write(data)
 
 **References:** Square CTF 2017
 
-------
+---
 
 ## Game Boy ROM Z80 Analysis in bgb Debugger (Square CTF 2017)
 
 Game Boy ROMs use the Sharp SM83 (LR35902) CPU, a Z80/8080 hybrid. Load the ROM in the **bgb** emulator which provides GDB-like debugging: breakpoints, memory inspection, and register display.
 
 **Key instructions for flag comparisons:**
-
 ```asm
 LD   A, [HL]    ; load byte from memory pointed to by HL into A
 AND  [HL]       ; A = A & *HL  — compares player byte against memory value
@@ -326,7 +320,6 @@ CP   N          ; compare A with immediate N (sets Z flag if equal)
 When `and (hl)` or `cp (hl)` fires during input validation, the expected byte is visible at the `(hl)` address in the memory view.
 
 **bgb workflow:**
-
 1. Load ROM: File → Open ROM
 2. Right-click disassembly → "Run to cursor" or set breakpoint (F2)
 3. When comparison fires, inspect Registers panel (HL value) and Memory panel (`*HL`)
@@ -336,7 +329,7 @@ When `and (hl)` or `cp (hl)` fires during input validation, the expected byte is
 
 **References:** Square CTF 2017
 
-------
+---
 
 ## KVM Guest Analysis via ioctl + KVM_EXIT_HLT Block Chaining (CSAW 2018)
 
@@ -365,14 +358,13 @@ table = struct.unpack_from("<128Q", data, 0x2020A0)
 for rax, ptr in enumerate(table):
     if ptr:
         print(f"rax={rax:02x} → block {ptr:#x}")
-
 ```
 
 **Key insight:** KVM-backed challenges hide control flow by moving it into the host process, not the guest. The guest code itself is just a pile of opaque blocks. `strace` on the KVM ioctls replaces a debugger: every `KVM_EXIT_HLT` is a "basic block boundary" and the host's response is the real transition function. Any time you see a CTF binary linked against `-lkvm` or opening `/dev/kvm`, drop your normal reverse-engineering pipeline and start from the ioctl trace.
 
 **References:** CSAW CTF Qualification Round 2018 — kvm, writeup 11206
 
-------
+---
 
 ## Coreboot ROM XOR-Pair Bit-Flip Address Discovery (Hack.lu 2018)
 
@@ -388,7 +380,6 @@ actual   = 0xC0000          # where the flag really lives in memory
 diff = intended ^ actual    # 0x08000 → bit 15
 # Find the ROM offset that, when a single bit is flipped, produces `actual`.
 # The flip must land in either C1 or C2 so the XOR result has bit 15 cleared.
-
 ```
 
 **Key insight:** XOR of two ROM constants is trivially a linear operation: any single-bit flip in either operand XORs the corresponding bit into the result. Walk the Hamming distance between computed and observed addresses and you get a bounded list of candidate patch sites — usually one or two. Pairs of addresses in firmware are suspicious: they frequently compose via XOR, ADD, or SUB and every arithmetic relation is a candidate for a targeted single-bit flip attack. Also applies to rowhammer: the sensitive bit is the *differential* between two constants, not the constants themselves.

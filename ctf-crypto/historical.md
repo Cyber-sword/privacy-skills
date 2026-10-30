@@ -1,18 +1,16 @@
 # CTF Crypto - Historical Ciphers
 
 ## Table of Contents
-
 - [Lorenz SZ40/42 (Tunny) Cipher](#lorenz-sz4042-tunny-cipher)
 - [Book Cipher Brute Force (Nullcon 2026)](#book-cipher-brute-force-nullcon-2026)
 
-------
+---
 
 ## Lorenz SZ40/42 (Tunny) Cipher
 
 The Lorenz cipher uses 12 wheels to encrypt 5-bit ITA2/Baudot characters. With known plaintext, a structured attack recovers all wheel settings.
 
 **Machine structure:**
-
 - 5 χ (chi) wheels: periods 41, 31, 29, 26, 23 — advance every step
 - 5 Ψ (psi) wheels: periods 43, 47, 51, 53, 59 — advance only when μ37=1
 - μ61 wheel: period 61 — advances every step, controls μ37 stepping
@@ -67,7 +65,6 @@ for i in range(P-1):
 ```
 
 **Common mistakes to avoid:**
-
 - Do NOT assume psi is "period 2" or just alternating — it has real wheels with periods 43-59
 - Do NOT spend time on statistical period-finding for the motor — just use the structured Δ approach
 - Do NOT try LFSR analysis on the step sequence — the stepping is from mechanical wheels, not LFSRs
@@ -76,7 +73,6 @@ for i in range(P-1):
 - Total brute force space is tiny (<3M) — don't over-optimize
 
 **ITA2/Baudot encoding (5-bit):**
-
 ```python
 # Standard ITA2 mapping used in Lorenz challenges
 char_to_code = {
@@ -89,14 +85,13 @@ char_to_code = {
 # Code 27 = FIGS shift, Code 31 = LTRS shift
 ```
 
-------
+---
 
 ## Book Cipher Brute Force (Nullcon 2026)
 
 **Pattern (Booking Key):** Book cipher encodes password as list of "steps forward" in reference text.
 
 **Key insight:** Charset constraint drastically reduces candidate starting positions:
-
 ```python
 def decode_book_cipher(cipher_distances, book_text, valid_chars):
     """Brute-force starting position; filter by charset."""

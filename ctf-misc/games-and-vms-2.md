@@ -1,7 +1,6 @@
 # CTF Misc - Games, VMs & Constraint Solving (Part 2)
 
 ## Table of Contents
-
 - [Cookie Checkpoint Game Brute-Forcing (BYPASS CTF 2025)](#cookie-checkpoint-game-brute-forcing-bypass-ctf-2025)
 - [Flask Session Cookie Game State Leakage (BYPASS CTF 2025)](#flask-session-cookie-game-state-leakage-bypass-ctf-2025)
 - [WebSocket Game Manipulation + Cryptic Hint Decoding (BYPASS CTF 2025)](#websocket-game-manipulation--cryptic-hint-decoding-bypass-ctf-2025)
@@ -11,7 +10,7 @@
 - [WASM Linear Memory Manipulation (BearCatCTF 2026)](#wasm-linear-memory-manipulation-bearcatctf-2026)
 - [References](#references)
 
-------
+---
 
 ## Cookie Checkpoint Game Brute-Forcing (BYPASS CTF 2025)
 
@@ -51,7 +50,7 @@ def solve():
 
 **Key insight:** Session cookies act as save states. Preserving and restoring cookies on failure enables deterministic brute-forcing without game reset penalties.
 
-------
+---
 
 ## Flask Session Cookie Game State Leakage (BYPASS CTF 2025)
 
@@ -63,7 +62,6 @@ flask-unsign -d -c '<cookie_value>'
 ```
 
 **Example decoded state:**
-
 ```json
 {
   "all_food_pos": [{"x": 16, "y": 12}, {"x": 16, "y": 28}, {"x": 9, "y": 24}],
@@ -76,14 +74,13 @@ flask-unsign -d -c '<cookie_value>'
 
 **Detection:** Base64-looking session cookies with periods (`.`) separating segments. Flask uses `itsdangerous` signing format.
 
-------
+---
 
 ## WebSocket Game Manipulation + Cryptic Hint Decoding (BYPASS CTF 2025)
 
 **Pattern (Maze of the Unseen):** Browser-based maze game with invisible walls. Checkpoints verified server-side via WebSocket. Cryptic hint encodes target coordinates.
 
 **Technique:**
-
 1. Open browser console, inspect WebSocket messages and `player` object
 2. Decode cryptic hints (e.g., "mosquito were not available" → MQTT → port 1883)
 3. Teleport directly to target coordinates via console
@@ -101,14 +98,13 @@ teleport(1883, 404);
 ```
 
 **Common cryptic hint mappings:**
-
 - "mosquito" → MQTT (Mosquitto broker, port 1883)
 - "not found" / "not available" → HTTP 404
 - Port numbers, protocol defaults, or ASCII values as coordinates
 
 **Key insight:** Browser-based games expose their state in the JS console. Modify `player.x`/`player.y` or equivalent properties directly, then call the progress verification function.
 
-------
+---
 
 ## Server Time-Only Validation Bypass (BYPASS CTF 2025)
 
@@ -134,7 +130,7 @@ print(r.json().get('flag'))
 
 **Key insight:** When servers validate only elapsed time (not player position, inputs, or movement), start a session, sleep for the required duration, then submit the win request. Always check if the game API has start/win endpoints that can be called directly.
 
-------
+---
 
 ## De Bruijn Sequence for Substring Coverage (BearCatCTF 2026)
 
@@ -169,14 +165,13 @@ payload = seq + seq[:11]  # Linearize: 4096 + 11 = 4107 chars
 
 **Detection:** Must find arbitrary n-bit pattern as substring of limited-length input. Character budget matches de Bruijn length (k^n + n - 1).
 
-------
+---
 
 ## Brainfuck Interpreter Instrumentation (BearCatCTF 2026)
 
 **Pattern (Ghost Ship):** Large Brainfuck program (10K+ instructions) validates a flag character-by-character. Full reverse engineering is impractical.
 
 **Per-character brute-force via instrumentation:**
-
 1. Instrument a Brainfuck interpreter to track tape cell values
 2. Identify a "wrong count" cell that increments per incorrect character
 3. For each position, try all printable ASCII — pick the character that doesn't increment the wrong counter
@@ -218,14 +213,13 @@ for pos in range(40):
 
 **Key insight:** Brainfuck programs that validate input character-by-character can be brute-forced without understanding the program logic. Instrument the interpreter to observe tape state, find the cell that tracks validation progress, and optimize per-character search. ~3800 runs completes in minutes.
 
-------
+---
 
 ## WASM Linear Memory Manipulation (BearCatCTF 2026)
 
 **Pattern (Dubious Doubloon):** Browser game compiled to WebAssembly with win conditions requiring luck (e.g., 15 consecutive coin flips). WASM linear memory is flat and unprotected.
 
 **Direct memory patching in Node.js:**
-
 ```javascript
 const { readFileSync } = require('fs');
 const wasmBuffer = readFileSync('game.wasm');
@@ -244,10 +238,9 @@ const result = instance.exports.flipCoin();
 
 **Detection:** WASM game requiring statistically impossible sequences (streaks, perfect scores). Game logic is in `.wasm` file loadable in Node.js.
 
-------
+---
 
 ## References
-
 - BYPASS CTF 2025 "Signal from the Deck": Cookie checkpoint game brute-forcing
 - BYPASS CTF 2025 "Hungry, Not Stupid": Flask cookie game state leakage
 - BYPASS CTF 2025 "Maze of the Unseen": WebSocket teleportation + cryptic hints
@@ -256,6 +249,6 @@ const result = instance.exports.flipCoin();
 - BearCatCTF 2026 "Ghost Ship": Brainfuck instrumentation brute-force
 - BearCatCTF 2026 "Dubious Doubloon": WASM linear memory state patching
 
-------
+---
 
 See also: [games-and-vms.md](games-and-vms.md) for WASM patching, Roblox reversing, PyInstaller, Z3, K8s RBAC, floating-point exploitation, custom assembly sandbox escape, and multi-phase crypto games.

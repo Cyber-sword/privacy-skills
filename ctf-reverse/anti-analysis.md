@@ -3,7 +3,6 @@
 Comprehensive reference for anti-debugging, anti-VM, anti-DBI, and integrity-check techniques encountered in CTF challenges, with practical bypasses.
 
 ## Table of Contents
-
 - [Linux Anti-Debug (Advanced)](#linux-anti-debug-advanced)
   - [ptrace-Based](#ptrace-based)
   - [/proc Filesystem Checks](#proc-filesystem-checks)
@@ -39,27 +38,24 @@ Comprehensive reference for anti-debugging, anti-VM, anti-DBI, and integrity-che
   - [Control Flow Flattening (Advanced)](#control-flow-flattening-advanced)
   - [Mixed Boolean-Arithmetic (MBA) Identification & Simplification](#mixed-boolean-arithmetic-mba-identification--simplification)
 - [Comprehensive Bypass Strategies](#comprehensive-bypass-strategies)
+  - [Universal Bypass Checklist](#universal-bypass-checklist)
+  - [Layered Anti-Debug (Real-World Pattern)](#layered-anti-debug-real-world-pattern)
+  - [Quick Reference: Check to Bypass](#quick-reference-check-to-bypass)
 
 For CTF writeup techniques (SIGILL handler, SIGFPE strace side-channel, instruction trace inversion, call-less function chaining, parent-patched child binary dump), see [anti-analysis-ctf.md](anti-analysis-ctf.md).
 
-- [Universal Bypass Checklist](#universal-bypass-checklist)
-- [Layered Anti-Debug (Real-World Pattern)](#layered-anti-debug-real-world-pattern)
-- [Quick Reference: Check to Bypass](#quick-reference-check-to-bypass)
-
-------
+---
 
 ## Linux Anti-Debug (Advanced)
 
 ### ptrace-Based
 
 **Self-ptrace (most common):**
-
 ```c
 if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1) exit(1); // Already traced = debugger attached
 ```
 
 **Bypasses:**
-
 ```bash
 # 1. LD_PRELOAD (see patterns.md for full hook)
 LD_PRELOAD=./hook.so ./binary
@@ -85,7 +81,6 @@ echo 0 > /proc/sys/kernel/yama/ptrace_scope
 ```
 
 **Double-ptrace pattern:**
-
 ```c
 // Fork child to ptrace parent — blocks all other debuggers
 pid_t child = fork();
@@ -96,7 +91,6 @@ if (child == 0) {
     // Parent continues with real logic
 }
 ```
-
 **Bypass:** Kill the watchdog child process, then attach debugger.
 
 ### /proc Filesystem Checks
@@ -114,7 +108,6 @@ grep("frida", "/proc/self/maps");
 ```
 
 **Bypasses:**
-
 ```bash
 # 1. LD_PRELOAD fopen/fread to fake /proc contents
 # 2. Mount namespace isolation
@@ -148,7 +141,6 @@ gettimeofday(&tv1, NULL);
 ```
 
 **Bypasses:**
-
 ```bash
 # 1. Frida hook (see tools-dynamic.md for clock_gettime hook)
 
@@ -178,7 +170,6 @@ signal(SIGSEGV, real_logic_handler);
 ```
 
 **Bypasses:**
-
 ```bash
 # GDB: pass signals to program instead of handling them
 (gdb) handle SIGTRAP nostop pass
@@ -198,7 +189,6 @@ asm volatile("syscall" : "=a"(ret) : "a"(101), "D"(0), "S"(0), "d"(0), "r"(0));
 ```
 
 **Bypass:** Must patch the binary itself or use ptrace to intercept at syscall level.
-
 ```bash
 # GDB: catch syscall
 (gdb) catch syscall 101
@@ -208,7 +198,7 @@ asm volatile("syscall" : "=a"(ret) : "a"(101), "D"(0), "S"(0), "d"(0), "r"(0));
 > end
 ```
 
-------
+---
 
 ## Windows Anti-Debug (Advanced)
 
@@ -225,7 +215,6 @@ if (flags & 0x70) exit(1);
 ```
 
 **Bypass (x64dbg):**
-
 ```text
 # ScyllaHide plugin auto-patches PEB fields
 # Manual: dump PEB, zero BeingDebugged and NtGlobalFlag
@@ -295,15 +284,12 @@ GetThreadContext(GetCurrentThread(), &ctx);
 if (ctx.Dr0 || ctx.Dr1 || ctx.Dr2 || ctx.Dr3) exit(1);
 
 // Also via exception handler: deliberate exception, check DR regs in handler
-
 ```
 
 **Bypass:**
-
 ```bash
 # x64dbg: use software breakpoints instead, or hook GetThreadContext
 # Frida: hook GetThreadContext to zero DR registers
-
 ```
 
 ### Software Breakpoint Detection (INT3 Scanning)
@@ -317,7 +303,6 @@ for (int i = 0; i < code_size; i++) {
     if (code[i] == 0xCC) exit(1);  // INT3 = software breakpoint
 }
 if (checksum != EXPECTED_CHECKSUM) exit(1);
-
 ```
 
 **Bypass:** Use hardware breakpoints (DR0-DR3) instead of software breakpoints. Or hook the scanning function.
@@ -334,7 +319,6 @@ RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, NULL);
 // INT 2D — debugger single-step anomaly
 __asm { int 2dh }  // Debugger silently consumes the exception
 // If execution continues: debugger present
-
 ```
 
 ### NtSetInformationThread (Thread Hiding)
@@ -345,12 +329,11 @@ typedef NTSTATUS(NTAPI *pNtSIT)(HANDLE, ULONG, PVOID, ULONG);
 pNtSIT NtSIT = (pNtSIT)GetProcAddress(GetModuleHandle("ntdll"), "NtSetInformationThread");
 NtSIT(GetCurrentThread(), 0x11 /*ThreadHideFromDebugger*/, NULL, 0);
 // After this, debugger won't see breakpoints or exceptions from this thread
-
 ```
 
 **Bypass:** Hook `NtSetInformationThread` to ignore class 0x11, or patch the call.
 
-------
+---
 
 ## Anti-VM / Anti-Sandbox
 
@@ -368,7 +351,6 @@ __cpuid(regs, 0x40000000);
 char brand[13] = {0};
 memcpy(brand, &regs[1], 12);
 // "VMwareVMware", "Microsoft Hv", "KVMKVMKVM", "XenVMMXenVMM"
-
 ```
 
 **Bypass:** Patch `cpuid` results or use `LD_PRELOAD` to hook wrapper functions.
@@ -382,7 +364,6 @@ Known VM MAC prefixes:
   Hyper-V:    00:15:5D
   Parallels:  00:1C:42
   QEMU:       52:54:00
-
 ```
 
 ### Timing-Based VM Detection
@@ -393,7 +374,6 @@ uint64_t start = __rdtsc();
 __cpuid(regs, 0);  // Forces VM exit
 uint64_t delta = __rdtsc() - start;
 if (delta > 500) { /* likely VM */ }
-
 ```
 
 ### File / Registry Artifacts
@@ -405,7 +385,6 @@ Services: VMTools, VBoxService
 Processes: vmtoolsd.exe, VBoxTray.exe, qemu-ga.exe
 Linux: /sys/class/dmi/id/product_name contains "VirtualBox"|"VMware"
        dmesg | grep -i "hypervisor detected"
-
 ```
 
 ### Resource Checks (CPU Count, RAM, Disk)
@@ -423,12 +402,11 @@ if (ms.ullTotalPhys < 2ULL * 1024 * 1024 * 1024) exit(1); // < 2GB RAM
 
 // Disk size check (< 60GB = sandbox)
 GetDiskFreeSpaceEx("C:\\", NULL, &total, NULL);
-
 ```
 
 **Bypass:** Use a VM configured with adequate resources (4+ CPUs, 8GB+ RAM, 100GB+ disk).
 
-------
+---
 
 ## Anti-DBI (Dynamic Binary Instrumentation)
 
@@ -462,11 +440,9 @@ while ((entry = readdir(dir))) {
 
 // 5. Named pipe detection (Windows)
 // Frida creates \\.\pipe\frida-* named pipes
-
 ```
 
 **Frida bypass of Frida detection:**
-
 ```javascript
 // Hook the detection functions themselves
 Interceptor.attach(Module.findExportByName(null, "strstr"), {
@@ -483,7 +459,6 @@ Interceptor.attach(Module.findExportByName(null, "strstr"), {
 
 // Early Frida load (before anti-DBI runs)
 // Use frida-gadget as early-init shared library
-
 ```
 
 ### Pin/DynamoRIO Detection
@@ -495,10 +470,9 @@ Interceptor.attach(Module.findExportByName(null, "strstr"), {
 
 // Instruction count timing — DBI adds overhead
 // Execute known instruction sequence, compare execution time
-
 ```
 
-------
+---
 
 ## Code Integrity / Self-Hashing
 
@@ -511,11 +485,9 @@ if (crc != EXPECTED_CRC) exit(1);  // Code was modified (breakpoints, patches)
 unsigned char hash[32];
 SHA256(function_addr, function_size, hash);
 if (memcmp(hash, expected_hash, 32) != 0) exit(1);
-
 ```
 
 **Bypasses:**
-
 1. **Hardware breakpoints** (don't modify code, DR0-DR3)
 2. **Patch the comparison** to always succeed
 3. **Hook the hash function** to return expected value
@@ -523,7 +495,6 @@ if (memcmp(hash, expected_hash, 32) != 0) exit(1);
 5. **Snapshot + restore:** dump memory before and after, diff to find checks
 
 **Self-checksumming in loops:**
-
 ```c
 // Continuous integrity check in separate thread
 void *watchdog(void *arg) {
@@ -535,12 +506,10 @@ void *watchdog(void *arg) {
         usleep(100000);
     }
 }
-
 ```
-
 **Bypass:** Kill the watchdog thread or patch its sleep to infinite.
 
-------
+---
 
 ## Anti-Disassembly Techniques
 
@@ -553,7 +522,6 @@ imul eax, eax          ; x^2
 and eax, 1             ; x^2 mod 2 is always 0 for any x
 jnz fake_branch        ; Never taken, but disassembler doesn't know
 ; real code here
-
 ```
 
 **Identification:** Z3/SMT can prove branch is always/never taken.
@@ -565,7 +533,6 @@ jmp real_code
 db 0xE8           ; Looks like start of CALL to linear disassembler
 real_code:
 mov eax, 1        ; Real code — disassembler may misalign here
-
 ```
 
 **Fix:** Switch to graph-mode disassembly (Ghidra/IDA handle this well). Manual: undefine and re-analyze from correct offset.
@@ -577,7 +544,6 @@ mov eax, 1        ; Real code — disassembler may misalign here
 eb 01          ; jmp +1 (skip next byte)
 e8             ; fake CALL opcode — disassembler tries to decode as call
 90             ; real: NOP (landed here from jmp)
-
 ```
 
 ### Function Chunking / Scattered Code
@@ -589,13 +555,11 @@ Functions split into non-contiguous chunks connected by unconditional jumps. Def
 ### Control Flow Flattening (Advanced)
 
 Beyond basic switch-case (see patterns.md): modern OLLVM variants use:
-
 - **Bogus control flow:** Fake branches with opaque predicates
 - **Instruction substitution:** `a + b` → `a - (-b)`, `a ^ b` → `(a | b) & ~(a & b)`
 - **String encryption:** Strings decrypted at runtime, cleared after use
 
 **Deobfuscation tools:**
-
 - **D-810** (IDA plugin): Pattern-based deobfuscation, MBA simplification
 - **GOOMBA** (Ghidra): Automated deobfuscation for OLLVM
 - **Miasm**: Symbolic execution for deobfuscation
@@ -605,7 +569,6 @@ Beyond basic switch-case (see patterns.md): modern OLLVM variants use:
 # D-810: install in IDA plugins directory, Edit → Plugins → D-810
 # Simplifies MBA expressions: (a | b) & ~(a & b) → a ^ b
 # Removes opaque predicates via pattern matching
-
 ```
 
 ### Mixed Boolean-Arithmetic (MBA) Identification & Simplification
@@ -623,12 +586,11 @@ Beyond basic switch-case (see patterns.md): modern OLLVM variants use:
 from simba import simplify_mba
 expr = "(a | b) + (a & b) - (~a & b)"
 print(simplify_mba(expr))  # → a
-
 ```
 
 See [anti-analysis-ctf.md](anti-analysis-ctf.md) for CTF writeup techniques: SIGILL handler for mode switching (Hack.lu 2015), SIGFPE strace side-channel (PlaidCTF 2017), instruction trace inversion (MeePwn 2017), call-less function chaining (THC 2018), and parent-patched child binary dump via `process_vm_writev` (Google CTF Quals 2018).
 
-------
+---
 
 ## Comprehensive Bypass Strategies
 
@@ -644,38 +606,36 @@ See [anti-analysis-ctf.md](anti-analysis-ctf.md) for CTF writeup techniques: SIG
 ### Layered Anti-Debug (Real-World Pattern)
 
 Many CTF challenges stack multiple checks:
-
 ```text
 1. TLS callback → IsDebuggerPresent (before main)
 2. main() → ptrace(TRACEME)
 3. Watchdog thread → timing check + /proc scan
 4. Code section → self-CRC32 integrity
 5. Signal handler → real logic in SIGSEGV handler
-
 ```
 
 **Approach:** Identify ALL checks before patching. Patch or hook each one systematically. Run under emulator if too many to patch individually.
 
 ### Quick Reference: Check to Bypass
 
-| Anti-Debug Check              | Platform | Bypass                                          |
-| ----------------------------- | -------- | ----------------------------------------------- |
-| `ptrace(TRACEME)`             | Linux    | `LD_PRELOAD`, patch to `ret 0`, `catch syscall` |
-| `IsDebuggerPresent`           | Windows  | ScyllaHide, Frida hook, PEB patch               |
-| `NtQueryInformationProcess`   | Windows  | ScyllaHide, hook ntdll                          |
-| `rdtsc` timing                | Both     | NOP rdtsc, Frida time hook, Pin                 |
-| `/proc/self/status`           | Linux    | Mount namespace, hook fopen                     |
-| `alarm(N)`                    | Linux    | `handle SIGALRM ignore` in GDB                  |
-| `SIGTRAP` handler             | Linux    | `handle SIGTRAP nostop pass`                    |
-| `SIGFPE` handler side-channel | Linux    | `strace -e signal=SIGFPE` count per input       |
-| TLS callback                  | Windows  | Break on TLS in x64dbg, patch                   |
-| DR register scan              | Windows  | Use software BPs, hook GetThreadContext         |
-| INT3 scan / CRC               | Both     | Hardware BPs, patch CRC comparison              |
-| Frida detection               | Both     | Early-load gadget, hook strstr                  |
-| CPUID hypervisor              | Both     | Patch CPUID result, bare metal                  |
-| Thread hiding                 | Windows  | Hook NtSetInformationThread                     |
+| Anti-Debug Check | Platform | Bypass |
+|---|---|---|
+| `ptrace(TRACEME)` | Linux | `LD_PRELOAD`, patch to `ret 0`, `catch syscall` |
+| `IsDebuggerPresent` | Windows | ScyllaHide, Frida hook, PEB patch |
+| `NtQueryInformationProcess` | Windows | ScyllaHide, hook ntdll |
+| `rdtsc` timing | Both | NOP rdtsc, Frida time hook, Pin |
+| `/proc/self/status` | Linux | Mount namespace, hook fopen |
+| `alarm(N)` | Linux | `handle SIGALRM ignore` in GDB |
+| `SIGTRAP` handler | Linux | `handle SIGTRAP nostop pass` |
+| `SIGFPE` handler side-channel | Linux | `strace -e signal=SIGFPE` count per input |
+| TLS callback | Windows | Break on TLS in x64dbg, patch |
+| DR register scan | Windows | Use software BPs, hook GetThreadContext |
+| INT3 scan / CRC | Both | Hardware BPs, patch CRC comparison |
+| Frida detection | Both | Early-load gadget, hook strstr |
+| CPUID hypervisor | Both | Patch CPUID result, bare metal |
+| Thread hiding | Windows | Hook NtSetInformationThread |
 
-------
+---
 
 ### Trap-Flag Self-Check with cmovz Patcher (Hack.lu 2018)
 
@@ -689,23 +649,20 @@ check_debugger:
     test  edx, edx
     cmovz eax, ebx            ; overwrite `eax` only when NOT single-stepping
     mov   [rip+target], eax
-
 ```
 
 **Bypass with hardware breakpoints:**
-
 ```gdb
 (gdb) hbreak *0x56557267       # hardware BP, no INT3, no TF side effect
 (gdb) run
 (gdb) # inspect EAX at the hbreak — the patched value is now written
-
 ```
 
 **Key insight:** `pushf; pop reg; and reg, 0x100` is the cleanest way to check TF without triggering a trap. Single-stepping changes the visible EFLAGS and can also perturb the instruction pipeline, so software breakpoints plus `stepi` both poison the check. Hardware breakpoints (`hbreak`) run the instruction normally and halt afterwards, so the check fires in "not debugging" mode. Apply the same fix to any anti-debug that reads EFLAGS, RFLAGS, or DR6.
 
 **References:** Hack.lu CTF 2018 — Forgetful Commander, writeup 11858
 
-------
+---
 
 ### SIGFPE Handler for mprotect Code Mutation (Hack.lu 2018)
 
@@ -720,18 +677,15 @@ void on_fpe(int sig, siginfo_t *info, void *uap) {
     // Patch a constant used by the next check
     *((uint32_t *)(page + 0x42)) = 0xDEADBEEF;
 }
-
 ```
 
 **Bypass:**
-
 ```bash
 # Let SIGFPE reach the program, not the debugger
 gdb ./challenge
 (gdb) handle SIGFPE nostop noprint pass
 (gdb) break *on_fpe
 (gdb) run
-
 ```
 
 **Key insight:** Signal handlers that `mprotect` + mutate code are cross-delimited in a way decompilers cannot model. `SIGFPE` is particularly effective because it is rarely raised during normal execution, so the mutation stays dormant until the attacker hits the crafted input. When you see `sys_sigaction(SIGFPE,...)` or `signal(SIGFPE,...)` in a binary that also calls `mprotect`, trace the handler with `strace -e signal=SIGFPE` and annotate the mutated region by diffing the `.text` pages before and after the first FPE.

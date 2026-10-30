@@ -1,7 +1,6 @@
 # CTF Misc - DNS Exploitation Techniques
 
 ## Table of Contents
-
 - [EDNS Client Subnet (ECS) Spoofing](#edns-client-subnet-ecs-spoofing)
 - [DNSSEC NSEC Walking](#dnssec-nsec-walking)
 - [Incremental Zone Transfer (IXFR)](#incremental-zone-transfer-ixfr)
@@ -12,10 +11,9 @@
 - [DNS Maze Traversal (hxp CTF 2017)](#dns-maze-traversal-hxp-ctf-2017)
 - [TCP Fast Open SYN-Payload Command Injection (Insomnihack 2019)](#tcp-fast-open-syn-payload-command-injection-insomnihack-2019)
 
-------
+---
 
 ## EDNS Client Subnet (ECS) Spoofing
-
 **Pattern (DragoNflieS, Nullcon 2026):** DNS server returns different records based on client IP. Spoof source using ECS option.
 
 ```bash
@@ -38,7 +36,6 @@ for rrset in r.answer:
 **Key insight:** Try leet-speak subnets like `10.13.37.0/24` (1337), common internal ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`).
 
 ## DNSSEC NSEC Walking
-
 **Pattern (DiNoS, Nullcon 2026):** NSEC records in DNSSEC zones reveal all domain names by chaining to the next name.
 
 ```python
@@ -67,7 +64,6 @@ def walk_nsec(server, port, base_domain):
 ```
 
 ## Incremental Zone Transfer (IXFR)
-
 **Pattern (Zoney, Nullcon 2026):** When AXFR is blocked, IXFR from old serial reveals zone update history including deleted records.
 
 ```bash
@@ -78,14 +74,13 @@ dig @server -p 5054 flag.example.com IXFR=0
 
 **IXFR output format:** The diff shows pairs of SOA records bracketing additions/deletions. Records between the old SOA and new SOA were removed; records after new SOA were added. Deleted TXT records often contain flag fragments.
 
-------
+---
 
 ## DNS Rebinding
 
 **Pattern:** Bypass same-origin or IP-based access controls by making a DNS name resolve to different IPs over time.
 
 **How it works:**
-
 1. Attacker controls DNS for `evil.com` with very low TTL (e.g., 1 second)
 2. First resolution: `evil.com` -> attacker's IP (serves malicious JS)
 3. Second resolution: `evil.com` -> `127.0.0.1` (or internal IP)
@@ -114,14 +109,13 @@ class RebindResolver(BaseResolver):
 
 **Tools:** [rbndr.us](http://rbndr.us/) for quick rebinding without custom DNS, [singularity](https://github.com/nccgroup/singularity) for automated attacks.
 
-------
+---
 
 ## DNS Tunneling / Exfiltration
 
 **Pattern:** Data exfiltrated via DNS queries (subdomains) or responses (TXT records).
 
 **Detection in PCAPs:**
-
 ```bash
 # Extract DNS queries from pcap
 tshark -r capture.pcap -Y "dns.qry.type == 1" \
@@ -133,7 +127,6 @@ tshark -r capture.pcap -Y "dns.qry.name contains '.evil.com'" \
 ```
 
 **Decoding exfiltrated data:**
-
 ```python
 import base64
 
@@ -145,13 +138,12 @@ print(decoded)
 ```
 
 **DNS-based C2 in PCAPs:**
-
 ```bash
 tshark -r capture.pcap -Y "dns.qry.type == 16" \
     -T fields -e dns.qry.name -e dns.txt
 ```
 
-------
+---
 
 ## DNS Round-Robin A Record Enumeration (EKOPARTY 2017)
 
@@ -169,12 +161,11 @@ while read ip; do
         echo "$response"
     fi
 done < ips.txt
-
 ```
 
 **Key insight:** DNS round-robin with heterogeneous backends can hide content across many IPs. A single DNS query may not return all records — query repeatedly (50-100 times) and deduplicate to exhaust the record set. Then make direct virtual-host requests (`-H "Host: target.com"`) to each IP for complete coverage.
 
-------
+---
 
 ## DNS Maze Traversal (hxp CTF 2017)
 
@@ -205,12 +196,11 @@ while queue:
         if next_uuid not in visited:
             visited.add(next_uuid)
             queue.append((next_uuid, path + [next_uuid]))
-
 ```
 
 **Key insight:** DNS records can encode arbitrary graph structures. Each node is a subdomain (UUID), edges are CNAME records at directional subdomains (up/down/left/right.UUID.domain), and node data is in TXT records. Standard graph search (BFS/DFS) solves these. Cache aggressively — DNS round-trip times dominate runtime. Use `dns.resolver` (dnspython) rather than subprocess `dig` calls for performance.
 
-------
+---
 
 ## DNS Enumeration Quick Reference
 
@@ -230,10 +220,9 @@ done
 
 # Check for wildcard DNS
 dig randomnonexistent.target.com
-
 ```
 
-------
+---
 
 ## TCP Fast Open SYN-Payload Command Injection (Insomnihack 2019)
 

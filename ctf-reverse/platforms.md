@@ -3,7 +3,6 @@
 macOS/iOS, embedded/IoT firmware, kernel driver, automotive, and game engine reverse engineering.
 
 ## Table of Contents
-
 - [macOS / iOS Reversing](#macos--ios-reversing)
   - [Mach-O Binary Format](#mach-o-binary-format)
   - [Code Signing & Entitlements](#code-signing--entitlements)
@@ -32,7 +31,7 @@ macOS/iOS, embedded/IoT firmware, kernel driver, automotive, and game engine rev
 - [Unity APK Assembly-CSharp.dll Runtime Patch (SECCON 2018)](#unity-apk-assembly-csharpdll-runtime-patch-seccon-2018)
 - [Il2CppDumper for Unity IL2CPP Metadata Recovery (SECCON 2018)](#il2cppdumper-for-unity-il2cpp-metadata-recovery-seccon-2018)
 
-------
+---
 
 ## macOS / iOS Reversing
 
@@ -55,7 +54,6 @@ otool -l binary | grep -A5 "segment\|section"
 ```
 
 **Key Mach-O concepts:**
-
 - Load commands drive the dynamic linker (`dyld`)
 - `LC_MAIN` → entry point (replaces `LC_UNIXTHREAD`)
 - `LC_LOAD_DYLIB` → shared library dependencies
@@ -99,7 +97,6 @@ class-dump binary > classes.h
 ```
 
 **Objective-C in disassembly:**
-
 ```text
 # objc_msgSend(receiver, selector, ...) is THE dispatch mechanism
 # RDI = self (receiver), RSI = selector (char* method name)
@@ -111,7 +108,6 @@ objc_msgSend(obj, "checkPassword:", input)
 ```
 
 **class-dump alternatives:**
-
 - `dsdump` — faster, supports Swift + Objective-C
 - `otool -oV binary` — dump Objective-C segments
 - Ghidra: Enable "Objective-C" analyzer in Analysis Options
@@ -131,7 +127,6 @@ swift demangle 's14MyApp0A8ClassC10checkInput6resultSbSS_tF'
 ```
 
 **Swift in disassembly:**
-
 ```text
 # Swift uses value witness tables (VWT) for type operations
 # Protocol witness tables (PWT) for dynamic dispatch (like vtables)
@@ -172,7 +167,6 @@ class-dump decrypted_binary > headers.h
 ```
 
 **Jailbreak detection and bypass:**
-
 ```javascript
 // Common jailbreak checks:
 // 1. Check for Cydia/Sileo
@@ -208,7 +202,7 @@ DYLD_INSERT_LIBRARIES=hook.dylib ./binary  # Inject dylib (like LD_PRELOAD)
 dyld_shared_cache_util -list /System/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_arm64e
 ```
 
-------
+---
 
 ## Embedded / IoT Firmware RE
 
@@ -228,7 +222,6 @@ hexdump -C firmware.bin | grep "UBI#"       # UBI magic
 ```
 
 **Hardware extraction methods (physical access):**
-
 ```text
 UART:  Serial console — often gives root shell or bootloader access
        Tools: USB-UART adapter, baudrate detection (usually 115200)
@@ -275,7 +268,6 @@ binwalk -e firmware.bin
 ### Architecture-Specific Notes
 
 **ARM (most common in IoT):**
-
 ```bash
 # Cross-toolchain
 apt install gcc-arm-linux-gnueabihf gdb-multiarch
@@ -293,7 +285,6 @@ gdb-multiarch -ex 'target remote :1234' ./arm_binary
 **ARM64/AArch64:** See [platforms-hardware.md](platforms-hardware.md#arm64aarch64-reversing-and-exploitation) for AArch64 calling convention, ROP gadgets, and qemu-aarch64-static emulation.
 
 **MIPS (routers, embedded):**
-
 ```bash
 # Big-endian vs little-endian — check ELF header or file command
 file binary    # "MIPS, MIPS32 rel2 (MIPS-II), big-endian" or "little-endian"
@@ -330,7 +321,7 @@ Bare metal (no OS):
   - Peripheral registers at memory-mapped addresses (check datasheet)
 ```
 
-------
+---
 
 ## Kernel Driver Reversing
 
@@ -358,7 +349,6 @@ strings module.ko | grep -i "flag\|secret\|ioctl\|device"
 ```
 
 **Common kernel module CTF patterns:**
-
 ```c
 // Device creation (creates /dev/challenge)
 alloc_chrdev_region(&dev, 0, 1, "challenge");
@@ -375,11 +365,9 @@ long my_ioctl(struct file *f, unsigned int cmd, unsigned long arg) {
 // copy_from_user / copy_to_user — data transfer with userspace
 copy_from_user(kernel_buf, (void __user *)arg, size);
 copy_to_user((void __user *)arg, kernel_buf, size);
-
 ```
 
 **Debugging kernel modules:**
-
 ```bash
 # QEMU + GDB for kernel debugging
 qemu-system-x86_64 -kernel bzImage -initrd initrd.cpio -s -S \
@@ -390,7 +378,6 @@ gdb vmlinux
 (gdb) target remote :1234
 (gdb) lx-symbols           # Load module symbols (requires scripts)
 (gdb) add-symbol-file module.ko 0x<loaded_address>
-
 ```
 
 ### eBPF Programs
@@ -414,7 +401,6 @@ llvm-objdump -d ebpf_prog.o
 # bpf_map_update_elem → write to map
 # bpf_probe_read → read kernel memory
 # bpf_trace_printk → debug output
-
 ```
 
 ### Windows Kernel Drivers
@@ -429,10 +415,9 @@ llvm-objdump -d ebpf_prog.o
 # MmMapIoSpace → memory-mapped I/O
 # ObReferenceObjectByHandle → get kernel object from handle
 # ZwCreateFile/ZwReadFile → kernel-mode file operations
-
 ```
 
-------
+---
 
 ## Game Engine Reversing
 
@@ -448,22 +433,18 @@ unrealpak.exe extract GameName.pak -output extracted/
 # .umap — level/map data
 # .ushaderbytecode — compiled shader
 # FModel (https://fmodel.app/) — GUI asset viewer/extractor
-
 ```
 
 **Blueprint reversing:**
-
 ```text
 Blueprints compile to bytecode in .uasset files.
 - UAssetGUI / FModel to browse Blueprint assets
 - Kismet bytecode → visual scripting logic
 - Look for: K2_SetTimer, DoOnce, Branch, Custom Events
 - Flag logic often in Blueprint event graphs, not C++
-
 ```
 
 **UE4/UE5 C++ reversing:**
-
 ```bash
 # Key engine classes:
 # UObject → base class for everything
@@ -477,7 +458,6 @@ Blueprints compile to bytecode in .uasset files.
 
 # String handling: FString (UTF-16), FName (hashed identifier), FText (localized)
 # In memory: FString = {TCHAR* Data, int32 ArrayNum, int32 ArrayMax}
-
 ```
 
 ### Unity (Beyond IL2CPP)
@@ -485,7 +465,6 @@ Blueprints compile to bytecode in .uasset files.
 See [languages.md](languages.md#unity-il2cpp-games) for IL2CPP basics.
 
 **Mono-based Unity (not IL2CPP):**
-
 ```bash
 # Managed assemblies in Data/Managed/ directory
 # Assembly-CSharp.dll contains game logic
@@ -497,11 +476,9 @@ ilspy Assembly-CSharp.dll       # Decompilation only
 # MonoBehaviour.Update() → per-frame logic
 # PlayerPrefs.GetString("key") → stored data
 # SceneManager.LoadScene("level") → scene transitions
-
 ```
 
 **Unity asset extraction:**
-
 ```bash
 # AssetStudio — extract textures, models, audio, scripts
 # AssetRipper — comprehensive Unity asset extraction
@@ -513,7 +490,6 @@ ilspy Assembly-CSharp.dll       # Decompilation only
 # - Shader source code
 # - ScriptableObject assets
 # - PlayerPrefs save files
-
 ```
 
 ### Anti-Cheat Analysis
@@ -544,7 +520,6 @@ CTF approach:
 2. For CTF: usually need to bypass specific check, not full anti-cheat
 3. Memory patching: find game state in memory, modify values
 4. Save file manipulation: often easier than runtime cheating
-
 ```
 
 ### Lua-Scripted Games
@@ -563,10 +538,9 @@ luajit -bl bytecode.lua                     # Disassemble
 
 # Embedded Lua: strings binary | grep "lua_\|luaL_\|LUA_"
 # Hook lua_pcall to intercept script execution
-
 ```
 
-------
+---
 
 ## Automotive / CAN Bus RE
 
@@ -593,16 +567,14 @@ cansend can0 7DF#0201000000000000          # Send single frame (OBD-II request)
 # ID: 11-bit or 29-bit identifier
 # DLC: Data Length Code (0-8 bytes)
 # Data: up to 8 bytes payload
-
 ```
 
 **CTF automotive patterns:**
-
 - Seed-key bypass: Reverse the key derivation algorithm from ECU firmware
 - CAN message replay: Capture legitimate command, replay to unlock feature
 - Firmware extraction from ECU via UDS/KWP2000
 
-------
+---
 
 ## RISC-V QEMU Execution with GLIBC Symbol Version Patching (Pwn2Win 2018)
 
@@ -615,14 +587,13 @@ sed 's@GLIBC_2.25@GLIBC_2.27@g' -i binary
 objdump -p binary   # note old hash
 # replace bytes with xxd / hexedit
 qemu-riscv64 -L ./sysroot ./binary
-
 ```
 
 **Key insight:** `ld.so` symbol versioning is enforced by a hashed identifier next to each symbol. Patching both the string and its hash bypasses the check without rebuilding libc; `objdump -p` shows the hash slot to overwrite.
 
 **References:** Pwn2Win CTF 2018 — Too Slow, writeup 12501+
 
-------
+---
 
 ## APK Certificate SHA-256 as AES Key (ASIS Finals 2018)
 
@@ -635,14 +606,13 @@ import base64, zipfile
 cert = zipfile.ZipFile('app.apk').read('META-INF/CERT.RSA')
 key  = base64.b64encode(sha256(cert).digest())[:16]
 # Decrypt config resources with AES-ECB using this key
-
 ```
 
 **Key insight:** "Deterministic key from a public fingerprint" is a recurring Android anti-pattern. Audit `getSignature`, `getPackageInfo`, and MessageDigest usages for this shape; the fix is to store a real secret server-side.
 
 **References:** ASIS CTF Finals 2018 — Gunshop, writeup 12420
 
-------
+---
 
 ## Moxie ISA Custom Opcode Discovery (SECCON 2018)
 
@@ -654,14 +624,13 @@ def xorshift32(s):
     s ^= (s >> 17)
     s ^= (s << 15) & 0xffffffff     # Note: *not* standard (<< 5)
     return s & 0xffffffff
-
 ```
 
 **Key insight:** Obscure ISAs often lean on small custom additions to implement crypto inline. Grep the binary for human-readable opcode documentation; it's frequently left in the help text for challenge authors' own debugging.
 
 **References:** SECCON 2018 — Special Instructions, writeup 12001
 
-------
+---
 
 ## Unity APK Assembly-CSharp.dll Runtime Patch (SECCON 2018)
 
@@ -673,14 +642,13 @@ apktool d game.apk -o game_src
 apktool b game_src -o patched.apk
 jarsigner -keystore debug.keystore -storepass android patched.apk androiddebugkey
 adb install -r patched.apk
-
 ```
 
 **Key insight:** Unity games are "just C#" once you open the DLL. Any hidden flag rendered at the wrong angle or masked by an overlay is exposed by deleting the animation code.
 
 **References:** SECCON 2018 — block, writeup 12001
 
-------
+---
 
 ## Il2CppDumper for Unity IL2CPP Metadata Recovery (SECCON 2018)
 
@@ -689,7 +657,6 @@ adb install -r patched.apk
 ```bash
 Il2CppDumper libil2cpp.so global-metadata.dat out/
 grep -r "https://" out/  # find hardcoded endpoints
-
 ```
 
 **Key insight:** IL2CPP looks opaque but the metadata file carries every type name, method name, and string literal. That is enough to reverse CTF-level logic without ever touching native disassembly.

@@ -1,14 +1,13 @@
 # CTF Forensics - 3D Printing / CAD File Forensics
 
 ## Table of Contents
-
 - [PrusaSlicer Binary G-code (.g / .bgcode)](#prusaslicer-binary-g-code-g--bgcode)
 - [QOIF (Quite OK Image Format)](#qoif-quite-ok-image-format)
 - [G-code Analysis Tips](#g-code-analysis-tips)
 - [G-code Side View Visualization (0xFun 2026)](#g-code-side-view-visualization-0xfun-2026)
 - [Uncommon File Magic Bytes](#uncommon-file-magic-bytes)
 
-------
+---
 
 ## PrusaSlicer Binary G-code (.g / .bgcode)
 
@@ -17,7 +16,6 @@
 The `.g` extension is PrusaSlicer's binary G-code format (bgcode). It stores G-code in a block-based structure with compression.
 
 **File structure:**
-
 ```text
 Header: "GCDE"(4) + version(4) + checksum_type(2)
 Blocks: [type(2) + compression(2) + uncompressed_size(4)
@@ -27,7 +25,6 @@ Blocks: [type(2) + compression(2) + uncompressed_size(4)
 ```
 
 **Block types:**
-
 - 0 = FileMetadata (has encoding field, 2 bytes)
 - 1 = GCode (has encoding field, 2 bytes)
 - 2 = SlicerMetadata (has encoding field, 2 bytes)
@@ -40,7 +37,6 @@ Blocks: [type(2) + compression(2) + uncompressed_size(4)
 **Thumbnail formats:** 0=PNG, 1=JPEG, 2=QOI (Quite OK Image)
 
 **Parsing and extracting G-code:**
-
 ```python
 import struct, zlib
 import heatshrink2  # pip install heatshrink2
@@ -76,7 +72,6 @@ while pos < len(data) - 8:
 ```
 
 **Common hiding spots:**
-
 - G-code comments (`;=== FLAG_CHAR ... ===`) at specific layer heights
 - Custom G-code sections (`;TYPE:Custom`)
 - Metadata fields (object names, filament info)
@@ -113,14 +108,14 @@ grep "^G1" output.gcode | awk '{print $2, $3}' > coords.txt
 
 **Lesson:** G-code is just coordinate lists. Side projections (XZ or YZ) reveal embossed/engraved text.
 
-------
+---
 
 ## Uncommon File Magic Bytes
 
-| Magic  | Format                    | Extension       | Notes                                    |
-| ------ | ------------------------- | --------------- | ---------------------------------------- |
-| `GCDE` | PrusaSlicer binary G-code | `.g`, `.bgcode` | 3D printing, heatshrink compressed       |
-| `qoif` | Quite OK Image Format     | `.qoi`          | Lightweight image format, often embedded |
-| `OggS` | Ogg container             | `.ogg`          | Audio/video                              |
-| `RIFF` | RIFF container            | `.wav`,`.avi`   | Check subformat                          |
-| `%PDF` | PDF                       | `.pdf`          | Check metadata & embedded objects        |
+| Magic | Format | Extension | Notes |
+|-------|--------|-----------|-------|
+| `GCDE` | PrusaSlicer binary G-code | `.g`, `.bgcode` | 3D printing, heatshrink compressed |
+| `qoif` | Quite OK Image Format | `.qoi` | Lightweight image format, often embedded |
+| `OggS` | Ogg container | `.ogg` | Audio/video |
+| `RIFF` | RIFF container | `.wav`,`.avi` | Check subformat |
+| `%PDF` | PDF | `.pdf` | Check metadata & embedded objects |

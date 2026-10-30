@@ -1,6 +1,13 @@
 ---
 name: ctf-writeup
 description: Generates a single standardized submission-style CTF writeup for competition handoff and organizer review. Use after solving a CTF challenge to document the solution steps, tools used, and lessons learned in a structured format.
+license: MIT
+compatibility: Requires filesystem-based agent (Claude Code or similar) with bash and Python 3.
+allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch
+metadata:
+  user-invocable: "true"
+  argument-hint: "[challenge-name]"
+  author: Lukasz Jagiello
 ---
 
 # CTF Write-up Generator
@@ -35,7 +42,7 @@ grep -rniE '(flag|ctf|eno|htb|pico)\{' . 2>/dev/null
 
 Write the writeup file as `writeup.md` (or `writeup-<challenge-name>.md`) using the submission template below.
 
-------
+---
 
 ## Templates
 
@@ -46,7 +53,7 @@ Write the writeup file as `writeup.md` (or `writeup-<challenge-name>.md`) using 
 title: "<Challenge Name>"
 ctf: "<CTF Event Name>"
 date: YYYY-MM-DD
-category: web|pwn|crypto|reverse|forensics|osint|malware|misc
+category: web|pwn|crypto|reverse|forensics|osint|malware|misc|ai-ml
 difficulty: easy|medium|hard
 points: <number>
 flag_format: "flag{...}"
@@ -95,7 +102,7 @@ Guidance:
 - Avoid multiple alternative solves; pick one clean path
 - Redact the flag only if the user explicitly asks for redaction
 
-------
+---
 
 ## Best Practices Checklist
 
@@ -114,7 +121,6 @@ Before finalizing the writeup, verify:
 ## Quality Guidelines
 
 **DO:**
-
 - Explain just enough for fast verification
 - Include one complete solving path, not multiple alternative routes
 - Include one complete script that goes all the way to the final flag
@@ -123,7 +129,6 @@ Before finalizing the writeup, verify:
 - Keep the main path front-loaded so a reader can validate it quickly
 
 **DON'T:**
-
 - Copy-paste raw terminal dumps without explanation
 - Paste several partial snippets that force the reader to reconstruct the final solve
 - Leave placeholder text in the final writeup

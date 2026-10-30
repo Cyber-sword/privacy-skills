@@ -1,7 +1,6 @@
 # CTF Forensics - Windows
 
 ## Table of Contents
-
 - [Windows Event Logs (.evtx)](#windows-event-logs-evtx)
 - [Registry Analysis](#registry-analysis)
   - [OEMInformation Backdoor Detection](#oeminformation-backdoor-detection)
@@ -27,25 +26,24 @@
 - [Volatility clipboard Plugin for Copy-Paste Secret Recovery (OtterCTF 2018)](#volatility-clipboard-plugin-for-copy-paste-secret-recovery-otterctf-2018)
 - [Volatility Credential Recovery Toolkit (OtterCTF 2018)](#volatility-credential-recovery-toolkit-otterctf-2018)
 
-------
+---
 
 ## Windows Event Logs (.evtx)
 
 **Key Event IDs:**
 
-| Event ID | Description                    |
-| -------- | ------------------------------ |
-| 1001     | Bugcheck/reboot                |
-| 41       | Unclean shutdown               |
-| 4720     | User account created           |
-| 4722     | User account enabled           |
-| 4724     | Password reset attempted       |
-| 4726     | User account deleted           |
-| 4738     | User account changed           |
-| 4781     | Account name changed (renamed) |
+| Event ID | Description |
+|----------|-------------|
+| 1001 | Bugcheck/reboot |
+| 41 | Unclean shutdown |
+| 4720 | User account created |
+| 4722 | User account enabled |
+| 4724 | Password reset attempted |
+| 4726 | User account deleted |
+| 4738 | User account changed |
+| 4781 | Account name changed (renamed) |
 
 **Parse with python-evtx:**
-
 ```python
 import Evtx.Evtx as evtx
 import xml.etree.ElementTree as ET
@@ -64,7 +62,7 @@ with evtx.Evtx("Security.evtx") as log:
             print(f"User created: {data.get('TargetUserName')}")
 ```
 
-------
+---
 
 ## Registry Analysis
 
@@ -94,17 +92,15 @@ for val in key.values():
 
 **Malware indicator:** Modified `SupportURL` pointing to C2.
 
-------
+---
 
 ## SAM Database Analysis
 
 **Required files:**
-
 - `Windows/System32/config/SAM` - Password hashes
 - `Windows/System32/config/SYSTEM` - Boot key
 
 **Extract hashes with impacket:**
-
 ```python
 from impacket.examples.secretsdump import LocalOperations, SAMHashes
 
@@ -115,7 +111,6 @@ sam.dump()  # username:RID:LM:NTLM:::
 ```
 
 **Verify/Crack NTLM:**
-
 ```python
 from Crypto.Hash import MD4
 
@@ -129,43 +124,38 @@ def ntlm_hash(password):
 ```
 
 **Common RIDs:**
-
 - 500 = Administrator
 - 501 = Guest
 - 1000+ = User accounts
 
-------
+---
 
 ## Recycle Bin Forensics
 
 **Location:** `$Recycle.Bin\<SID>\`
 
 **File structure:**
-
 - `$R<random>.<ext>` - Actual deleted content
 - `$I<random>.<ext>` - Metadata (original path, timestamp)
 
 **Parse $I metadata:**
-
 ```python
 # strings shows original path
 # C.:.\.U.s.e.r.s.\.U.s.e.r.4.\.D.o.c.u.m.e.n.t.s.\.file.docx
 ```
 
 **Hex-encoded flag fragments:**
-
 ```bash
 cat '$R_InternSecret.txt'
 # Output: 4B4354467B72656330...
 echo "4B4354467B72656330..." | xxd -r -p
 ```
 
-------
+---
 
 ## Browser History
 
 **Edge/Chrome (SQLite):**
-
 ```python
 import sqlite3
 
@@ -177,7 +167,7 @@ for url, title in cur.fetchall():
     print(f"{title}: {url}")
 ```
 
-------
+---
 
 ## Windows Telemetry (imprbeacons.dat)
 
@@ -189,32 +179,30 @@ strings imprbeacons.dat | tr '&' '\n' | grep -E "CIP|geo_|COUNTRY"
 
 **Key fields:** `CIP` (client IP), `geo_lat/long`, `COUNTRY`, `SMBIOSDM`
 
-------
+---
 
 ## Hosts File Hidden Data
 
 **Location:** `Windows/System32/drivers/etc/hosts`
 
 Attackers hide data with excessive whitespace:
-
 ```bash
 # Detect hidden content
 xxd hosts | tail -20
 ```
 
-------
+---
 
 ## Contact Files (.contact)
 
 **Location:** `Users/<user>/Contacts/*.contact`
 
 **Hidden data in Notes:**
-
 ```xml
 <c:Notes>h1dden_c0ntr4ct5</c:Notes>
 ```
 
-------
+---
 
 ## WinZip AES Encrypted Archives
 
@@ -229,7 +217,7 @@ hashcat -m 13600 zip_hash.txt wordlist.txt
 hashcat -m 13600 zip_hash.txt wordlist.txt -a 6 '?d?d?d?d'
 ```
 
-------
+---
 
 ## NTFS Alternate Data Streams
 
@@ -301,14 +289,13 @@ for entry in fs.open_dir("/"):
 
 **References:** Google CTF 2019 "Home Computer", TCP1P CTF 2023 "hide and split", De1CTF 2019 "DeeplnReal"
 
-------
+---
 
 ## NTFS MFT Analysis
 
 **Location:** `C:\$MFT` (Master File Table)
 
 **Key techniques:**
-
 - Filenames are stored in UTF-16LE in the MFT
 - Each file has two timestamp sets: `$STANDARD_INFORMATION` (user-modifiable) and `$FILE_NAME` (system-controlled)
 - Timestomping detection: Compare SI vs FN timestamps; if SI dates are much older than FN dates, the file was timestomped
@@ -326,7 +313,7 @@ for entry in fs.open_dir("/"):
 # - Attribute 0x10 ($STANDARD_INFORMATION): Contains SI timestamps (modifiable)
 ```
 
-------
+---
 
 ## USN Journal ($J) Analysis
 
@@ -356,17 +343,15 @@ def parse_usn_record(data, offset):
 # 0x1=DATA_OVERWRITE, 0x2=DATA_EXTEND, 0x4=DATA_TRUNCATION
 # 0x100=FILE_CREATE, 0x200=FILE_DELETE, 0x1000=NAMED_DATA_OVERWRITE
 # 0x80000000=CLOSE
-
 ```
 
 **Key forensic uses:**
-
 - Find file creation/deletion times even when logs are cleared
 - Track wmiexec.py output files (`__<timestamp>.<random>`)
 - Determine when PowerShell history was written (timeline of commands)
 - Detect user profile creation (first interactive login time)
 
-------
+---
 
 ## SAM Account Creation Timing
 
@@ -381,10 +366,9 @@ sam = RegistryHive('SAM')
 names_key = sam.get_key('SAM\\Domains\\Account\\Users\\Names')
 for subkey in names_key.iter_subkeys():
     print(f"{subkey.name}: created {subkey.header.last_modified}")
-
 ```
 
-------
+---
 
 ## Impacket wmiexec.py Artifacts
 
@@ -394,17 +378,18 @@ for subkey in names_key.iter_subkeys():
    - File is created, written with command output, read back, then deleted
    - Each command execution creates a new cycle
    - USN journal preserves create/delete timestamps even after file deletion
+
 2. **WMI Provider Host:** `WMIPRVSE.EXE` prefetch file confirms WMI usage
+
 3. **Timeline reconstruction:** Count USN create-delete cycles for the output file to determine number of commands executed
 
 ```python
 # Search for wmiexec output files in MFT
 # strings -el $MFT | grep -E '^__[0-9]{10}'
 # The unix timestamp in the filename = approximate execution start time
-
 ```
 
-------
+---
 
 ## PowerShell History as Timeline
 
@@ -416,12 +401,11 @@ PSReadLine writes commands incrementally. **USN journal DATA_EXTEND events on th
 08:05:19 - FILE_CREATE + DATA_EXTEND → First command entered
 08:05:50 - DATA_EXTEND → Second command entered
 08:09:57 - DATA_EXTEND → Third command entered
-
 ```
 
 This provides exact execution timestamps for each command even when PowerShell logs are cleared.
 
-------
+---
 
 ## User Profile Creation as First Login Indicator
 
@@ -432,44 +416,43 @@ When event logs are cleared, the user profile directory creation in USN journal 
 # Reason flag 0x100 (FILE_CREATE) with parent ref matching C:\Users (MFT ref 512)
 # Example: ithelper DIR FILE_CREATE parent=512 at 08:03:51
 # → First login (RDP/console) was at approximately 08:03
-
 ```
 
 **Key insight:** User profiles are only created on first interactive logon (RDP or console), not via WMI/wmiexec remote execution.
 
-------
+---
 
 ## RDP Session Event IDs
 
 **TerminalServices-LocalSessionManager\Operational:**
 
-| Event ID | Description                       |
-| -------- | --------------------------------- |
-| 21       | Session logon succeeded           |
-| 22       | Shell start notification received |
-| 23       | Session logoff succeeded          |
-| 24       | Session disconnected              |
-| 25       | Session reconnection succeeded    |
-| 40       | Session created                   |
-| 41       | Session begin (user notification) |
-| 42       | Shell start (user notification)   |
+| Event ID | Description |
+|----------|-------------|
+| 21 | Session logon succeeded |
+| 22 | Shell start notification received |
+| 23 | Session logoff succeeded |
+| 24 | Session disconnected |
+| 25 | Session reconnection succeeded |
+| 40 | Session created |
+| 41 | Session begin (user notification) |
+| 42 | Shell start (user notification) |
 
 **TerminalServices-RemoteConnectionManager\Operational:**
 
-| Event ID | Description                                            |
-| -------- | ------------------------------------------------------ |
-| 261      | Listener received connection                           |
-| 1149     | RDP user authentication succeeded (contains source IP) |
+| Event ID | Description |
+|----------|-------------|
+| 261 | Listener received connection |
+| 1149 | RDP user authentication succeeded (contains source IP) |
 
 **RemoteDesktopServices-RdpCoreTS\Operational:**
 
-| Event ID | Description                                       |
-| -------- | ------------------------------------------------- |
-| 131      | Connection accepted (TCP, contains ClientIP:port) |
-| 102      | Connection from client                            |
-| 103      | Disconnected (check ReasonCode)                   |
+| Event ID | Description |
+|----------|-------------|
+| 131 | Connection accepted (TCP, contains ClientIP:port) |
+| 102 | Connection from client |
+| 103 | Disconnected (check ReasonCode) |
 
-------
+---
 
 ## Windows Defender MPLog Analysis
 
@@ -487,15 +470,13 @@ grep -i "ASR\|Process.*Block" MPLog*.log
 # Key ASR rules (indicators of attack attempts):
 # - "Block Process Creations originating from PSExec & WMI commands"
 # - "Block credential stealing from lsass.exe"
-
 ```
 
 **Detection History files:** `C:\ProgramData\Microsoft\Windows Defender\Scans\History\Service\DetectionHistory\`
-
 - Binary files containing SHA256, file paths, and detection names
 - Parse with `strings` to extract IOCs
 
-------
+---
 
 ## Anti-Forensics Detection Checklist
 
@@ -514,7 +495,7 @@ When event logs are cleared (attacker used `wevtutil cl` or `Clear-EventLog`):
 
 **Security.evtx EventID 1102** = "The audit log was cleared" (ironically logged even during clearing)
 
-------
+---
 
 ## Windows Memory Forensics: certutil Base64 ZIP Recovery (SEC-T CTF 2017)
 
@@ -552,11 +533,9 @@ with open('candidates.txt') as f:
 
 # Step 5: Extract ZIP contents
 unzip recovered.zip
-
 ```
 
 **Malware indicators to look for:**
-
 - `bitsadmin /transfer` — background download without browser
 - `certutil -decode input.b64 output.exe` — base64 decode abuse
 - Batch files (`.bat`, `.cmd`) in unusual locations (`%TEMP%`, `%APPDATA%`)
@@ -564,14 +543,13 @@ unzip recovered.zip
 
 **Key insight:** `certutil` is commonly abused by malware for base64 decoding as a living-off-the-land technique. `UEsD` is the base64 encoding of ZIP magic bytes `PK\x03` — use it as a memory scanning signature to find in-transit ZIP archives before they are written to disk or after they are deleted.
 
-------
+---
 
 ## NTFS EFSTMPWP Folder as cipher.exe Wipe Artifact (Security Fest CTF 2018)
 
 **Pattern (Mr.reagan):** An NTFS image contains `$RECYCLE.BIN` but also a sparsely-used hidden directory named `EFSTMPWP`. This directory is created by `cipher.exe /w` — Windows' built-in tool for overwriting the free space of a volume — to hold the temporary files used for the multi-pass wipe. Its presence means the suspect ran a secure-erase command, so file recovery of deleted data is unlikely to succeed.
 
 **Detection:**
-
 ```bash
 # Mount the NTFS image read-only
 sudo mount -o ro,loop,show_sys_files image.dd /mnt/ntfs
@@ -582,11 +560,9 @@ find /mnt/ntfs -maxdepth 2 -iname 'EFSTMPWP' -o -iname '$Recycle.Bin'
 # MFT entry also records the directory with `cipher.exe` as the creator process
 mft_parser -i image.dd -o mft.csv
 grep -i 'EFSTMPWP' mft.csv
-
 ```
 
 **Implications:**
-
 - Do not waste time on carving for deleted user data in the free space; it has been overwritten.
 - Switch focus to alternate persistence paths: `$Recycle.Bin` contents, NTFS journal ($LogFile / $UsnJrnl), Volume Shadow Copies, and MFT resident data.
 - Check `Event Log` (`Security.evtx`, `Microsoft-Windows-Application-Experience%4Program-Inventory.evtx`) for `cipher.exe` execution timestamps — they anchor the anti-forensics timeline.
@@ -595,24 +571,25 @@ grep -i 'EFSTMPWP' mft.csv
 
 **References:** Security Fest CTF 2018 — writeup 10206
 
-------
+---
 
 ## Volatility clipboard Plugin for Copy-Paste Secret Recovery (OtterCTF 2018)
 
-**Pattern:** Users copy passwords / keys / flags into the clipboard. Windows keeps clipboard data live in memory even after the source application closes. Volatility's `clipboard` plugin enumerates `CF_UNICODETEXT` / `CF_TEXT` buffers and prints the most recent copy-paste content verbatim.
+**Pattern:** Users copy passwords / keys / flags into the clipboard. Windows keeps clipboard data live in memory even after the source application closes. Volatility 2's `clipboard` plugin enumerates `CF_UNICODETEXT` / `CF_TEXT` buffers and prints the most recent copy-paste content verbatim. Volatility 3 has no `windows.clipboard` plugin (the `windows/` directory jumps from `callbacks.py` to `cmdline.py` at volatility3 2.27.0) — scan process memory for clipboard text with `windows.vadyarascan`, or dump a process with `windows.memmap --dump` and run `strings` over the result.
 
 ```bash
 vol.py -f memory.vmem --profile=Win7SP1x64 clipboard
-# Volatility 3:
-vol -f memory.vmem windows.clipboard
-
+# Volatility 3 equivalents (no windows.clipboard plugin exists):
+vol -f memory.vmem windows.vadyarascan --yara-string "rule clip { strings: $u = /flag\\{[^{}]+\\}/ nocase wide ascii condition: $u }"
+vol -f memory.vmem windows.memmap --pid <PID> --dump
+strings pid.<PID>.dmp | grep -iE 'pass|flag'
 ```
 
 **Key insight:** Before spending hours carving LSASS or walking process heaps, run `clipboard` — CTF challenges about "Silly Rick copied his password" always surface here. Combine with `cmdline`, `consoles`, and `filescan` for full user-activity reconstruction.
 
 **References:** OtterCTF 2018 — Silly Rick, writeup 12596
 
-------
+---
 
 ## Volatility Credential Recovery Toolkit (OtterCTF 2018)
 
@@ -643,9 +620,8 @@ vol.py -f dump.vmem --profile=Win7SP1x64 netscan
 # 7. Process tree and loaded DLLs for malware triage
 vol.py -f dump.vmem --profile=Win7SP1x64 pstree
 vol.py -f dump.vmem --profile=Win7SP1x64 dlllist -p PID
-
 ```
 
-**Key insight:** Don't hunt with `strings` alone. The Volatility plugin suite has a plugin for every artifact: clipboard, mimikatz (plaintext), hashdump (hashes), printkey (registry), memdump (per-process memory), netscan (sockets), pstree (process hierarchy), dlllist (loaded modules). Run them in order from cheapest to most expensive.
+**Key insight:** Don't hunt with `strings` alone. The Volatility plugin suite has a plugin for every artifact: mimikatz (plaintext), hashdump (hashes), printkey (registry), memdump (per-process memory), netscan (sockets), pstree (process hierarchy), dlllist (loaded modules). Run them in order from cheapest to most expensive.
 
 **References:** OtterCTF 2018 — multiple challenges, writeups 12569–12572, 12596

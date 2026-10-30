@@ -3,7 +3,6 @@
 Hash-based attacks, protocol-level exploits, ECB oracles, Rabin/RSA parity attacks, and specialized cipher weaknesses. For core AES/CBC/padding oracle techniques, see [modern-ciphers.md](modern-ciphers.md). For stream cipher attacks (LFSR, RC4, XOR), see [stream-ciphers.md](stream-ciphers.md).
 
 ## Table of Contents
-
 - [Blum-Goldwasser Bit-Extension Oracle (PlaidCTF 2013)](#blum-goldwasser-bit-extension-oracle-plaidctf-2013)
 - [Hash Length Extension Attack (PlaidCTF 2014)](#hash-length-extension-attack-plaidctf-2014)
 - [Compression Oracle / CRIME-Style Attack (BCTF 2015)](#compression-oracle--crime-style-attack-bctf-2015)
@@ -26,7 +25,7 @@ Hash-based attacks, protocol-level exploits, ECB oracles, Rabin/RSA parity attac
 
 See [modern-ciphers-3.md](modern-ciphers-3.md) for custom hash reversal, CRC32 brute-force, noisy RSA oracle, sponge collisions, CBC IV forgery, padding oracle bit-flip, SPN S-box intersection, AES-CFB IV recovery, three-round XOR, Unicode side channel, SHA-256 basis attack, and HMAC key recovery.
 
-------
+---
 
 ## Blum-Goldwasser Bit-Extension Oracle (PlaidCTF 2013)
 
@@ -47,7 +46,7 @@ for i in range(msg_length):
 
 **When to use:** Blum-Goldwasser or BBS-based (Blum Blum Shub) encryption with a decryption oracle that accepts variable-length ciphertexts. The parity leak accumulates one bit per query.
 
-------
+---
 
 ## Hash Length Extension Attack (PlaidCTF 2014)
 
@@ -74,7 +73,7 @@ new_hash, new_data = hashpumpy.hashpump(
 
 *See also [ctf-web/auth-infra.md — Hash Length Extension Attack (ASIS CTF 2017)](../ctf-web/auth-infra.md#hash-length-extension-attack-asis-ctf-2017) for the same primitive applied to a web auth token bypass.*
 
-------
+---
 
 ## Compression Oracle / CRIME-Style Attack (BCTF 2015)
 
@@ -82,6 +81,7 @@ new_hash, new_data = hashpumpy.hashpump(
 
 ```python
 import base64
+import string
 
 def oracle(plaintext):
     """Send chosen plaintext, get ciphertext length."""
@@ -104,7 +104,7 @@ for pos in range(secret_length):
 
 **Key insight:** Compression algorithms (LZW, DEFLATE, zlib) replace repeated sequences with back-references. If `SALT + user_input` is compressed before encryption, sending input that matches part of the salt produces shorter ciphertext (the match compresses). This is the same class as CRIME (TLS), BREACH (HTTP), and HEIST attacks. The oracle is ciphertext length.
 
-------
+---
 
 ## Hash Function Time Reversal via Cycle Detection (BSidesSF 2025)
 
@@ -153,7 +153,7 @@ for _ in range(forward_steps):
 
 **Key insight:** For truncated hashes (e.g., MD5 -> 64 bits), the expected cycle length is ~2^32, making cycle detection feasible. Going "backward" N steps is equivalent to going forward (cycle_length - N) steps. Assumes the target state is within the main cycle, not on a tail.
 
-------
+---
 
 ## OFB Mode with Invertible RNG Backward Decryption (BSidesSF 2026)
 
@@ -169,23 +169,29 @@ def rng_inverse(state):
     """Inverted RNG — recover previous state."""
     return ((state - B) * pow(A, -1, M)) % M
 
-# Last block is zero-padded → ciphertext XOR 0 = keystream = RNG state
-leaked_state = int.from_bytes(ciphertext_blocks[-2], 'big')
+def xor_bytes(a, b):
+    return bytes(x ^ y for x, y in zip(a, b))
 
-# Decrypt backwards
+# block_size: the challenge's block size (16 for AES, whatever the cipher uses)
+
+# Last block is zero-padded → ciphertext XOR 0 = keystream = RNG state.
+# Keystream is KS_0 = seed, KS_{i+1} = rng_forward(KS_i), and C_i = P_i ^ KS_i,
+# so the LAST ciphertext block carries the LAST keystream block:
+leaked_state = int.from_bytes(ciphertext_blocks[-1], 'big')
+
+# Decrypt backwards: undo the RNG once to get KS_{n-2}, then KS_{n-3}, ... KS_0
 state = leaked_state
-plaintext_blocks = []
-for i in range(len(ciphertext_blocks) - 3, -1, -1):
+plaintext_blocks = [xor_bytes(ciphertext_blocks[-1], state.to_bytes(block_size, 'big'))]
+for i in range(len(ciphertext_blocks) - 2, -1, -1):
     state = rng_inverse(state)
-    pt = xor_bytes(ciphertext_blocks[i], state.to_bytes(block_size, 'big'))
-    plaintext_blocks.insert(0, pt)
+    plaintext_blocks.insert(0, xor_bytes(ciphertext_blocks[i], state.to_bytes(block_size, 'big')))
 ```
 
 **Key insight:** OFB mode decouples encryption from the plaintext — the keystream is deterministic from the initial state. If ANY block's plaintext is known (padding, headers, magic bytes), the corresponding RNG state is leaked. An invertible RNG then reveals ALL states. Always check if the RNG transition function has a mathematical inverse.
 
 **When to recognize:** Custom OFB/CTR mode with a non-standard PRNG. Look for: (1) XOR-based encryption, (2) a state-update function that's bijective (no information loss), (3) predictable plaintext in any block position. Files with known padding (PKCS#7 zero-fill, null-terminated strings) are ideal leak points.
 
-------
+---
 
 ## Weak Key Derivation via Public Key Hash XOR (BSidesSF 2026)
 
@@ -218,7 +224,7 @@ plaintext = cipher.decrypt(ct_body)
 
 **When to recognize:** Challenge provides both a public key AND an encrypted file, but no private key or ciphertext for RSA. Look for key derivation code that hashes the public key, uses the public key's modulus/exponent as seed material, or XORs with a constant.
 
-------
+---
 
 ## HMAC-CRC Linearity Attack (Boston Key Party 2016)
 
@@ -232,7 +238,7 @@ plaintext = cipher.decrypt(ct_body)
 
 **Key insight:** CRC's linearity over GF(2) means HMAC-CRC provides zero security. Always verify the underlying hash function is non-linear before trusting HMAC.
 
-------
+---
 
 ## DES Weak Keys in OFB Mode (Boston Key Party 2016)
 
@@ -243,12 +249,11 @@ plaintext = cipher.decrypt(ct_body)
 #                0xE1E1E1E1F0F0F0F0, 0x1E1E1E1E0F0F0F0F
 # OFB with weak key: keystream = [IV, E(IV,K), IV, E(IV,K), ...]
 # Recovery: try all 4 weak keys; or treat as 16-byte repeating XOR
-
 ```
 
 **Key insight:** DES weak keys cause OFB keystream to cycle with period 2. When you see DES+OFB, always try the 4 weak keys first.
 
-------
+---
 
 ## Square Attack on Reduced-Round AES (0CTF 2016)
 
@@ -263,12 +268,11 @@ for candidate in range(256):
     if xor_sum == 0:
         key_byte = candidate  # correct guess
 # Reduces 2^128 key recovery to ~16 * 256 = 4096 operations
-
 ```
 
 **Key insight:** Integral cryptanalysis exploits the "balanced" property (XOR-sum = 0) that propagates through AES rounds. Effective against 4-round AES; 5+ rounds require more sophisticated variants.
 
-------
+---
 
 ## SRP (Secure Remote Password) Protocol Bypass via Modular Arithmetic (ASIS CTF Finals 2016)
 
@@ -291,12 +295,11 @@ K = sha256(b'\x00').digest()
 
 # Now compute valid HMAC proof with known K
 proof = hmac.new(K, salt, sha256).hexdigest()
-
 ```
 
 **Key insight:** SRP implementations must validate `A % N != 0`, not just `A != 0` and `A != N`. Sending `A = k*N` for any integer k forces the shared secret to zero, allowing authentication without knowing the password.
 
-------
+---
 
 ## Modified AES S-Box Brute-Force Recovery (H4ckIT CTF 2016)
 
@@ -322,12 +325,11 @@ void bruteforce_sbox(uint8_t ciphertext[], uint8_t key[], int ct_len) {
                     return; // found it
             }
 }
-
 ```
 
 **Key insight:** When a custom AES S-Box differs from standard by only a few element swaps, the search space is small enough to brute-force. For 3 swapped elements: C(256,3) permutation groups times the swap combinations within each group.
 
-------
+---
 
 ## AES-ECB Byte-at-a-Time Chosen Plaintext (ABCTF 2016)
 
@@ -353,11 +355,9 @@ def oracle(pt):
 # Automated byte-at-a-time recovery
 flag = ca.ecb_cpa_decrypt(oracle, block_size=16, verbose=True)
 print(flag)
-
 ```
 
 **Manual approach without library:**
-
 ```python
 block_size = 16
 known = b''
@@ -379,12 +379,11 @@ for i in range(len(secret)):
         if test_ct[target_block_idx*16:(target_block_idx+1)*16] == target_block:
             known += bytes([byte_val])
             break
-
 ```
 
 **Key insight:** ECB mode encrypts identical plaintext blocks to identical ciphertext blocks. By controlling the prefix length, the attacker shifts one unknown byte at a time to a position where it completes a known block prefix. Comparing the target ciphertext block against all 256 possibilities recovers each byte in at most 256 queries. Total queries: ~256 * secret_length. Tool: FeatherDuster's `cryptanalib.ecb_cpa_decrypt()` automates this completely.
 
-------
+---
 
 ## AES-ECB Cut-and-Paste Block Manipulation (NDH Quals 2016)
 
@@ -408,12 +407,11 @@ username = "AAA" + " " * 12 + "true"
 # Get prefix blocks from a short username
 # Get suffix block from a padded username
 # Concatenate: prefix_blocks + true_block + suffix_block
-
 ```
 
 **Key insight:** AES-ECB encrypts each 16-byte block independently with no chaining. Identical plaintext blocks produce identical ciphertext blocks, allowing block-level cut-and-paste. JSON's tolerance for extra whitespace enables block alignment without breaking parsing. The attack requires: (a) detecting ECB via repeated blocks, (b) mapping field layout via length probing, (c) crafting and splicing blocks.
 
-------
+---
 
 ## AES-CBC IV Bit-Flip Authentication Bypass (Google CTF 2016)
 
@@ -436,12 +434,11 @@ target_pos = 13  # position of first char of username in block
 iv[target_pos] ^= 0x01
 
 forged = binascii.hexlify(bytes(iv) + ciphertext)
-
 ```
 
 **Key insight:** AES-CBC decryption XORs the previous ciphertext block (or IV for block 0) with the AES-decrypted block. Flipping bit `i` in the IV flips bit `i` in the first plaintext block with no other side effects. This only works when the server performs no integrity verification (no HMAC, AEAD, or authenticated encryption).
 
-------
+---
 
 ## Rabin Cryptosystem LSB Parity Oracle (PlaidCTF 2016)
 
@@ -470,12 +467,11 @@ def lsb_oracle_attack(enc_flag, N, oracle_fn):
         # Progressive decryption visible:
         print(long_to_bytes(upper))
     return upper
-
 ```
 
 **Key insight:** Rabin (and textbook RSA) are multiplicatively homomorphic: multiplying ciphertext by `2^e mod N` doubles the plaintext mod N. Since N is odd, doubling causes a modular wraparound iff the plaintext exceeds `N/2`, which changes the LSB parity. This creates a binary search: each oracle query halves the candidate range, recovering the full plaintext in exactly `log2(N)` queries (~1024 for RSA-1024).
 
-------
+---
 
 ## PBKDF2 Pre-Hash Bypass for Long Passwords (BackdoorCTF 2016)
 
@@ -488,12 +484,11 @@ original_password = "complexPasswordWhichContainsManyCharactersWithRandomSuffixe
 # len > 64, so HMAC pre-hashes it
 equivalent = hashlib.sha1(original_password.encode()).digest()
 # Login with equivalent — PBKDF2 produces the same derived key
-
 ```
 
 **Key insight:** HMAC's inner construction is `H((K XOR ipad) || message)`. When the key (password) exceeds the hash block size, HMAC first reduces it via `K = H(password)`. This means `HMAC(long_password, ...)` equals `HMAC(H(long_password), ...)`. Any system using PBKDF2/HMAC with a `!==` identity check after hash comparison is vulnerable when passwords exceed 64 bytes. This is a HMAC specification behavior, not an implementation bug.
 
-------
+---
 
 ## MD5 Multi-Collision via Fastcol (BackdoorCTF 2016)
 
@@ -506,7 +501,6 @@ equivalent = hashlib.sha1(original_password.encode()).digest()
 [prefix][suffix1A][suffix2B][suffix3B]   |
 [prefix][suffix1B][suffix2A][suffix3A]   |
 [prefix][suffix1B][suffix2B][suffix3B]  /
-
 ```
 
 ```bash
@@ -514,12 +508,11 @@ equivalent = hashlib.sha1(original_password.encode()).digest()
 # Generate one collision pair (~minutes on modern CPU):
 ./fastcol -o suffix1A.bin suffix1B.bin < prefix.bin
 # Chain: append suffix1A to prefix, run fastcol again for suffix2A/2B, etc.
-
 ```
 
 **Key insight:** MD5 collision generation is practical with `fastcol` (~minutes per pair). Because MD5 uses Merkle-Damgard construction, collisions compose: if `H(A||X) == H(A||Y)`, then `H(A||X||Z) == H(A||Y||Z)` for any suffix Z. Chaining k collision pairs produces 2^k files with identical MD5. For CRC32 collisions, append bytes after PNG IEND chunk (parsers ignore trailing data) and brute-force the 4-byte CRC adjustment.
 
-------
+---
 
 ## GHASH Key Recovery over Prime Modulus (nullcon HackIM 2019)
 
@@ -542,12 +535,11 @@ H = ((t1 - t2) * inverse(m1 - m2, n)) % n
 #    then recompute tag using recovered H and c = tag - sum(b_i * H^(i+1))
 c0 = (t1 - sum(bytes_to_long(b) * pow(H, i + 1, n) for i, b in enumerate(blocks1))) % n
 forged_tag = (c0 + sum(bytes_to_long(b) * pow(H, i + 1, n) for i, b in enumerate(forged_blocks))) % n
-
 ```
 
 **Key insight:** GCM's security rests on `GHASH` operating over `GF(2^128)` where inversion is hard without the key. Swapping the modulus to a plain prime `n` collapses the authentication to textbook linear algebra mod `n` — two nonce-colliding tags give one linear equation per unknown, solved with `inverse(m1 - m2, n)`. Short-nonce (2 random bytes) designs guarantee birthday collisions in ~256 queries. Contrast with the `GF(2^128)` AES-GCM forbidden attack in [modern-ciphers.md](modern-ciphers.md#aes-gcm-nonce-reuse--forbidden-attack), which needs polynomial factoring over binary fields.
 
-------
+---
 
 ## SHA-1 Length Extension Plus AES-CBC Cookie Forgery (BSidesSF 2019)
 
@@ -556,14 +548,15 @@ forged_tag = (c0 + sum(bytes_to_long(b) * pow(H, i + 1, n) for i, b in enumerate
 ```python
 import hashpumpy, binascii, base64, urllib
 from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 
 # Extract AES key from leaked rack.session cookie
 key = base64.b64decode(urllib.unquote(cookies['rack.session'].split('--')[0]))[-32:]
 user = binascii.unhexlify(cookies['user'])
 iv, ct = user[:16], user[16:]
 
-def decrypt(c): return AES.new(key, AES.MODE_CBC, iv).decrypt(c).rstrip(b'\x10\x0f\x0e...')
-def encrypt(p): pad = 16 - len(p) % 16; return AES.new(key, AES.MODE_CBC, iv).encrypt(p + bytes([pad])*pad)
+def decrypt(c): return unpad(AES.new(key, AES.MODE_CBC, iv).decrypt(c), 16)
+def encrypt(p): return AES.new(key, AES.MODE_CBC, iv).encrypt(pad(p, 16))
 
 # Length-extend signature (secret length guessed = 8)
 new_sig, new_plain = hashpumpy.hashpump(cookies['signature'], decrypt(ct), b'\nUID 0\n', 8)
@@ -573,6 +566,6 @@ cookies['user']      = binascii.hexlify(iv + encrypt(new_plain))
 
 **Key insight:** Hash length extension applies whenever the MAC is `H(secret || data)` over a Merkle-Damgard hash (MD5/SHA-1/SHA-256). If the *same* `data` also lives inside a *separately* keyed cipher whose key is recoverable, you can combine primitives: hashpumpy produces the extended plaintext and new tag, then you re-encrypt with the leaked AES key so the server's CBC decryption matches the extended string the signature now covers. Parse-order quirks (later fields overriding earlier ones) let the appended `\nUID 0\n` win.
 
-------
+---
 
 See [modern-ciphers-3.md](modern-ciphers-3.md) for custom hash reversal, CRC32 brute-force, noisy RSA LSB oracle, sponge collisions, CBC IV forgery + block truncation, padding oracle + bit-flip command injection, SPN S-box intersection, AES-CFB IV recovery, three-round XOR, Unicode decode side channel, SHA-256 basis attack, MAC forgery via XOR block cancellation, and bit-by-bit HMAC key recovery.

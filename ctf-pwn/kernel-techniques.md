@@ -1,7 +1,6 @@
 # CTF Pwn - Kernel Exploitation Techniques
 
 ## Table of Contents
-
 - [tty_struct RIP Hijack and kROP](#tty_struct-rip-hijack-and-krop)
   - [kROP via Fake Vtable on tty_struct](#krop-via-fake-vtable-on-tty_struct)
   - [AAW via ioctl Register Control](#aaw-via-ioctl-register-control)
@@ -21,7 +20,7 @@ For kernel fundamentals (environment setup, heap spray structures, stack overflo
 
 For protection bypass techniques (KASLR, FGKASLR, KPTI, SMEP, SMAP), GDB debugging, initramfs workflow, and exploit templates, see [kernel-bypass.md](kernel-bypass.md).
 
-------
+---
 
 ## tty_struct RIP Hijack and kROP
 
@@ -42,7 +41,6 @@ tty_struct layout for kROP:
 ```
 
 **Execution flow:**
-
 1. `ioctl(ptmx_fd, cmd, arg)` -> `tty_ioctl()` -> paranoia check passes (magic=0x5401)
 2. `tty->ops->ioctl()` -> jumps to `leave` gadget at fake vtable
 3. `leave` = `mov rsp, rbp; pop rbp` -- RBP points to `tty_struct` itself
@@ -66,7 +64,6 @@ ioctl(ptmx_fd, 0, (unsigned long)rop_chain_addr);
 When full kROP is not needed, use `tty_struct` for Arbitrary Address Write (AAW) to overwrite `modprobe_path`:
 
 Register control from `ioctl(fd, cmd, arg)`:
-
 - `cmd` (32-bit) -> partial control of RBX, RCX, RSI
 - `arg` (64-bit) -> full control of RDX, R8, R12
 
@@ -80,14 +77,13 @@ for (int i = 0; i < 4; i++) {
 }
 ```
 
-------
+---
 
 ## userfaultfd Race Stabilization
 
 `userfaultfd` (uffd) makes kernel race conditions deterministic by pausing execution at page faults.
 
 **How it works:**
-
 1. `mmap()` a region with `MAP_PRIVATE` (no physical pages allocated)
 2. Register the region with `userfaultfd` via `ioctl(UFFDIO_REGISTER)`
 3. When the kernel accesses this region (e.g., during `copy_from_user()`), a page fault occurs
@@ -141,7 +137,7 @@ When `CONFIG_USERFAULTFD` is disabled or uffd is restricted to root:
 3. **Repeated attempts:** Pure race without stabilization -- run exploit in a loop. Success rate varies (1% to 50% depending on timing)
 4. **TSC-based timing (Context Conservation):** Loop checking TSC (Time Stamp Counter) before entering the critical section to confirm execution is at the beginning of its CFS timeslice -- reduces scheduler preemption during the race
 
-------
+---
 
 ## SLUB Allocator Internals
 
@@ -168,7 +164,7 @@ stored_ptr = real_ptr ^ kmem_cache->random
 
 **Detection:** In GDB, find `kmem_cache_cpu` (via `$GS_BASE + kmem_cache.cpu_slab` offset), follow the `freelist` pointer, and check if the stored values look like valid kernel addresses. If not, obfuscation is active.
 
-------
+---
 
 ## Leak via Kernel Panic
 
@@ -182,14 +178,13 @@ The kernel panics and the panic message includes the faulting instruction bytes 
 
 **Prerequisites:** No KASLR (or full layout knowledge), `initramfs` (flag is loaded into kernel memory), RIP control.
 
-------
+---
 
 ## Race Window Extension via MADV_DONTNEED + mprotect (DiceCTF 2026)
 
 **Pattern (cornelslop):** Kernel module has a TOCTOU race between check and delete paths, but the window is too narrow to hit reliably. Extend the race window from milliseconds to dozens of seconds by forcing repeated page faults during the long-running kernel operation.
 
 **Technique:**
-
 1. Map memory used by the kernel check operation (e.g., `sha256_va_range()` reading userland pages)
 2. From a second thread, loop `MADV_DONTNEED` (drops page table entries) + `mprotect()` (toggles permissions)
 3. Each fault during the kernel's hash computation forces VMA lock acquisition and page fault handling
@@ -212,14 +207,13 @@ ioctl(fd, DEL_ENTRY, &entry);  // races with CHECK path
 
 **Key insight:** `MADV_DONTNEED` drops page table entries without freeing the underlying pages. When the kernel next accesses that userland memory (e.g., during a hash computation), it faults and must re-establish the mapping. Combined with `mprotect()` toggling, this creates lock contention that extends any kernel operation touching userland pages from sub-millisecond to tens of seconds — turning impractical race conditions into reliable exploits.
 
-------
+---
 
 ## Cross-Cache Attack via CPU-Split Strategy (DiceCTF 2026)
 
 **Pattern (cornelslop):** Vulnerable object is in a dedicated SLUB cache (not `kmalloc-*`), preventing standard same-cache reclaim after a double-free. Force pages out of the dedicated cache into the buddy allocator by splitting allocation and deallocation across CPUs.
 
 **Technique:**
-
 1. **Allocate N objects on CPU 0** — fills slab pages on CPU 0's partial list
 2. **Free the same objects from CPU 1** — freed objects go to CPU 1's partial list (not CPU 0's)
 3. CPU 1's partial list overflows to the **node partial list**
@@ -249,14 +243,13 @@ for (int i = 0; i < MAX_ENTRIES; i++)
 
 **Key insight:** SLUB allocates and frees per-CPU. When an object is freed on a different CPU than where it was allocated, it enters a different partial list. When that list overflows, empty slabs are returned to the buddy allocator — escaping the dedicated cache entirely. This enables cross-cache attacks even against custom `kmem_cache_create()` caches that are immune to standard heap spray.
 
-------
+---
 
 ## PTE Overlap Primitive for File Write (DiceCTF 2026)
 
 **Pattern (cornelslop):** After reclaiming a freed page as a PTE (page table entry) page, overlap an anonymous writable mapping and a read-only file mapping so both are backed by the same physical page via corrupted PTEs.
 
 **Technique:**
-
 1. Trigger cross-cache double-free to get a page into the buddy allocator
 2. Allocate a new anonymous mapping — kernel uses the freed page as a PTE page
 3. Map a read-only file (e.g., `/bin/umount`) into the same PTE region
@@ -289,14 +282,13 @@ system("/bin/umount /tmp 2>/dev/null");
 
 **Key insight:** PTE pages are just regular physical pages repurposed by the kernel's page table allocator. If a freed slab page is reclaimed as a PTE page, both the original (corrupted) slab entries and the new PTE entries coexist. By carefully overlapping anonymous and file-backed mappings in the same PTE page, writes to the anonymous mapping transparently modify file-backed pages — achieving arbitrary file write without any direct kernel write primitive. This bypasses all standard file permission checks since the write happens at the physical page level.
 
-------
+---
 
 ## Kernel addr_limit Bypass via Failed File Open (Midnight Sun CTF 2018)
 
 **Pattern:** Kernel module calls `set_fs(KERNEL_DS)` to access userspace pointers, but if a subsequent file open fails, it returns without restoring the old `addr_limit`. Force the failure by making the target file a directory. Now user-space `read()` can access kernel memory.
 
 **Exploitation strategy:**
-
 1. The kernel module has a debug function that sets `addr_limit = KERNEL_DS` to read a debug file
 2. If `filp_open()` fails (e.g., target is a directory, not a file), the error path returns early
 3. The error path does NOT restore `addr_limit` to its previous value (`USER_DS`)
@@ -345,7 +337,7 @@ system("/bin/sh");
 
 **References:** Midnight Sun CTF 2018
 
-------
+---
 
 ## Custom binfmt Loader OOB Read + clear_user for Privesc (CONFidence Teaser 2019)
 

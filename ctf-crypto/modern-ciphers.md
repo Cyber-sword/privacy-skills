@@ -3,7 +3,6 @@
 Block cipher attacks, MAC forgery, padding oracles, and authenticated encryption. For hash/signature attacks (hash extension, PBKDF2, MD5 collision, Rabin, ECB oracles), see [modern-ciphers-2.md](modern-ciphers-2.md). For stream cipher attacks (LFSR, RC4, XOR), see [stream-ciphers.md](stream-ciphers.md).
 
 ## Table of Contents
-
 - [AES-CFB-8 Static IV State Forging](#aes-cfb-8-static-iv-state-forging)
 - [ECB Pattern Leakage on Images](#ecb-pattern-leakage-on-images)
 - [Padding Oracle Attack](#padding-oracle-attack)
@@ -31,7 +30,7 @@ Block cipher attacks, MAC forgery, padding oracles, and authenticated encryption
 
 See also [modern-ciphers-2.md](modern-ciphers-2.md) for CRC32 forgery, Blum-Goldwasser, hash length extension, compression oracle, hash time reversal, OFB invertible RNG, weak key derivation, HMAC-CRC, DES weak keys, SRP bypass, modified AES S-Box, square attack, AES-ECB byte-at-a-time, AES-ECB cut-and-paste, AES-CBC IV bit-flip, Rabin LSB parity oracle, PBKDF2 pre-hash bypass, MD5 multi-collision, custom hash state reversal, and CRC32 brute-force.
 
-------
+---
 
 ## AES-CFB-8 Static IV State Forging
 
@@ -39,7 +38,7 @@ See also [modern-ciphers-2.md](modern-ciphers-2.md) for CRC32 forgery, Blum-Gold
 
 **Key insight:** After encrypting 16 known bytes, the AES internal shift register state is fully determined by those ciphertext bytes. Forge new ciphertexts by continuing encryption from known state.
 
-------
+---
 
 ## ECB Pattern Leakage on Images
 
@@ -47,14 +46,13 @@ See also [modern-ciphers-2.md](modern-ciphers-2.md) for CRC32 forgery, Blum-Gold
 
 **Exploitation:** Identical plaintext blocks produce identical ciphertext blocks, revealing image structure even when encrypted. Rearrange or identify patterns visually.
 
-------
+---
 
 ## Padding Oracle Attack
 
 **Pattern (The Seer):** Server reveals whether decrypted padding is valid.
 
 **Byte-by-byte decryption:**
-
 ```python
 def decrypt_byte(block, prev_block, position, oracle, known):
     """known = bytearray(16) tracking recovered intermediate bytes for this block."""
@@ -69,14 +67,13 @@ def decrypt_byte(block, prev_block, position, oracle, known):
             return guess ^ pad_value
 ```
 
-------
+---
 
 ## CBC-MAC vs OFB-MAC Vulnerability
 
 OFB mode creates a keystream that can be XORed for signature forgery.
 
 **Attack:** If you have signature for known plaintext P1, forge for P2:
-
 ```text
 new_sig = known_sig XOR block2_of_P1 XOR block2_of_P2
 ```
@@ -85,7 +82,7 @@ new_sig = known_sig XOR block2_of_P1 XOR block2_of_P2
 
 **Key insight:** OFB-MAC generates a keystream independent of the plaintext, so knowing one (message, MAC) pair lets you forge MACs for arbitrary messages by XORing the known plaintext blocks out and XORing the new ones in. CBC-MAC does not have this weakness because each block's encryption depends on the previous ciphertext block.
 
-------
+---
 
 ## Non-Permutation S-box Collision Attack
 
@@ -97,12 +94,11 @@ new_sig = known_sig XOR block2_of_P1 XOR block2_of_P2
 
 See [advanced-math.md](advanced-math.md) for full S-box collision analysis code.
 
-------
+---
 
 ## LCG Partial Output Recovery (0xFun 2026)
 
 **Known parameters:** If LCG (Linear Congruential Generator) constants (M, A, C) are known and output is `state mod N`, iterate by N through modulus to find state:
-
 ```python
 # output = state % N, state = (A * prev + C) % M
 for candidate in range(output, M, N):
@@ -113,7 +109,6 @@ for candidate in range(output, M, N):
 ```
 
 **Upper bits only (e.g., upper 32 of 64):** Brute-force lower 32 bits:
-
 ```python
 for low in range(2**32):
     state = (observed_upper << 32) | low
@@ -124,7 +119,7 @@ for low in range(2**32):
 
 **Key insight:** LCG output truncation (modulo or upper bits only) hides part of the state, but consecutive outputs constrain it. When output is `state mod N`, iterate candidates by N through the modulus. When only upper bits are visible, brute-force the hidden lower bits and validate against the next output.
 
-------
+---
 
 ## Weak Hash Functions / GF(2) Gaussian Elimination
 
@@ -154,13 +149,13 @@ def solve_gf2(A, b):
 
 **Key insight:** Hash functions built from only XOR and rotations (no S-boxes or modular addition) are linear over GF(2). Build the transformation as a binary matrix, then invert it with Gaussian elimination to recover the preimage directly. This breaks any "custom hash" that avoids non-linear operations.
 
-------
+---
 
 ## Affine Cipher over Composite Modulus (Nullcon 2026)
 
 Affine encryption `c = A*x + b (mod M)` with composite M: split into prime factor fields, invert independently, CRT recombine. See [advanced-math.md](advanced-math.md#affine-cipher-over-non-prime-modulus-nullcon-2026) for full chosen-plaintext key recovery and implementation.
 
-------
+---
 
 ## AES-GCM with Derived Keys (EHAX 2026)
 
@@ -168,7 +163,7 @@ Affine encryption `c = A*x + b (mod M)` with composite M: split into prime facto
 
 ```python
 import hashlib
-from Cryptodome.Cipher import AES
+from Crypto.Cipher import AES
 
 # Common key derivation chain:
 # 1. Recover secret bytes (s_bytes) from crypto challenge
@@ -186,7 +181,7 @@ def decrypt_with_derived_key(s_bytes, wrapped_nonce, ciphertext, aes_nonce, tag,
 
 **Key insight:** When AES-GCM authentication fails (`ValueError: MAC check failed`), the derived key is wrong — usually means the upstream secret recovery was incorrect or endianness is swapped.
 
-------
+---
 
 ## AES-GCM Nonce Reuse / Forbidden Attack
 
@@ -195,6 +190,69 @@ AES-GCM (Galois/Counter Mode) combines AES-CTR encryption with a GHASH polynomia
 **CTR keystream reuse:** Same nonce = same keystream. XOR two ciphertexts to cancel the keystream: `C1 XOR C2 = P1 XOR P2`. With known plaintext in one message, recover the other.
 
 **GHASH authentication key recovery:** The authentication tag is a polynomial evaluation over GF(2^128). Two messages with the same nonce produce two equations in the same authentication key H. XOR the tag polynomials and factor over GF(2^128) to recover H. With H, forge valid tags for arbitrary messages.
+
+```python
+from Crypto.Cipher import AES
+# Pure-Python GHASH over GF(2^128) using pycryptodome / galois
+# GHASH is polynomial evaluation; use galois or manual GF(2^128) arithmetic
+
+def xor(a, b): return bytes(x ^ y for x, y in zip(a, b))
+
+# Given: two (ciphertext, tag, nonce) pairs with same nonce
+# Step 1: Recover plaintext via CTR keystream reuse
+keystream = xor(known_plaintext, ciphertext1)
+plaintext2 = xor(keystream, ciphertext2)
+
+# Step 2: Recover GHASH auth key H
+# GHASH(H, aad, ciphertext) = sum blocks * H^{n-i+1} over GF(2^128).
+# Long messages: pip install galois + factor P(H)=T1-T2-GHASH_diff(H),
+# or use nonce-disrespect tool. 1-block case below needs nothing else:
+# verified end-to-end against real AES-GCM (forge passes decrypt_and_verify).
+_MASK128 = (1 << 128) - 1
+
+def gmul(x, y):
+    """GF(2^128) multiply, NIST SP 800-38D Alg.1. Ints are big-endian blocks."""
+    z, v = 0, y & _MASK128
+    for i in range(128):
+        if (x >> (127 - i)) & 1:
+            z ^= v
+        lsb = v & 1
+        v >>= 1
+        if lsb:
+            v ^= 0xE1000000000000000000000000000000
+    return z & _MASK128
+
+def _gpow(a, e):
+    r = 1 << 127  # field identity in this encoding
+    while e:
+        if e & 1:
+            r = gmul(r, a)
+        a = gmul(a, a)
+        e >>= 1
+    return r
+
+def ginv(a):
+    return _gpow(a, (1 << 128) - 2)  # Fermat, single-primitive
+
+def _gsqrt(a):
+    for _ in range(127):  # a^(2^127): sqrt in char 2, single-primitive
+        a = gmul(a, a)
+    return a
+
+# 1-block empty-AAD: GHASH = ((C*H) ^ L)*H with L = 128-bit length block,
+# so T1 ^ T2 = (C1 ^ C2)*H^2 -- quadratic, solve H^2 then sqrt.
+def ghash_recover_h_1block(c1, c2, t1, t2):
+    d = (int.from_bytes(c1, "big") ^ int.from_bytes(c2, "big")) & _MASK128
+    t = (int.from_bytes(t1, "big") ^ int.from_bytes(t2, "big")) & _MASK128
+    if d == 0:
+        raise ValueError("ciphertexts identical -- need distinct blocks")
+    return _gsqrt(gmul(t, ginv(d)))  # H as int; verify by recomputing tag
+
+# Step 3: Forge tags for arbitrary messages
+# GHASH(H, aad, ciphertext) computed with recovered H
+```
+
+<details><summary>Sage fallback (optional)</summary>
 
 ```python
 from Crypto.Cipher import AES
@@ -216,20 +274,21 @@ F = GF(2**128, 'x', modulus=...)  # GCM polynomial
 # GHASH(H, aad, ciphertext) computed with recovered H
 ```
 
+</details>
+
 **Tool:** [nonce-disrespect](https://github.com/nonce-disrespect/nonce-disrespect) automates GHASH key recovery and tag forgery from nonce-reused GCM ciphertexts.
 
 **Short nonce brute-force:** When GCM uses a short nonce (1-4 bytes), brute-force all nonce values if the key is known. AES-GCM with 1-byte nonce = only 256 candidates.
 
 **Key insight:** AES-GCM is a "one-time nonce" scheme -- a single nonce reuse breaks both confidentiality (CTR keystream reuse) AND authenticity (GHASH key recovery). Always check for repeated nonces in GCM challenge traffic.
 
-------
+---
 
 ## Ascon-like Reduced-Round Differential Cryptanalysis (srdnlenCTF 2026)
 
 **Pattern (Lightweight):** 4-round Ascon-like permutation with reduced diffusion. Key-dependent biases in output-bit differentials allow key recovery via chosen input differences.
 
 **Attack:**
-
 1. Reproduce the permutation exactly (critical: post-S-box x4 assignment order matters)
 2. Invert the linear layer of x0 using a precomputed 64×64 GF(2) inverse matrix
 3. For each bit position i, query with `diff = (1<<i, 1<<i)` across multiple samples
@@ -238,11 +297,13 @@ F = GF(2**128, 'x', modulus=...)  # GCM polynomial
 6. Verify candidate key in-session; refine low-margin bits with additional samples
 
 **GF(2) linear layer inversion:**
-
 ```python
 def build_inverse(shifts=(19, 28)):
     """Construct GF(2) inverse matrix for Ascon-like linear layer: x ^= rot(x,19) ^ rot(x,28)."""
     # Build 64x64 matrix over GF(2)
+    # Convention: (M*v)[i] = v[i] ^ v[(i+19)%64] ^ v[(i+28)%64], i.e. bit index
+    # shifted UP by the shift. If your implementation rotates the other way
+    # (Ascon's reference uses ROTR), mirror the index: M[out_bit][(out_bit-s)%64].
     M = [[0]*64 for _ in range(64)]
     for out_bit in range(64):
         M[out_bit][out_bit] = 1
@@ -260,7 +321,6 @@ def build_inverse(shifts=(19, 28)):
 ```
 
 **Centroid clustering for key classification:**
-
 ```python
 # For each bit position, measure bias at two output positions
 # 4 possible (k0[i], k1[i]) pairs → 4 centroid patterns
@@ -277,14 +337,13 @@ for i in range(64):
 
 **Key insight:** Reduced-round lightweight ciphers (Ascon, GIFT, etc.) have exploitable biases when the number of rounds is insufficient for full diffusion. The linear layer's inverse can be computed algebraically, and differential biases measured across chosen-plaintext queries reveal individual key bits. This is practical even with noisy measurements if you collect enough samples.
 
-------
+---
 
 ## Custom Linear MAC Forgery (Nullcon 2026)
 
 **Pattern (Pasty):** Server signs paste IDs with a custom SHA-256-based construction. The signature is linear in three 8-byte secret blocks derived from the key.
 
 **Structure:** For each 8-byte output block `i`:
-
 - `selector = SHA256(id)[i*8] % 3` → chooses which secret block to use
 - `out[i] = hash_block[i] XOR secret[selector] XOR chain[i-1]`
 
@@ -292,7 +351,7 @@ for i in range(64):
 
 **Key insight:** Linearity in custom crypto constructions (XOR-based signing) makes them trivially forgeable. Always check if the MAC has the property: knowing the secret components lets you compute valid signatures for arbitrary inputs.
 
-------
+---
 
 ## CBC Padding Oracle Attack
 
@@ -300,6 +359,7 @@ for i in range(64):
 
 ```python
 from pwn import *
+import requests
 
 def padding_oracle(iv, ct):
     """Returns True if server accepts padding."""
@@ -329,7 +389,6 @@ def decrypt_block(prev_block, target_block):
 ```
 
 **Tools:**
-
 ```bash
 # PadBuster — automated padding oracle exploitation
 padbuster http://target/decrypt.php ENCRYPTED_B64 16 \
@@ -345,7 +404,7 @@ plaintext = oracle.decrypt(ciphertext, iv=iv)
 
 **Detection:** CBC mode encryption + any distinguishable behavior difference on padding errors. Common in cookie encryption, token systems, and encrypted API parameters.
 
-------
+---
 
 ## Bleichenbacher / PKCS#1 v1.5 RSA Padding Oracle
 
@@ -383,7 +442,6 @@ def bleichenbacher_attack(c0, n, e, oracle, k):
 ```
 
 **Tools:**
-
 ```bash
 # ROBOT attack scanner (modern Bleichenbacher variant)
 python3 robot-detect.py -H target.com
@@ -394,7 +452,7 @@ java -jar TLS-Attacker.jar -connect target:443 -workflow_type BLEICHENBACHER
 
 **Key insight:** The attack is adaptive — each oracle response narrows the range of possible plaintexts. Typically requires ~10,000 oracle queries for RSA-2048. The ROBOT attack (Return Of Bleichenbacher's Oracle Threat) showed this affects modern TLS implementations through subtle timing differences. Any server that distinguishes "bad padding" from "bad content" is vulnerable.
 
-------
+---
 
 ## Birthday Attack / Meet-in-the-Middle
 
@@ -420,7 +478,6 @@ msg1, msg2 = birthday_collision(hashlib.sha256, 32)
 ```
 
 **Meet-in-the-Middle (2DES, double encryption):**
-
 ```python
 def meet_in_the_middle(encrypt_fn, decrypt_fn, plaintext, ciphertext, keyspace):
     """Break double encryption E(k2, E(k1, pt)) = ct."""
@@ -439,7 +496,7 @@ def meet_in_the_middle(encrypt_fn, decrypt_fn, plaintext, ciphertext, keyspace):
 
 **Key insight:** Birthday attack: n-bit hash needs ~2^(n/2) queries for 50% collision probability. 32-bit hash -> ~65K, 64-bit -> ~4 billion. Meet-in-the-middle reduces double encryption from O(2^(2k)) to O(2^k) time + O(2^k) space — this is why 2DES provides only 1 extra bit of security over DES.
 
-------
+---
 
 ## CRC32 Collision-Based Signature Forgery (iCTF 2013)
 
@@ -450,23 +507,59 @@ def meet_in_the_middle(encrypt_fn, decrypt_fn, plaintext, ciphertext, keyspace):
 ```python
 import struct, binascii
 
-def crc32_forge(data, target_crc):
-    """Append 4 bytes to data so CRC32(data + suffix) == target_crc"""
-    current = binascii.crc32(data) & 0xFFFFFFFF
-    # CRC32 polynomial table lookup to find suffix bytes
-    # that transform current CRC into target_crc
-    suffix = b''
-    crc = target_crc ^ 0xFFFFFFFF
-    for _ in range(4):
-        byte = (crc & 0xFF)
-        crc = (crc >> 8)
-        suffix = bytes([byte]) + suffix
-    return data + suffix  # Simplified — full implementation requires polynomial division
+# CRC-32 (reflected, poly 0xEDB88320) is GF(2)-affine in the register and in the
+# bytes fed in, so the 4-byte suffix is a linear system -- solve it, do not guess.
+_TABLE = []
+for _i in range(256):
+    _c = _i
+    for _ in range(8):
+        _c = (_c >> 1) ^ 0xEDB88320 if _c & 1 else _c >> 1
+    _TABLE.append(_c)
+
+def _register(data):
+    r = 0xFFFFFFFF
+    for b in data:
+        r = (r >> 8) ^ _TABLE[(r ^ b) & 0xFF]
+    return r
+
+def crc32_forge(data, target_crc, n=4):
+    """Append n bytes so binascii.crc32(data + suffix) == target_crc."""
+    def final(reg0, svec):
+        r = reg0
+        for b in svec:
+            r = (r >> 8) ^ _TABLE[(r ^ b) & 0xFF]
+        return r
+    A = final(_register(data), [0] * n)      # register after data + 4 zero bytes
+    B0 = final(0, [0] * n)
+    cols = []
+    for j in range(8 * n):                    # image of each suffix bit
+        s = [0] * n; s[j // 8] = 1 << (j % 8)
+        cols.append(final(0, s) ^ B0)
+    rows = [sum(1 << j for j, c in enumerate(cols) if (c >> b) & 1) for b in range(32)]
+    rhs = (target_crc ^ 0xFFFFFFFF) ^ A
+    aug = [(rows[b], (rhs >> b) & 1) for b in range(32)]
+    pivrow = {}
+    for col in range(31, -1, -1):
+        sel = next((r for r in range(32)
+                    if (aug[r][0] >> col) & 1 and r not in pivrow.values()), None)
+        if sel is None:
+            continue
+        pivrow[col] = sel
+        for r in range(32):
+            if r != sel and (aug[r][0] >> col) & 1:
+                aug[r] = (aug[r][0] ^ aug[sel][0], aug[r][1] ^ aug[sel][1])
+    sol = [0] * n
+    for col, r in pivrow.items():
+        if aug[r][1]:
+            sol[col // 8] |= 1 << (col % 8)
+    return bytes(sol)
+
+# usage: forged = crc32_forge(msg, target_sig)  ->  crc32(forged) == target_sig
 ```
 
 **When to use:** Any protocol using CRC32 as a message authentication code (MAC). CRC32 is a checksum, not a cryptographic hash — it provides no integrity guarantees against adversarial modification.
 
-------
+---
 
 ## AES Key Recovery via Byte-by-Byte Zeroing Oracle (CONFidence CTF 2017)
 
@@ -490,14 +583,13 @@ for byte_pos in range(16):
         if AES.new(test_key, AES.MODE_ECB).encrypt(known_pt) == known_ct:
             recovered_key[byte_pos] = guess
             break
-
 ```
 
 **Key insight:** Integer overflow in `index * ENTRY_SIZE` calculations can target arbitrary memory offsets. By selectively zeroing all-but-one key bytes, the key becomes trivially brute-forceable one byte at a time (256 attempts per byte, 4096 total vs 2^128 for the full key).
 
 **References:** CONFidence CTF 2017
 
-------
+---
 
 ## AES-CTR Constant Counter / Repeating Keystream (SHA2017)
 
@@ -509,11 +601,9 @@ key_byte = ciphertext_byte ^ known_plaintext_byte
 # Apply recovered key bytes across all 16-byte-aligned blocks
 for i, ct_byte in enumerate(ciphertext):
     plaintext_byte = ct_byte ^ keystream[i % 16]
-
 ```
 
 **Exploit using file format headers:**
-
 1. Identify the file format from context (e.g., `%PDF-1.` for PDF files)
 2. XOR the known header bytes against the ciphertext to recover `keystream[0:len(header)]`
 3. Iteratively extend: use recovered plaintext to guess the next structural keyword (`endobj`, `/Page`, `stream`, etc.), verify XOR produces consistent ASCII, and extend the keystream further
@@ -523,14 +613,13 @@ for i, ct_byte in enumerate(ciphertext):
 
 **References:** SHA2017
 
-------
+---
 
 ## Custom SPN Column-Wise XOR Brute-Force (Hack Dat Kiwi 2017)
 
 **Pattern:** SPN (Substitution-Permutation Network) cipher with a seed-based sbox/pbox and a final XOR key layer. If the XOR key is applied column-wise (each key byte affects one column position independently), each key byte can be brute-forced separately using printable-text consistency as an oracle.
 
 **Attack:**
-
 1. Collect multiple ciphertext blocks (same key, different plaintexts)
 2. For each column position `c` (0-15), try all 256 candidate key bytes `k`
 3. Apply the inverse pbox and sbox to undo the SPN rounds, then XOR with candidate `k`
@@ -545,7 +634,7 @@ for i, ct_byte in enumerate(ciphertext):
 
 **References:** Hack Dat Kiwi 2017
 
-------
+---
 
 ## AES-CTR Bitflip + CRC Linearity Signature Forgery (hxp CTF 2017)
 
@@ -558,14 +647,13 @@ X = b'\x00' * offset + b'\x01' + b'\x00' * remaining
 crc_diff = binascii.crc32(X) ^ binascii.crc32(b'\x00' * len(X))
 # New ciphertext = old_ciphertext XOR X (for data portion)
 # New CRC ciphertext = old_CRC_ciphertext XOR pack(crc_diff)
-
 ```
 
 **Key insight:** CRC is GF(2)-linear -- XOR-based modifications to plaintext produce predictable CRC changes without knowing the key. When a system uses AES-CTR for confidentiality + CRC for integrity (instead of a proper MAC like HMAC or GCM), you can flip arbitrary plaintext bits and fix the CRC simultaneously. This is a fundamental failure of using CRC as a MAC: CRC detects random errors but provides zero protection against adversarial modification under stream ciphers.
 
 **References:** hxp CTF 2017
 
-------
+---
 
 ### AES-CBC Ciphertext Forging via Error-Message Decryption Oracle (Nuit du Hack CTF 2018)
 
@@ -580,19 +668,17 @@ for i in range(blocks):
     intermediate = decrypted[-16:]
     new_block = xor(target_plaintext_block, intermediate)
     forged_blocks.append(new_block)
-
 ```
 
 **Key insight:** When the server reveals decrypted ciphertext in error messages, you can forge arbitrary plaintext without knowing the key. Send zero IV blocks to learn the intermediate state, then XOR with desired plaintext to produce the correct ciphertext. Build block-by-block from last to first.
 
-------
+---
 
 ## SHA-1 Chosen-Prefix Collision for PDF Signature Forgery (DEF CON Quals 2018)
 
 **Pattern (EmojiVote):** Server extracts commands from an uploaded PDF via OCR, then signs the OCR'd byte-string as `sha1(data)` and attaches the signature. Use a shattered-style SHA-1 chosen-prefix collision to produce two PDFs that OCR to different commands but share the same SHA-1 digest.
 
 **Exploit workflow:**
-
 1. Build PDF A that OCR's to a benign command (no `EXECUTE`) and PDF B that OCR's to `EXECUTE <attacker command>`.
 2. Pad both with shattered-style suffix data so `sha1(A) == sha1(B)`.
 3. Submit A to obtain a valid signature for the shared digest.
@@ -603,21 +689,19 @@ for i in range(blocks):
 ./cpc prefix_A prefix_B collision_A.pdf collision_B.pdf
 sha1sum collision_A.pdf collision_B.pdf  # identical
 # Upload A, capture signature, replay on B
-
 ```
 
 **Key insight:** When a protocol signs a message as `sign(sha1(M))` instead of `sign(M)` directly, any SHA-1 collision becomes a signature forgery. Chosen-prefix collisions are practical (cpc/shattered toolkit) — the signer only inspects the digest, never the second preimage.
 
 **References:** DEF CON CTF Qualifier 2018 — writeup 10075
 
-------
+---
 
 ## Hash Chain Preimage Authentication Bypass (picoCTF 2017)
 
 **Pattern (hash_chain):** Server authenticates the Nth challenge by asking for `hash^(N-1)(seed)` given `hash^N(seed)`. The seed is derivable from public user data (e.g., `md5(username)`), so any attacker can precompute the whole chain from the start and answer any step.
 
 **Exploit:**
-
 ```python
 import hashlib
 
@@ -629,14 +713,13 @@ for _ in range(TARGET_N + 1):
     chain.append(H(chain[-1]))
 
 # Server sends chain[N]; answer with chain[N-1]
-
 ```
 
 **Key insight:** Hash chains are only one-way if the seed is secret. If the seed can be reconstructed from public inputs (username, challenge ID, timestamp), the entire chain is computable forward, and answering "give me the previous hash" is trivial. Treat the seed like a key.
 
 **References:** picoCTF 2017 — writeup 10031
 
-------
+---
 
 ## AES-CBC Nonce Strip via Block Boundary Alignment (Trend Micro 2018)
 
@@ -664,7 +747,6 @@ new_iv = ct[:16]
 new_ct = ct[16:]
 recovered = AES.new(key, AES.MODE_CBC, new_iv).decrypt(new_ct)
 assert recovered.startswith(b"admin")
-
 ```
 
 **Key insight:** CBC's IV is only consulted for the first block — every subsequent block uses the previous ciphertext as its "IV". That means any contiguous slice of a CBC ciphertext is itself a valid CBC ciphertext if you promote the preceding block (or a supplied IV) to the new IV. Whenever a fixed-size header (nonce, magic bytes, counter) occupies exactly one block, the attacker can strip it by reusing that block as an IV. Defend by binding the header into the authentication tag (AEAD) or including its offset in an HMAC.

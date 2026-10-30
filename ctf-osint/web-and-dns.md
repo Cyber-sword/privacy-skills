@@ -1,7 +1,6 @@
 # Web and DNS OSINT
 
 ## Table of Contents
-
 - [Google Dorking](#google-dorking)
 - [Google Docs/Sheets in OSINT](#google-docssheets-in-osint)
 - [DNS Reconnaissance](#dns-reconnaissance)
@@ -20,7 +19,7 @@
 - [Cross-Challenge Container IP Reuse (RITSEC 2018)](#cross-challenge-container-ip-reuse-ritsec-2018)
 - [Resources](#resources)
 
-------
+---
 
 ## Google Dorking
 
@@ -35,18 +34,17 @@ inurl:admin
 
 Append `&tbs=` filters to Google Image search URLs for precision filtering:
 
-| Filter         | Parameter               | Example                   |
-| -------------- | ----------------------- | ------------------------- |
-| Faces only     | `itp:face`              | Find profile photos       |
-| Clipart        | `itp:clipart`           | Logos, icons              |
-| Animated GIF   | `itp:animated`          | Animated images           |
-| Specific color | `ic:specific,isc:green` | Dominant color filter     |
-| Transparent BG | `ic:trans`              | PNGs with transparency    |
-| Large images   | `isz:l`                 | High resolution only      |
-| Min resolution | `isz:lt,islt:2mp`       | Greater than 2 megapixels |
+| Filter | Parameter | Example |
+|--------|-----------|---------|
+| Faces only | `itp:face` | Find profile photos |
+| Clipart | `itp:clipart` | Logos, icons |
+| Animated GIF | `itp:animated` | Animated images |
+| Specific color | `ic:specific,isc:green` | Dominant color filter |
+| Transparent BG | `ic:trans` | PNGs with transparency |
+| Large images | `isz:l` | High resolution only |
+| Min resolution | `isz:lt,islt:2mp` | Greater than 2 megapixels |
 
 **Combined example:** Search LinkedIn for face photos of interns at a company:
-
 ```text
 https://www.google.com/search?q="orange"+"alternant"+site:linkedin.com&tbm=isch&tbs=itp:face
 ```
@@ -67,10 +65,10 @@ https://www.google.com/search?q="orange"+"alternant"+site:linkedin.com&tbm=isch&
 ## DNS Reconnaissance
 
 Flags often in TXT records of subdomains, not root domain:
-
 ```bash
 dig -t txt subdomain.ctf.domain.com
-dig -t any domain.com
+dig +short -t cname domain.com
+dig +short -t mx domain.com
 dig axfr @ns.domain.com domain.com  # Zone transfer
 ```
 
@@ -79,7 +77,8 @@ dig axfr @ns.domain.com domain.com  # Zone transfer
 ```bash
 dig TXT ctf.domain.org
 dig TXT _dmarc.domain.org
-dig ANY domain.org
+dig +short -t cname domain.org
+dig +short -t mx domain.org
 ```
 
 **Lesson:** DNS TXT records are publicly queryable. Always check TXT, CNAME, MX for CTF domains and subdomains.
@@ -89,7 +88,6 @@ dig ANY domain.org
 ```text
 https://metrics.torproject.org/rs.html#simple/<FINGERPRINT>
 ```
-
 Check family members and sort by "first seen" date for ordered flags.
 
 ## GitHub Repository Comments
@@ -103,7 +101,6 @@ Check family members and sort by "first seen" date for ordered flags.
 **Pattern:** Forensic artifacts (browser history, chat logs) may reference Telegram bots that require active interaction.
 
 **Finding bot references in forensics:**
-
 ```python
 # Search browser history for Telegram URLs
 import sqlite3
@@ -114,20 +111,17 @@ cur.execute("SELECT url FROM urls WHERE url LIKE '%t.me/%'")
 ```
 
 **Bot interaction workflow:**
-
 1. Visit `https://t.me/<botname>` -> Opens in Telegram
 2. Start conversation with `/start` or bot's custom command
 3. Bot may require verification (CTF-style challenges)
 4. Answers often require knowledge from forensic analysis
 
 **Verification question patterns:**
-
 - "Which user account did you use for X?" -> Check browser history, login records
 - "Which account was modified?" -> Check Security.evtx Event 4781 (rename)
 - "What file did you access?" -> Check MRU, Recent files, Shellbags
 
 **Example bot flow:**
-
 ```text
 Bot: "TIER 1: Which account used for online search?"
 -> Answer from Edge history showing Bing/Google searches
@@ -139,7 +133,6 @@ Bot: [Grants access] "Website: http://x.x.x.x:5000, Username: mehacker, Password
 ```
 
 **Key insight:** Bot responses may reveal:
-
 - Attacker's real identity/handle
 - Credentials to secondary systems
 - Direct flag components
@@ -150,7 +143,6 @@ Bot: [Grants access] "Website: http://x.x.x.x:5000, Username: mehacker, Password
 **Pattern (Shell Game):** Track organizational donors through FEC filings.
 
 **Key resources:**
-
 - [FEC.gov](https://www.fec.gov/data/) - Committee receipts and expenditures
 - 501(c)(4) organizations can donate to Super PACs without disclosing original funders
 - Look for largest organizational donors, then research org leadership (CEO/President)
@@ -198,7 +190,7 @@ whois -h whois.radb.net AS12345
 
 **Key insight:** WHOIS data is most useful for timeline correlation (when was the domain registered relative to CTF events?), reverse lookups (what other domains share the same registrant?), and identifying shared infrastructure. Historical WHOIS via SecurityTrails or Wayback Machine can reveal pre-privacy registrant details.
 
-------
+---
 
 ## Shodan SSH Fingerprint Lookup (EKOPARTY CTF 2016)
 
@@ -235,7 +227,7 @@ shodan search 'ssh.fingerprint:"ab:cd:ef:12:34:56:78:90"'
 
 **Key insight:** SSH host keys are unique per server. If a hidden service runs SSH, its fingerprint can be searched on Shodan/Censys to find the real IP. This technique also works to de-anonymize services behind CloudFlare or other CDNs. Search both SSH fingerprints and TLS certificate fingerprints.
 
-------
+---
 
 ## Fake Service Banner Detection via Fingerprinting (MetaCTF Flash 2026)
 
@@ -265,7 +257,7 @@ echo "" | timeout 3 nc -w 3 target.ctf 22
 
 **When to recognize:** Challenge name hints at network scanning or reconnaissance ("SYN", "scan", "port"). The expected approach is to enumerate open ports, but the flag is in the service banner itself rather than requiring exploitation.
 
-------
+---
 
 ## Git Commit Author Mining for Credentials (Hackover 2018)
 
@@ -293,7 +285,7 @@ gh api "users/<target-user>/events/public" --paginate \
 
 **References:** Hackover CTF 2018 — who knows john dows?, writeups 11537, 11646
 
-------
+---
 
 ## .DS_Store Directory Enumeration with Python-dsstore (35C3 2018)
 
@@ -309,7 +301,7 @@ python3 -m dsstore .DS_Store
 
 **References:** 35C3 CTF 2018 — McDonald, writeup 12763
 
-------
+---
 
 ## TTF Glyph Contour Diffing for Obfuscated CAPTCHA (Square CTF 2018)
 
@@ -325,7 +317,7 @@ diff glyph_out/font.glyf/zero.ttx reference/zero.ttx
 
 **References:** Square CTF 2018 — C8, writeup 12161
 
-------
+---
 
 ## Cross-Challenge Container IP Reuse (RITSEC 2018)
 
@@ -340,7 +332,7 @@ diff glyph_out/font.glyf/zero.ttx reference/zero.ttx
 
 **References:** RITSEC CTF 2018 — Lazy Dev → Archivr, writeups 12234-12235
 
-------
+---
 
 ## Resources
 

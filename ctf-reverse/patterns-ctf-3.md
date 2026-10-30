@@ -1,7 +1,6 @@
 # CTF Reverse - Competition-Specific Patterns (Part 3)
 
 ## Table of Contents
-
 - [Z3 for Single-Line Python Boolean Circuit (BearCatCTF 2026)](#z3-for-single-line-python-boolean-circuit-bearcatctf-2026)
 - [Sliding Window Popcount Differential Propagation (BearCatCTF 2026)](#sliding-window-popcount-differential-propagation-bearcatctf-2026)
 - [Morse Code from Keyboard LEDs via ioctl (PlaidCTF 2013)](#morse-code-from-keyboard-leds-via-ioctl-plaidctf-2013)
@@ -26,21 +25,19 @@
 - [WebKit Array.slice OOB CVE-2016-4622 (Codegate 2019)](#webkit-arrayslice-oob-cve-2016-4622-codegate-2019)
 - [Multi-Modulus CRT Keygen with Matrix Lookup Password (Pragyan CTF 2019)](#multi-modulus-crt-keygen-with-matrix-lookup-password-pragyan-ctf-2019)
 
-------
+---
 
 ## Z3 for Single-Line Python Boolean Circuit (BearCatCTF 2026)
 
 **Pattern (Captain Morgan):** Single-line Python (2000+ semicolons) validates flag via walrus operator chains decomposing input as a big-endian integer, with bitwise operations producing a boolean circuit.
 
 **Identification:**
-
 - Single-line Python with semicolons separating statements
 - Walrus operator `:=` chains: `(x := expr)`
 - Obfuscated XOR: `(x | i) & ~(x & i)` instead of `x ^ i`
 - Input treated as a single large integer, decomposed via bit-shifting
 
 **Z3 solution:**
-
 ```python
 from z3 import *
 
@@ -64,7 +61,7 @@ if s.check() == sat:
 
 **Detection:** Single-line Python with 1000+ semicolons, walrus operators, bitwise operations, and a final comparison to 0 or True.
 
-------
+---
 
 ## Sliding Window Popcount Differential Propagation (BearCatCTF 2026)
 
@@ -72,11 +69,9 @@ if s.check() == sat:
 
 **Differential propagation:**
 When the window slides by 1 bit:
-
 ```text
 popcount(window[i+1]) - popcount(window[i]) = bit[i+16] - bit[i]
 ```
-
 So: `bit[i+16] = bit[i] + (data[i+1] - data[i])`
 
 ```python
@@ -113,9 +108,9 @@ for start_val in range(0x10000):
 
 **Detection:** Binary computing popcount/hamming weight on fixed-size windows. Expected value array with length ≈ input_bits - window_size + 1. Values in array are small integers (0 to window_size).
 
-------
+---
 
-------
+---
 
 ## Morse Code from Keyboard LEDs via ioctl (PlaidCTF 2013)
 
@@ -126,7 +121,7 @@ for start_val in range(0x10000):
 # Patch ptrace call at offset with NOP (0x90)
 python3 -c "
 data = open('binary','rb').read()
-data = data[:0x72b] + b'\x90'*5 + data[:0x730]  # NOP the ptrace call
+data = data[:0x72b] + b'\x90'*5 + data[0x730:]  # NOP the ptrace call
 open('patched','wb').write(data)
 "
 
@@ -152,7 +147,7 @@ morse_map = {'.-':'A', '-...':'B', '-.-.':'C', '-..':'D', '.':'E',
 
 **Key insight:** `KDSETLED` controls physical keyboard LEDs on Linux (`/dev/console`). The binary must run with console access. Use `strace -e ioctl` to capture all LED state changes without needing physical observation. Timing between calls determines dot vs dash.
 
-------
+---
 
 ## C++ Destructor-Hidden Validation (Defcamp 2015)
 
@@ -174,7 +169,7 @@ __cxa_atexit(destructor_func, object_ptr, dso_handle);
 
 **Key insight:** When `main()` appears trivial or incomplete, check destructors of global/static C++ objects. The `.fini_array` section and `__cxa_atexit` registrations reveal hidden post-main logic.
 
-------
+---
 
 ## Syscall Side-Effect Memory Corruption (Hack.lu 2015)
 
@@ -195,7 +190,7 @@ The `rt_sigprocmask` syscall writes a `sigset_t` structure to its output pointer
 
 **Key insight:** Audit how input validation functions interact with syscalls. Character-to-syscall mappings in hex conversion routines can produce unintended memory writes via kernel-space operations.
 
-------
+---
 
 ## MFC Dialog Event Handler Location (WhiteHat 2015)
 
@@ -214,21 +209,19 @@ bp user32!SendMessageW ".if (poi(@esp+8)==0x111) {} .else {gc}"
 
 **Key insight:** MFC applications route messages through dispatch tables. Identify the `AFX_MSGMAP` structure to enumerate all handled messages without runtime analysis.
 
-------
+---
 
 ## VM Sequential Key-Chain Brute-Force (Midnight Flag 2026)
 
 **Pattern (67):** Custom VM validates input in N-byte blocks. Each block's output key feeds as input to the next block, preventing parallel solving. Per-block search space is small enough to brute-force (2^24 for 3-byte blocks).
 
 **Recognition signs:**
-
 - Bytecode with XOR-obfuscated opcodes (all bytes XOR'd with a constant, producing ASCII-looking bytecode)
 - Iterative transformation loop (xorshift + multiply, repeated 1000+ times) making algebraic inversion impractical
 - CHECK opcodes comparing accumulated state against embedded constants
 - Large `.data` section with repetitive bytecode patterns
 
 **Solving approach:**
-
 1. Parse bytecode to extract CHECK values (expected key after each block)
 2. For each block sequentially, brute-force the input bytes that produce the expected key
 3. Use the CHECK value as the key for the next block
@@ -265,7 +258,7 @@ int solve_block(uint32_t old_key, uint32_t expected_key, unsigned char *out) {
 
 **Key insight:** When a transformation is intentionally non-invertible (iterated hash-like function), brute-force is the intended solution. OpenMP parallelization is critical — 287 blocks x 16.7M candidates each takes minutes parallelized vs hours single-threaded. The sequential key dependency means blocks must be solved in order, but each individual block search is embarrassingly parallel.
 
-------
+---
 
 ## Burrows-Wheeler Transform Inversion without Terminator (ASIS CTF Finals 2016)
 
@@ -307,7 +300,7 @@ def bwt_with_xor_rounds(encrypted_hex, num_rounds):
 
 **Key insight:** Standard BWT uses a terminating character (like '$') to mark the original string's position. Without it, BWT inversion produces n candidates (one per rotation). Use domain-specific constraints (binary format, XOR round structure, flag prefix) to identify the correct candidate.
 
-------
+---
 
 ## OpenType Font Ligature Exploitation for Hidden Messages (Hack The Vote 2016)
 
@@ -351,14 +344,13 @@ def decode_font_ligatures(font_path, encoded_text):
 
 **Key insight:** Custom fonts with GSUB ligature tables create a cipher where displayed characters differ from their glyph mappings. The `fonttools` library's `ttx` command dumps the font to XML, making ligature substitution tables easily readable. Each ligature maps an input character sequence to a different output glyph.
 
-------
+---
 
 ## GLSL Shader VM with Self-Modifying Code (ApoorvCTF 2026)
 
 **Pattern (Draw Me):** A WebGL2 fragment shader implements a Turing-complete VM on a 256x256 RGBA texture. The texture is both program memory and display output.
 
 **Texture layout:**
-
 - **Row 0:** Registers (pixel 0 = instruction pointer, pixels 1-32 = general purpose)
 - **Rows 1-127:** Program memory (RGBA = opcode, arg1, arg2, arg3)
 - **Rows 128-255:** VRAM (display output)
@@ -370,7 +362,6 @@ def decode_font_ligatures(font_path, encoded_text):
 **Why GPU rendering fails:** The GPU runs all pixels in parallel per frame, but the shader tracks only ONE write target per pixel per frame. With multiple VRAM writes per frame, only the last survives — losing 75%+ of pixels. Similarly, STORE patches conflict during parallel decryption.
 
 **Solve via sequential emulation:**
-
 ```python
 from PIL import Image
 import numpy as np
@@ -403,21 +394,19 @@ Image.fromarray(vram, mode='L').save('output.png')
 
 **Detection:** WebGL/shader challenge with a PNG "program" file, challenge says "nothing renders" or output is garbled. Look for custom opcode tables in GLSL source.
 
-------
+---
 
 ## Instruction Counter as Cryptographic State (MetaCTF Flash 2026)
 
 **Pattern (Who's Counting?):** Hand-written assembly binary uses a dedicated register (e.g., `r12`) as an instruction counter that increments after nearly every instruction. The counter value feeds into XOR, ROL, and multiply transformations on each input byte, making the entire transformation path-dependent on the number of instructions executed before reaching each byte.
 
 **Identification:**
-
 - Hand-written assembly (no compiler patterns, unusual register usage)
 - A register that only increments (`inc r12` or `add r12, 1`) appearing after most instructions
 - Transformations that reference this counter register (`xor rax, r12`, `rol al, cl` where `cl` derives from counter)
 - Sequential byte processing loop where state carries forward
 
 **Solving approach:**
-
 ```python
 # Byte-by-byte brute force with emulation
 # Since each byte's transformation depends on the counter (which depends
@@ -466,13 +455,12 @@ for pos in range(FLAG_LEN):
 **When to recognize:** Binary has no standard library calls, uses unusual registers consistently, and shows a register that only increments. The transformation per byte involves operations (XOR, rotate, multiply) that reference this counter. Challenge name hints at "counting" or "instructions".
 
 **Alternative approaches:**
-
 - GDB scripting: set breakpoint after each byte's transformation, compare output
 - Static analysis: count instructions manually to compute counter values, then invert transforms algebraically (error-prone due to counter accumulation)
 
 **References:** MetaCTF Flash CTF 2026 "Who's Counting?"
 
-------
+---
 
 ## Thread Race Condition with Signed Integer Overflow (Codegate 2017)
 
@@ -496,7 +484,7 @@ def race():
 
 **Key insight:** `cdqe` (Convert Doubleword to Quadword Extension) sign-extends 32-bit EAX into 64-bit RAX. When the attack code reads a 32-bit damage value and sign-extends it, `0xFFFFFFFF` becomes `-1`. Subtracting a negative number adds to HP, but if HP is already at `INT64_MAX`, the addition overflows to negative, killing the target.
 
-------
+---
 
 ## ESP32/Xtensa Firmware Reversing with ROM Symbol Map (Insomni'hack 2017)
 
@@ -519,7 +507,7 @@ r2 -a xtensa -b 32 firmware.bin
 
 **Key insight:** ESP32's Xtensa architecture lacks mainstream RE tool support, but the ESP-IDF SDK provides ROM linker scripts mapping every ROM function address to its name. Loading these as symbols in radare2 immediately resolves hundreds of function calls. Cross-referencing with public ESP-IDF example code identifies application-level patterns (HTTP handlers, WiFi callbacks) even in stripped firmware.
 
-------
+---
 
 ## Batch Crackme Automation via objdump Pattern Extraction (DEF CON 2017)
 
@@ -549,7 +537,7 @@ EOF
 
 **Key insight:** Mass crackme challenges (100s-1000s of binaries) have identical structure with per-binary constants. Script `objdump` disassembly parsing to extract immediates and arithmetic sequences, then reverse-compute the key algebraically. No execution or emulation needed.
 
-------
+---
 
 ## Fork + Pipe + Dead Branch Anti-Analysis (RCTF 2017)
 
@@ -570,14 +558,13 @@ data = open('binary','rb').read()
 data = data.replace(b'\x83\x7d\xf4\x01', b'\x83\x7d\xf4\x00')
 open('binary_patched','wb').write(data)
 "
-
 ```
 
 **Key insight:** Fork+pipe creates a parent-child relationship where the parent provides data and exits. Dead branches (comparisons that always evaluate to false) hide the real validation logic. `strace` reveals the fork/pipe/read pattern; patching the comparison constant reaches the hidden code path.
 
-------
+---
 
-------
+---
 
 ## Time-Locked Binary with Date-Based Key (Hack.lu 2017)
 
@@ -595,7 +582,6 @@ LD_PRELOAD=/usr/lib/faketime/libfaketime.so.1 FAKETIME="2012-12-21 00:00:00" ./b
 
 # Restore system time afterward
 sudo ntpdate pool.ntp.org
-
 ```
 
 **In IDA/Ghidra:** Search for `time()` or `localtime()` calls. The struct `tm` fields to watch: `tm_year` (years since 1900), `tm_mon` (0-based), `tm_mday`.
@@ -604,14 +590,13 @@ sudo ntpdate pool.ntp.org
 
 **References:** Hack.lu CTF 2017
 
-------
+---
 
 ## ARM Code in Image Pixels via UnicornJS (Hack.lu 2017)
 
 JavaScript challenge embeds ARM bytecode in image pixel data. The image is base64-encoded in the HTML/JS source. Pixel RGBA values encode ARM instructions. A bundled UnicornJS library (ARM CPU emulator in JavaScript) extracts and executes the bytecode.
 
 **Identification flow:**
-
 1. Find base64 blob in JS source → decode → PNG/BMP file
 2. Identify UnicornJS import (`unicorn.js`, `uc.js`, or similar) → confirms ARM emulation
 3. Pixel extraction loop: RGBA bytes concatenated in raster order form the ARM instruction stream
@@ -631,37 +616,31 @@ arm_code = bytes([channel for pixel in pixels for channel in pixel])
 md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB)
 for insn in md.disasm(arm_code, 0x0):
     print(f"0x{insn.address:04x}: {insn.mnemonic} {insn.op_str}")
-
 ```
 
 **Key insight:** Multi-layer obfuscation: ARM code in image pixels, base64 encoded, emulated via UnicornJS at runtime. Identify the emulator library first to know which ISA to reverse — the library name reveals the architecture.
 
 **References:** Hack.lu CTF 2017
 
-------
+---
 
 ## x86 16-bit MBR psadbw Constraint Solving (CSAW 2017)
 
 Bootable MBR uses SSE2 `psadbw` (Packed Sum of Absolute Differences of Bytes) on xmm registers to validate the flag. Each iteration masks 2 input bytes, computes `psadbw` against known constants, and compares the sum to an expected value.
 
 **`psadbw` semantics:**
-
 ```asm
 psadbw xmm0, xmm1
 ; For each of 8 byte pairs: sum += |xmm0[i] - xmm1[i]|
 ; Result stored as 16-bit integer in low qword of xmm0
-
 ```
 
 This generates sum-of-absolute-differences equations:
-
 ```text
 |a[0] - k[0]| + |a[1] - k[1]| + ... + |a[7] - k[7]| = C
-
 ```
 
 **Solution approach:**
-
 ```python
 import numpy as np
 from itertools import product
@@ -682,14 +661,13 @@ def solve_psadbw_group(known_constants, expected_sum, printable_range=(0x20, 0x7
 
 # For ambiguous cases with multiple solutions: apply additional constraints
 # (flag format prefix, character frequency, subsequent iterations)
-
 ```
 
 **Key insight:** `psadbw` creates sum-of-absolute-difference equations — not purely linear but solvable with constrained brute-force when bytes are limited to printable ASCII. Each 2-byte group is independent, keeping the search space to 95^2 = ~9000 candidates per group.
 
 **References:** CSAW CTF 2017
 
-------
+---
 
 ## TensorFlow DNN Inversion by Inverting Sigmoid Layers (N1CTF 2018)
 
@@ -708,7 +686,6 @@ for i in range(num_layers - 1, -1, -1):
 
 # Input was 1.0/char, so flag chars are the multiplicative inverse
 flag = ''.join(chr(int(round(1.0 / v[j]))) for j in range(len(v)))
-
 ```
 
 **Key insight:** Neural networks with invertible activation functions (sigmoid, tanh) and square weight matrices can be mathematically inverted layer-by-layer. Apply inverse-sigmoid, subtract bias, multiply by weight inverse. Watch for input transformations (e.g., 1/x) that must also be inverted.
@@ -717,7 +694,7 @@ flag = ''.join(chr(int(round(1.0 / v[j]))) for j in range(len(v)))
 
 **References:** N1CTF 2018
 
-------
+---
 
 ## BPF Filter Analysis via JIT Compilation to x64 Assembly (Midnight Sun CTF 2018)
 
@@ -732,7 +709,6 @@ dmesg | grep -A 100 "flen="
 
 # Analysis revealed: expects DNS TXT query on UDP port 3333
 dig @target -p 3333 'M4d!bKn3~l' TXT
-
 ```
 
 **Key insight:** Linux can JIT-compile BPF filters to native x64 machine code. When standard BPF disassemblers fail or produce unreadable output, enable `bpf_jit_enable` and read the compiled assembly from dmesg. The native code is often easier to understand than BPF bytecode.
@@ -741,7 +717,7 @@ dig @target -p 3333 'M4d!bKn3~l' TXT
 
 **References:** Midnight Sun CTF 2018
 
-------
+---
 
 ## Single-Byte XOR ROM Deobfuscation Sweep (X-MAS CTF 2018)
 
@@ -757,14 +733,13 @@ open(f'xor_{k}','wb').write(bytes(b^k for b in d))"
   file "xor_$i" | grep -v data
 done
 strings "xor_0x42" | grep -i "POKEMON\|ELF\|MZ"
-
 ```
 
 **Key insight:** Brute-forcing 256 XOR keys costs seconds and defeats any single-byte XOR packer. Always run this sweep before assuming a custom algorithm; look for format magics (`ELF`, `PK`, `MZ`, `PDF-`, ROM name strings) in the output.
 
 **References:** X-MAS CTF 2018 — Unown Gift, writeup 12665
 
-------
+---
 
 ## WebKit Array.slice OOB CVE-2016-4622 (Codegate 2019)
 
@@ -774,14 +749,13 @@ strings "xor_0x42" | grep -i "POKEMON\|ELF\|MZ"
 let oob = new Array(8);
 let victim = {a: 1};
 let leak = oob.slice(-1, oob.length + 16)[0];  // reads past backing store
-
 ```
 
 **Key insight:** Any JIT/engine challenge that patches out a safety check almost always exposes a classic browser-CVE primitive. Diff the vendored source against upstream `ArrayPrototype.cpp`, `JSArray.cpp`, and `JITOperations.cpp` for removed `if`/`assert` statements — that's the bug.
 
 **References:** Codegate CTF 2019 — Butterfree, writeup 12902
 
-------
+---
 
 ## Multi-Modulus CRT Keygen with Matrix Lookup Password (Pragyan CTF 2019)
 
@@ -793,7 +767,6 @@ key mod 10459    == 229
 key mod 1489     == 25
 key mod 1046527  == 83
 key mod 16127    == 135
-
 ```
 
 The five moduli are pairwise coprime, so the Chinese Remainder Theorem yields the smallest valid `key = 3087629750608333480917556`. After `scanf`, `func2(password, key, N)` concatenates `key + N + "80"` into `v12`, then validates each password byte against a 10000-byte lookup table:
@@ -811,7 +784,6 @@ while v9 < len(v12) // 2:
     a = 10*v12[v9] + v12[v9+1]; b = 10*v12[v11] + v12[v11+1]
     password += bytes([matrix[100*(a*a % 97) + b*b % 97]])
     v9 += 2; v11 += 2
-
 ```
 
 CRT (via `sympy.ntheory.modular.crt` or a manual `mul_inv` routine) plus `matrix` dumped from the binary reproduces the flag `pctf{R3v3rS1Ng_#s_h311_L0t_Of_Fun}`.
@@ -820,6 +792,6 @@ CRT (via `sympy.ntheory.modular.crt` or a manual `mul_inv` routine) plus `matrix
 
 **References:** Pragyan CTF 2019 — Super Secure Vault, writeup 13760
 
-------
+---
 
 See also: [patterns-ctf.md](patterns-ctf.md) for Part 1, [patterns-ctf-2.md](patterns-ctf-2.md) for Part 2 (multi-layer self-decrypting binary, embedded ZIP+XOR license, stack string deobfuscation, prefix hash brute-force, CVP/LLL lattice, decision tree obfuscation, GF(2^8) Gaussian elimination).

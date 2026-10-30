@@ -5,7 +5,6 @@ Malware unpacking, multi-stage shellcode, timing/signal side channels, and CTF-s
 For static reversing patterns (custom VMs, anti-debug, self-modifying code, LLVM obfuscation, S-box generation, SECCOMP/BPF, memory dumps, x86-64 gotchas, byte-wise transforms), see [patterns.md](patterns.md).
 
 ## Table of Contents
-
 - [Malware Anti-Analysis Bypass via Patching](#malware-anti-analysis-bypass-via-patching)
 - [Multi-Stage Shellcode Loaders](#multi-stage-shellcode-loaders)
 - [Timing Side-Channel Attack](#timing-side-channel-attack)
@@ -15,27 +14,25 @@ For static reversing patterns (custom VMs, anti-debug, self-modifying code, LLVM
 - [printf Format String VM Decompilation to Z3 (SECCON 2017)](#printf-format-string-vm-decompilation-to-z3-seccon-2017)
 - [Quadtree Recursive Image Format Parser (Google CTF Quals 2018)](#quadtree-recursive-image-format-parser-google-ctf-quals-2018)
 
-------
+---
 
 ## Malware Anti-Analysis Bypass via Patching
 
 **Pattern (Carrot):** Malware with multiple environment checks before executing payload.
 
 **Common checks to patch:**
-
-| Check                         | Technique           | Patch                      |
-| ----------------------------- | ------------------- | -------------------------- |
-| `ptrace(PTRACE_TRACEME)`      | Anti-debug          | Change `cmp -1` to `cmp 0` |
-| `sleep(150)`                  | Anti-sandbox timing | Change sleep value to 1    |
-| `/proc/cpuinfo` "hypervisor"  | Anti-VM             | Flip `JNZ` to `JZ`         |
-| "VMware"/"VirtualBox" strings | Anti-VM             | Flip `JNZ` to `JZ`         |
-| `getpwuid` username check     | Environment         | Flip comparison            |
-| `LD_PRELOAD` check            | Anti-hook           | Skip check                 |
-| Fan count / hardware check    | Anti-VM             | Flip `JLE` to `JGE`        |
-| Hostname check                | Environment         | Flip `JNZ` to `JZ`         |
+| Check | Technique | Patch |
+|-------|-----------|-------|
+| `ptrace(PTRACE_TRACEME)` | Anti-debug | Change `cmp -1` to `cmp 0` |
+| `sleep(150)` | Anti-sandbox timing | Change sleep value to 1 |
+| `/proc/cpuinfo` "hypervisor" | Anti-VM | Flip `JNZ` to `JZ` |
+| "VMware"/"VirtualBox" strings | Anti-VM | Flip `JNZ` to `JZ` |
+| `getpwuid` username check | Environment | Flip comparison |
+| `LD_PRELOAD` check | Anti-hook | Skip check |
+| Fan count / hardware check | Anti-VM | Flip `JLE` to `JGE` |
+| Hostname check | Environment | Flip `JNZ` to `JZ` |
 
 **Ghidra patching workflow:**
-
 1. Find check function, identify the conditional jump
 2. Click on instruction → `Ctrl+Shift+G` → modify opcode
 3. For `JNZ` (0x75) → `JZ` (0x74), or vice versa
@@ -44,26 +41,23 @@ For static reversing patterns (custom VMs, anti-debug, self-modifying code, LLVM
 6. `chmod +x` the patched binary
 
 **Server-side validation bypass:**
-
 - If patched binary sends system info to remote server, patch the data too
 - Modify string addresses in data-gathering functions
 - Change format strings to embed correct values directly
 
-------
+---
 
 ## Multi-Stage Shellcode Loaders
 
 **Pattern (I Heard You Liked Loaders):** Nested shellcode with XOR decode loops and anti-debug.
 
 **Debugging workflow:**
-
 1. Break at `call rax` in launcher, step into shellcode
 2. Bypass ptrace anti-debug: step to syscall, `set $rax=0`
 3. Step through XOR decode loop (or break on `int3` if hidden)
 4. Repeat for each stage until final payload
 
 **Flag extraction from `mov` instructions:**
-
 ```python
 # Final stage loads flag 4 bytes at a time via mov ebx, value
 # Extract little-endian 4-byte chunks
@@ -71,14 +65,13 @@ values = [0x6174654d, 0x7b465443, ...]  # From disassembly
 flag = b''.join(v.to_bytes(4, 'little') for v in values)
 ```
 
-------
+---
 
 ## Timing Side-Channel Attack
 
 **Pattern (Clock Out):** Validation time varies per correct character (longer sleep on match).
 
 **Exploitation:**
-
 ```python
 import time
 from pwn import *
@@ -99,23 +92,21 @@ for pos in range(flag_length):
     flag += best_char
 ```
 
-------
+---
 
 ## Multi-Thread Anti-Debug with Decoy + Signal Handler Mixed Boolean-Arithmetic (ApoorvCTF 2026)
 
 **Pattern (A Golden Experience Requiem):** Multi-threaded binary with layered anti-analysis: Thread 1 performs decoy operations (fake AES + deliberate crash via `ud2`), Thread 2 does the real flag computation in a SIGSEGV signal handler using Mixed Boolean Arithmetic (MBA), Thread 3 erases memory to prevent post-mortem analysis.
 
 **Thread layout:**
-
-| Thread   | Purpose                                              | Trap                                         |
-| -------- | ---------------------------------------------------- | -------------------------------------------- |
-| Thread 1 | Decoy: AES-looking operations → `ud2` crash          | Analysts waste time reversing fake crypto    |
-| Thread 2 | Real flag: SIGSEGV handler with MBA transforms       | Hidden in signal handler, not main code path |
-| Thread 3 | Memory eraser: zeros out flag data after computation | Prevents memory dumping                      |
-| Main     | rdtsc-based anti-debug timing check                  | Penalizes debugger-attached execution        |
+| Thread | Purpose | Trap |
+|--------|---------|------|
+| Thread 1 | Decoy: AES-looking operations → `ud2` crash | Analysts waste time reversing fake crypto |
+| Thread 2 | Real flag: SIGSEGV handler with MBA transforms | Hidden in signal handler, not main code path |
+| Thread 3 | Memory eraser: zeros out flag data after computation | Prevents memory dumping |
+| Main | rdtsc-based anti-debug timing check | Penalizes debugger-attached execution |
 
 **Solving approach — pure Python emulation of MBA logic:**
-
 ```python
 # MBA helpers (extracted from assembly)
 def mba_add(a, b): return (a + b) & 0xff
@@ -153,14 +144,13 @@ print(''.join(flag))
 **Key insight:** The real flag logic is in the signal handler (SIGSEGV/SIGILL), not the main thread. Thread 1's AES-like code and `ud2` crash are intentional misdirection. The `rdtsc` timing check detects debuggers and corrupts output. Bypass by extracting the MBA logic from assembly and reimplementing in Python — never run the binary under a debugger.
 
 **Detection indicators:**
-
 - Multiple `pthread_create` calls with different handler functions
 - `signal(SIGSEGV, handler)` or `sigaction` setup
 - `ud2` instruction (deliberate illegal instruction)
 - `rdtsc` instructions for timing checks
 - SHA-256 constants (0x6a09e667...) used as lookup tables, not for hashing
 
-------
+---
 
 ## INT3 Patch + Coredump Brute-Force Oracle (Pwn2Win 2016)
 
@@ -179,7 +169,7 @@ done
 
 **Key insight:** Use INT3/SIGTRAP as a breakpoint oracle -- the coredump captures computed state at the crash point. Avoids full reverse engineering of the transformation.
 
-------
+---
 
 ## Signal Handler Chain + LD_PRELOAD Oracle (Nuit du Hack 2016)
 
@@ -196,7 +186,7 @@ sighandler_t signal(int sig, sighandler_t handler) {
 
 **Key insight:** Signal-handler-chain anti-reversing can be defeated by hooking `signal()` via LD_PRELOAD. The call to `signal()` (to install the next handler) acts as a side-channel confirming the current character.
 
-------
+---
 
 ### printf Format String VM Decompilation to Z3 (SECCON 2017)
 
@@ -204,7 +194,6 @@ A "virtual machine" implemented entirely via `%hhn` format strings. Format strin
 
 **Step 1: Identify instruction types.**
 Count unique format patterns to determine the instruction set:
-
 ```bash
 # Normalize numbers and count unique patterns
 sed -e 's/[[:digit:]]\+/1/g' program.fs | sort | uniq -c | sort -nr
@@ -217,7 +206,6 @@ Convert format patterns to C-style pseudocode. Each `%N...%hhn` pair maps to a m
 The pseudocode typically reveals a linear equation system over bytes. Map memory addresses to symbolic variables.
 
 **Step 4: Generate Z3 constraints and solve.**
-
 ```python
 from z3 import *
 
@@ -243,7 +231,6 @@ if s.check() == sat:
 ```
 
 **Decompilation approach in detail:**
-
 1. Extract the write address and value from each `%N...%hhn` pair
 2. Map memory addresses to symbolic variables (flag bytes)
 3. Build an equation system from the write sequences
@@ -253,7 +240,7 @@ if s.check() == sat:
 
 **References:** SECCON 2017
 
-------
+---
 
 ## Quadtree Recursive Image Format Parser (Google CTF Quals 2018)
 

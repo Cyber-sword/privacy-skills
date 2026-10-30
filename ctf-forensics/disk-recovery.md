@@ -1,7 +1,6 @@
 # CTF Forensics - Disk Recovery and Extraction Patterns
 
 ## Table of Contents
-
 - [LUKS Master Key Recovery from Memory Dump (Hack.lu 2015)](#luks-master-key-recovery-from-memory-dump-hacklu-2015)
 - [PRNG Timestamp Seed Brute-Force for Encryption Key Recovery (CSAW 2015)](#prng-timestamp-seed-brute-force-for-encryption-key-recovery-csaw-2015)
 - [VBA Macro Encoded Binary Recovery (Sharif CTF 2016)](#vba-macro-encoded-binary-recovery-sharif-ctf-2016)
@@ -24,7 +23,7 @@
 - [Regex-Password Nested Zip Chain with exrex (UTCTF 2019)](#regex-password-nested-zip-chain-with-exrex-utctf-2019)
 - [See Also](#see-also)
 
-------
+---
 
 ## LUKS Master Key Recovery from Memory Dump (Hack.lu 2015)
 
@@ -57,7 +56,7 @@ mount /dev/mapper/decrypted /mnt
 
 Companion tools: `rsakeyfind` (RSA keys), `aesfix` (corrupted key recovery).
 
-------
+---
 
 ## PRNG Timestamp Seed Brute-Force for Encryption Key Recovery (CSAW 2015)
 
@@ -88,7 +87,7 @@ for seed in range(timestamp - 86400, timestamp + 86400):
 
 **Key insight:** Expand the time window beyond the obvious timestamp -- clock skew, timezone differences, and filesystem granularity can shift the effective seed by hours.
 
-------
+---
 
 ## VBA Macro Encoded Binary Recovery (Sharif CTF 2016)
 
@@ -118,7 +117,7 @@ with open('recovered.elf', 'wb') as f:
 
 **Key insight:** Check the recovered file with `file` command -- common outputs are ELF binaries, PE executables, or images containing the flag.
 
-------
+---
 
 ## FemtoZip Shared Dictionary Decompression (Sharif CTF 2016)
 
@@ -142,7 +141,7 @@ grep -r "category.*forensic" decompressed_dir/ | grep "year.*2016"
 
 **Key insight:** FemtoZip is rare in CTFs. Identify it by the `.model` file and the presence of many small compressed files that share common structure (JSON, XML templates).
 
-------
+---
 
 ## XFS Filesystem Reconstruction from Corrupted Metadata (BSidesSF 2025)
 
@@ -171,7 +170,7 @@ with open('disk.img', 'rb') as f:
 
 **Key insight:** XFS stores extent maps inline in the inode (up to ~4 extents). For files with more extents, follow the B+tree root in the inode. Use `xfs_db` if available: `xfs_db -r disk.img` → `inode <num>` → `print`.
 
-------
+---
 
 ## Tar Archive Duplicate Entry Extraction (BSidesSF 2025)
 
@@ -200,7 +199,7 @@ with tarfile.open('archive.tar.xz') as tf:
 
 **Key insight:** The `--occurrence=N` flag in GNU tar selects the Nth entry with a matching name. Without it, only the last entry survives extraction. Challenges may hide flags in middle entries that normal extraction skips.
 
-------
+---
 
 ## Nested Matryoshka Filesystem Extraction (BSidesSF 2025)
 
@@ -237,7 +236,7 @@ Filesystem types encountered: ext4, XFS, HFS/HFS+, AFFS (AmigaDOS), FAT. Use `lo
 
 **Key insight:** Install uncommon filesystem drivers (`hfsplus`, `affs`) beforehand. Some layers require manual sector offset calculation when partition tables are absent.
 
-------
+---
 
 ## Anti-Carving via Null Byte Interleaving (BSidesSF 2024)
 
@@ -271,16 +270,15 @@ perl -0777 -pe 's/(.)./\1/gs' raw.bin > recovered.png
 
 **Key insight:** When file carving fails but the filesystem metadata is intact, extract via block-level access and look for byte-level obfuscation patterns. Null byte interleaving doubles the file size — compare actual size vs expected size as a detection heuristic.
 
-------
+---
 
-------
+---
 
 ## BTRFS Subvolume/Snapshot Recovery (BSidesSF 2026)
 
 **Pattern (turn-back-the-clock):** Deleted files on a BTRFS filesystem may persist in snapshots or alternate subvolumes. The default mount shows only the active subvolume, but backup snapshots contain historical file states.
 
 **Recovery workflow:**
-
 ```bash
 # 1. Set up loop device
 sudo losetup /dev/loop0 challenge.img
@@ -304,7 +302,6 @@ sudo mount -o subvolid=257 /dev/loop0 /mnt/backup
 ```
 
 **Key BTRFS commands for forensics:**
-
 ```bash
 # Show filesystem info
 btrfs filesystem show /dev/loop0
@@ -320,7 +317,6 @@ btrfs-find-root /dev/loop0
 ```
 
 **BTRFS snapshot types:**
-
 - **Writable subvolumes:** `@`, `@home` — standard Ubuntu layout
 - **Read-only snapshots:** Created by `btrfs subvolume snapshot -r` — immutable copies
 - **Backup subvolumes:** `@backup`, `@snap-YYYYMMDD` — naming varies by tool (Timeshift, snapper)
@@ -331,7 +327,7 @@ btrfs-find-root /dev/loop0
 
 **References:** BSidesSF 2026 "turn-back-the-clock"
 
-------
+---
 
 ## FAT16 Free Space Data Recovery (BSidesSF 2026)
 
@@ -381,7 +377,7 @@ with open("disk.img", "rb") as f:
 
 **References:** BSidesSF 2026 "freeflag"
 
-------
+---
 
 ## FAT16 Deleted File Recovery via Sleuth Kit (MetaCTF Flash 2026)
 
@@ -402,7 +398,6 @@ icat flash.img 4 > recovered_flag.png
 # Step 4: Verify recovery
 file recovered_flag.png
 # recovered_flag.png: PNG image data, 800 x 600, 8-bit/color RGBA
-
 ```
 
 **Key insight:** FAT16/FAT32 deletion only marks the directory entry's first byte as `0xE5` and marks clusters as free in the FAT table, but the actual file data remains on disk until overwritten. The filename appears scrambled (e.g., `flag.png` becomes `_lag.png`), but `fls -d` lists deleted entries and `icat` extracts the full file by following the original cluster chain. This is more targeted than free space carving because it preserves the original file boundaries.
@@ -410,14 +405,13 @@ file recovered_flag.png
 **When to recognize:** Challenge provides a FAT filesystem image with a deleted file. The challenge name or description hints at deletion (`rm`, `deleted`, `removed`). Mount shows the file is missing, but `fls` reveals the deleted directory entry.
 
 **Alternative approaches:**
-
 - `foremost` / `scalpel` for carving without filesystem awareness
 - `fatcat` for low-level FAT manipulation
 - Manual hex editing: search for `0xE5` entries in directory clusters
 
 **References:** MetaCTF Flash CTF 2026 "rm -rf flag.png"
 
-------
+---
 
 ## Ext2 Orphaned Inode Recovery via fsck (BSidesSF 2026)
 
@@ -440,7 +434,6 @@ ls /mnt/lost+found/
 # Found: #13
 file /mnt/lost+found/\#13  # Identify file type (e.g., PNG)
 cp /mnt/lost+found/\#13 recovered_flag.png
-
 ```
 
 **Key insight:** Ext2/ext3/ext4 deletion removes directory entries but the inode and data blocks may persist until overwritten. `e2fsck` (with `-y` for auto-fix) detects these orphaned inodes and reconnects them to `/lost+found` with numeric names. For ext2 specifically (no journaling), recovery is more reliable because blocks aren't zeroed on deletion.
@@ -448,14 +441,13 @@ cp /mnt/lost+found/\#13 recovered_flag.png
 **When to recognize:** Challenge provides an ext2/ext3/ext4 filesystem image. Normal mounting shows nothing. Challenge hints at "deleted", "orphan", "lost", or "recovery". Always run `fsck` on forensics filesystem images.
 
 **Alternative tools:**
-
 - `debugfs` — interactive ext2 exploration: `debugfs disk.img` then `lsdel` to list deleted inodes
 - `extundelete` — automated ext3/ext4 recovery
 - `icat` (Sleuth Kit) — extract file by inode number: `icat disk.img 13 > recovered`
 
 **References:** BSidesSF 2026 "orphan"
 
-------
+---
 
 ## Corrupted ZIP Repair via Header Field Manipulation (PlaidCTF 2017)
 
@@ -497,14 +489,13 @@ for offset in range(0x1E, 0x100):
         break
     except zlib.error:
         continue
-
 ```
 
 **Key insight:** ZIP filename length fields appear in both the Local File Header (offset 26) and Central Directory (offset 28). Both must match and reflect the actual filename. When these are corrupted to absurd values (e.g., 9001), the archive appears empty. As a fallback, brute-force raw deflate decompression at candidate data offsets.
 
 **Detection:** ZIP file that `unzip -l` reports as empty or produces errors about invalid filename lengths. `hexdump` shows valid `PK\x03\x04` and `PK\x01\x02` signatures but unreasonable values in length fields.
 
-------
+---
 
 ## Recovering Deleted .git Repository from FAT Image (Square CTF 2017)
 
@@ -532,12 +523,11 @@ cd recovered
 git fsck --full        # Check object integrity, find dangling commits
 git log --all          # Show all commits including unreferenced ones
 git show <commit_hash> # Inspect specific commit for flag
-
 ```
 
 **Key insight:** FAT marks deleted files by changing the first byte of the directory entry to `0xE5` but keeps cluster data intact until reused. TSK's `fls`/`icat` extracts deleted files by inode, making deletion forensically reversible. Git objects are content-addressed — once extracted, `git fsck` finds all reachable commits even without a valid HEAD reference.
 
-------
+---
 
 ## DNSSEC Key Recovery from Git Commit History (Hack.lu 2017)
 
@@ -563,12 +553,11 @@ cat recovered.private
 # Step 4: Use recovered keys to forge DNSSEC-signed responses
 # Configure BIND with the recovered signing keys and sign the zone
 dnssec-signzone -K /path/to/keys -o example.com zone.db
-
 ```
 
 **Key insight:** Sensitive cryptographic key material in git history is permanently recoverable — `git log --diff-filter=D` finds all commits that deleted files, and `git show <commit>^:<path>` retrieves the file's state just before deletion. DNSSEC private keys enable forging any DNS record for the zone, allowing DNS cache poisoning or redirecting traffic to attacker-controlled servers.
 
-------
+---
 
 ## XZ Stream Header Repair via CRC32 Reconstruction (Hackover 2018)
 
@@ -594,14 +583,13 @@ dd if=newhdr.bin of=broken.xz bs=1 count=12 conv=notrunc
 
 # 5. Decompress
 xz -d broken.xz
-
 ```
 
 **Key insight:** XZ streams are defined by a fixed 12-byte header and a 12-byte footer that both include the same `stream_flags` byte — when the header is damaged you can copy the flags out of the still-intact footer and recompute the header CRC32 locally. The same header-reconstruction trick works for any format where the checksum input is small enough to brute-force or derive from the footer: GZIP (trailing `isize`/`crc32`), ZIP (central directory before the local file header), and zstd (frame header with skip-frames). When the challenge hands you a blob whose magic bytes belong to the wrong format, check the **last few bytes** for the real footer signature before trying to salvage the header.
 
 **References:** Hackover CTF 2018 — UnbreakMyStart, writeup 11508
 
-------
+---
 
 ## ZipCrypto Known-Plaintext Cracking via bkcrack (Codegate 2019)
 
@@ -613,14 +601,13 @@ unzip secret.zip unencrypted_known.txt
 bkcrack -C secret.zip -c target.txt -p unencrypted_known.txt -P known.zip
 # Decrypt the whole archive with the recovered internal state
 bkcrack -C secret.zip -k <k0> <k1> <k2> -d target_decrypted.bin
-
 ```
 
 **Key insight:** ZIP headers often include well-known constants (PNG/JPEG magic, empty `README.txt`, `.gitignore`). Any encrypted ZIP that also ships an unencrypted reference file — or where you can guess 12+ bytes of header — falls immediately to `bkcrack`. Swap to it when `pkcrack` throws.
 
 **References:** Codegate CTF 2019 — Rich Project, writeup 12907
 
-------
+---
 
 ## SQLite Serial-Type Byte Forensics (RITSEC 2018)
 
@@ -631,14 +618,13 @@ def extract_hidden(path):
     with open(path, 'rb') as f: db = f.read()
     offsets = [0x892, 0xBA5, 0xE13]   # diff the two files first
     return bytes(db[off] for off in offsets)
-
 ```
 
 **Key insight:** SQLite's varint serial-type scheme stores metadata *inline* with the payload, so an attacker who can flip one varint changes the interpretation of the next N bytes. Diff two versions byte-by-byte, cluster the diffs by record, and decode each varint to locate hidden text fields.
 
 **References:** RITSEC CTF 2018 — Lite Forensics, writeup 12223
 
-------
+---
 
 ## Recursive Binwalk Chain PNG->PDF->DOCX->PNG->Base64 (TAMUctf 2019)
 
@@ -661,14 +647,13 @@ binwalk --dd=".*" docx/word/media/image1.png
 strings _image1.png.extracted/*.pdf | tail -n 10
 # -> ZmxhZ3tQMGxZdEByX0QwX3kwdV9HM3RfSXRfTjB3P30K
 echo 'ZmxhZ3tQMGxZdEByX0QwX3kwdV9HM3RfSXRfTjB3P30K' | base64 -d
-
 ```
 
 **Key insight:** When `grep flag` on the outermost file fails, assume each extracted file is itself a carrier. DOCX/XLSX/PPTX/APK/JAR are all ZIPs, so `unzip` works directly. PDFs commonly carry data *after* the final `%%EOF`, so always `strings | tail` or seek past the trailer. `binwalk --dd=".*"` writes every signature hit to disk so you can recurse with minimal typing.
 
 **References:** TAMUctf 2019 — I Heard You Like Files, writeups 13412 and 13587
 
-------
+---
 
 ## Regex-Password Nested Zip Chain with exrex (UTCTF 2019)
 
@@ -700,14 +685,13 @@ for i in range(10000):
     if not os.path.exists(archive):
         print('FLAG IN', out_dir)
         break
-
 ```
 
 **Key insight:** When a zip's password is described by a regex, don't brute ASCII — use `exrex` to enumerate only matching strings (often just a handful of candidates per layer). Automate the extract-read-hint-repeat cycle; 1000 layers finish in seconds because the search space per layer is tiny.
 
 **References:** UTCTF 2019 — Regular Zips, writeups 13951 and 13861
 
-------
+---
 
 ## See Also
 

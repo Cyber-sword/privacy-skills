@@ -1,7 +1,6 @@
 # CTF Forensics - Signals and Hardware
 
 ## Table of Contents
-
 - [VGA Signal Decoding](#vga-signal-decoding)
 - [HDMI TMDS Decoding](#hdmi-tmds-decoding)
 - [DisplayPort 8b/10b + LFSR Decoding](#displayport-8b10b--lfsr-decoding)
@@ -19,7 +18,7 @@
 - [USB MIDI Launchpad Traffic Reconstruction (Sthack 2017)](#usb-midi-launchpad-traffic-reconstruction-sthack-2017)
 - [Tektronix Logic-Analyzer CSV Clock-Edge Extraction (35C3 2018)](#tektronix-logic-analyzer-csv-clock-edge-extraction-35c3-2018)
 
-------
+---
 
 ## VGA Signal Decoding
 
@@ -47,7 +46,7 @@ Image.fromarray(img_arr).save('vga_output.png')
 
 **Key lesson:** Total frame > visible area — always crop blanking. If colors look dark, check if 6-bit (multiply by 4).
 
-------
+---
 
 ## HDMI TMDS Decoding
 
@@ -82,7 +81,7 @@ def tmds_decode(symbol_10bit):
 
 **Identification:** Binary data with 10-bit aligned structure. Challenge mentions HDMI, DVI, or TMDS.
 
-------
+---
 
 ## DisplayPort 8b/10b + LFSR Decoding
 
@@ -116,7 +115,7 @@ def lfsr_descramble(data):
 
 **Key lesson:** LFSR scrambler resets on control bytes — identify these to synchronize descrambling. Without reset points, output is garbled.
 
-------
+---
 
 ## Voyager Golden Record Audio (0xFun 2026)
 
@@ -154,7 +153,7 @@ img_arr = ((img_arr - img_arr.min()) / (img_arr.max() - img_arr.min()) * 255).as
 Image.fromarray(img_arr).save('voyager_image.png')
 ```
 
-------
+---
 
 ## Side-Channel Power Analysis (EHAX 2026)
 
@@ -163,7 +162,6 @@ Image.fromarray(img_arr).save('voyager_image.png')
 **Data format:** Typically a multi-dimensional array: `[positions × guesses × traces × samples]`. E.g., 6 digit positions × 10 guesses (0-9) × 20 traces × 50 samples.
 
 **Attack (Differential Power Analysis):**
-
 ```python
 import numpy as np
 import hashlib
@@ -198,7 +196,7 @@ flag = hashlib.sha256(key.encode()).hexdigest()
 
 **Key insight:** The "leak point" is the sample index where correct vs incorrect guesses show the largest power difference. Average across traces first to reduce noise, then find the sample with maximum variance across guesses.
 
-------
+---
 
 ## Saleae Logic 2 UART Decode (EHAX 2026)
 
@@ -207,7 +205,6 @@ flag = hashlib.sha256(key.encode()).hexdigest()
 **File structure:** `.sal` is a ZIP containing `digital-0.bin` through `digital-7.bin` + `meta.json`. Only channel 0 typically has data.
 
 **Binary format (digital-*.bin):**
-
 ```text
 <SALEAE> magic (8 bytes)
 version: u32 = 2
@@ -220,7 +217,6 @@ Delta-encoded transitions (variable-length integers)
 **Delta encoding:** Each value represents the number of samples between state transitions. The signal alternates between HIGH and LOW at each delta.
 
 **UART decode from deltas:**
-
 ```python
 import numpy as np
 
@@ -256,7 +252,6 @@ def uart_decode(transitions, sample_rate=1_000_000, baud=115200):
 ```
 
 **Common pitfalls:**
-
 - **Inverted polarity:** UART idle is HIGH (mark). If initial_state=1, the encoding may be inverted — try both
 - **Baud rate guessing:** Check common rates: 9600, 19200, 38400, 57600, 115200, 230400
 - **Output format:** Decoded bytes may be base64-encoded (containing a PNG image or text)
@@ -264,7 +259,7 @@ def uart_decode(transitions, sample_rate=1_000_000, baud=115200):
 
 **Quick approach:** Install Saleae Logic 2, open the `.sal` file, add UART analyzer with auto-baud detection, export decoded data.
 
-------
+---
 
 ## Flipper Zero .sub File (0xFun 2026)
 
@@ -272,14 +267,13 @@ RAW_Data binary -> filter noise bytes (0x80-0xFF) -> expand batch variable refer
 
 **Key insight:** Flipper Zero `.sub` files contain raw RF signal data. The RAW_Data field encodes binary as pulse timings. Filter out noise bytes (0x80-0xFF), expand any batch variable references, and XOR with hint text from the challenge to recover the flag.
 
-------
+---
 
 ## Keyboard Acoustic Side-Channel (ApoorvCTF 2026)
 
 **Pattern (Author on the Run):** Recover typed text from audio recordings of keystrokes. Reference audio provides labeled samples (known keys), flag audio contains unknown keystrokes to classify.
 
 **Step 1 — Detect keystrokes via energy peaks:**
-
 ```python
 import numpy as np
 from scipy.signal import find_peaks
@@ -299,7 +293,6 @@ peaks, _ = find_peaks(energy, height=0.03 * energy.max(), distance=min_dist)
 ```
 
 **Step 2 — Extract MFCC features per keystroke:**
-
 ```python
 import librosa
 
@@ -309,11 +302,9 @@ def extract_features(audio, sr, peak_sample, window_ms=10):
     segment = audio[start:start + win]
     mfccs = librosa.feature.mfcc(y=segment.astype(float), sr=sr, n_mfcc=20)
     return np.concatenate([mfccs.mean(axis=1), mfccs.std(axis=1)])  # 40-dim
-
 ```
 
 **Step 3 — Classify with KNN against labeled reference:**
-
 ```python
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -329,21 +320,19 @@ knn.fit(X_ref, y_ref)
 
 # Classify flag keystrokes
 flag = ''.join(knn.predict([extract_features(flag_audio, sr, p) for p in flag_peaks]))
-
 ```
 
 **Key insight:** Window size is critical — 10ms captures the initial impact transient which is most distinctive per key. Larger windows (20-30ms) include key release noise that reduces classification accuracy. Use all individual reference samples rather than averaging, as KNN handles variance better with more data points.
 
 **Detection:** Two audio files provided (reference + target), or challenge mentions "typing", "keyboard", "acoustic".
 
-------
+---
 
 ## CD Audio Disc Image Steganography (BSidesSF 2026)
 
 **Pattern (cdimage):** Visual images encoded as pit/land patterns on a CD surface. A `.cdda` file (raw CD Digital Audio) contains only two byte values (e.g., `0x0d` and `0xa8`) representing reflective lands and non-reflective pits. When rendered as a spiral on a disc image, the binary pattern forms readable text or images — similar to LightScribe but using the data layer.
 
 **Key components:**
-
 1. **CIRC de-interleaving** — CD audio data is Cross-Interleaved for error correction. The encoding tool (e.g., [arduinocelentano/cdimage](https://github.com/arduinocelentano/cdimage)) pre-interleaves data to compensate. To decode, reverse the CIRC interleaving before rendering.
 2. **Spiral geometry** — bytes per track increases linearly: `tr(n) = tr0 + n * dtr`, physical radius `r(n) = r0 + n * dr`. Default params: `tr0=22951.52`, `dtr=1.387`, `r0=24.5mm`.
 3. **Polar-to-Cartesian rendering** — accumulate byte values into a polar grid `(radius_pixel, angle_bin)`, then convert to a circular disc image.
@@ -381,7 +370,6 @@ def deinterleave_cdda(data):
         valid = (in_pos >= 0) & (in_pos < total)
         result[in_pos[valid]] = data[out_pos[valid]]
     return result
-
 ```
 
 **Rendering de-interleaved data to disc image:**
@@ -436,7 +424,6 @@ data = np.fromfile('flag.cdda', dtype=np.uint8)
 deinterleaved = deinterleave_cdda(data)
 img = render_cdda_disc(deinterleaved)
 img.save('disc_output.png')
-
 ```
 
 **Key insight:** Without CIRC de-interleaving, the radial structure (bright/dark rings) is visible but angular detail (text) is completely scrambled. The interleaving spreads each byte across ~108 groups (~2592 bytes), which at typical track lengths (~30K-50K bytes/revolution) shifts angular positions by up to 30 degrees — enough to destroy any readable pattern. The calibration image confirms correct decoding by showing known text.
@@ -445,7 +432,7 @@ img.save('disc_output.png')
 
 **Detection:** Challenge mentions "album", "CD rip", "CDDA", or provides large (~800MB) files with only 2 unique byte values. The `file` command reports "ISO-8859 text with CR line terminators" because `0x0d` (CR) is one of the two values.
 
-------
+---
 
 ## Caps-Lock LED Morse Code Extraction from Video (STEM CTF 2018)
 
@@ -489,14 +476,13 @@ MORSE_MAP = {
     '....-': '4', '.....': '5', '-....': '6', '--...': '7',
     '---..': '8', '----.': '9', '-----': '0',
 }
-
 ```
 
 **Key insight:** Keyboard LEDs (caps lock, num lock, scroll lock) can be programmatically controlled and are visible in security camera footage. Track a specific pixel coordinate across video frames; on/off durations encode Morse code (short=dot, long=dash).
 
 **Detection:** Video of a keyboard where an LED blinks irregularly. Challenge mentions "security camera", "keyboard", "blinking", or "Morse".
 
-------
+---
 
 ## Linux input_event Keylogger Dump Parsing (Pwn2Win 2016)
 
@@ -509,14 +495,13 @@ with open('dump.bin', 'rb') as f:
         tv_sec, tv_usec, type_, code, value = struct.unpack('<QQHHi', data)
         if type_ == 1 and value == 1:  # EV_KEY, key press
             print(f"Key code: {code}")  # Map via input-event-codes.h
-
 ```
 
 **Key insight:** `/dev/input/event*` captures have a fixed 24-byte `struct input_event` format. Filter EV_KEY type with value=1 for key presses. Map codes using Linux kernel header `input-event-codes.h`.
 
 **Detection:** Binary file size divisible by 24. Challenge mentions keylogger, keyboard, or input device.
 
-------
+---
 
 ## I2C Bus Protocol Decoding (EKOPARTY CTF 2016)
 
@@ -566,12 +551,11 @@ def decode_i2c(sda_signal, scl_signal):
 # Tools: Saleae Logic 2, sigrok/PulseView, OLS (Open Logic Sniffer)
 # Import: File > Open Logic Sniffer capture
 # Decode: Analyzers > I2C > Set SDA/SCL channels
-
 ```
 
 **Key insight:** I2C uses only 2 wires (SDA + SCL). START/STOP conditions occur when SDA changes while SCL is high. Data bits are sampled on SCL rising edges. Every 9th bit is an ACK. Use logic analyzer software (Saleae, sigrok) for automated decoding.
 
-------
+---
 
 ## IBM-29 Punched Card OCR (EKOPARTY CTF 2016)
 
@@ -615,12 +599,11 @@ def decode_punched_card(image_path, cols=80, rows=12,
 for i in range(14):
     card_text = decode_punched_card(f'card_{i:02d}.png')
     print(f"Card {i}: {card_text}")
-
 ```
 
 **Key insight:** IBM punched cards use a 12-row x 80-column grid. Each character is encoded by 1-3 holes in a column. The grid spacing varies by card reader/scanner resolution -- calibrate by measuring the distance between known reference holes. White/light pixels indicate punched holes.
 
-------
+---
 
 ## Serial UART Data Decoding from WAV Audio (EasyCTF 2017)
 
@@ -628,43 +611,48 @@ Audio files can contain serial (UART) data encoded as square wave signals. Decod
 
 ```python
 import struct
-
-with open('signal.wav', 'rb') as f:
-    f.read(44)  # skip WAV header
-    samples = []
-    while True:
-        data = f.read(2)
-        if not data: break
-        samples.append(struct.unpack('<h', data)[0])
+import wave
 
 # Parameters: 9600 baud, 1 start bit, 8 data bits, no parity, 2 stop bits
-SAMPLES_PER_BIT = len(samples) // expected_bits  # ~40 for 9600 baud @ 384kHz
-THRESHOLD = 0  # above = 1, below = 0
+BAUD = 9600
 
-# Convert samples to bits
-bits = [1 if s > THRESHOLD else 0 for s in samples]
+with wave.open('signal.wav', 'rb') as w:
+    sample_rate = w.getframerate()  # actual rate from the WAV header
+    sampwidth = w.getsampwidth()
+    n_channels = w.getnchannels()
+    raw = w.readframes(w.getnframes())
 
-# Find frames: start bit (0) + 8 data bits + stop bits (1,1)
+fmt = {1: '<b', 2: '<h', 4: '<i'}[sampwidth]  # 8/16/32-bit PCM
+samples = [struct.unpack(fmt, raw[i:i + sampwidth])[0]
+           for i in range(0, len(raw), sampwidth * n_channels)]
+
+samples_per_bit = sample_rate // BAUD  # exact: header rate, not a guess
+THRESHOLD = 0  # above = mark (1), below = space (0)
+
+# Find frames: start bit (0) + 8 data bits + stop bits (1,1).
+# Resync on every frame: sample the center of each bit period.
 output = []
 i = 0
-while i < len(bits) - 11:
-    if bits[i] == 0:  # start bit
-        byte_bits = bits[i+1:i+9]  # LSB first
-        byte_val = sum(b << j for j, b in enumerate(byte_bits))
+while i + 11 * samples_per_bit <= len(samples):
+    if samples[i + samples_per_bit // 2] <= THRESHOLD:  # start bit
+        byte_val = 0
+        for j in range(8):  # data bits, LSB first
+            center = i + (j + 1) * samples_per_bit + samples_per_bit // 2
+            if samples[center] > THRESHOLD:
+                byte_val |= 1 << j
         output.append(byte_val)
-        i += 11  # skip start + 8 data + 2 stop
+        i += 11 * samples_per_bit  # skip start + 8 data + 2 stop
     else:
-        i += 1
+        i += samples_per_bit  # no start bit here; advance one bit-period
 
 print(bytes(output))
-
 ```
 
 **Key insight:** UART serial data in audio appears as a square wave with well-defined bit timing. Key parameters to determine: baud rate (samples per bit), frame format (start/stop bits, parity), and bit endianness (UART is LSB-first). The start bit (low) provides synchronization for each byte frame.
 
 **Detection:** WAV file with a clean square wave pattern visible in Audacity. Two distinct amplitude levels with regular timing. Challenge mentions "serial", "UART", "baud", or "RS-232".
 
-------
+---
 
 ## USB MIDI Launchpad Traffic Reconstruction (Sthack 2017)
 
@@ -699,14 +687,13 @@ for pkt in pkts:
             if all(current_grid[r][c] == 0 for r in range(8) for c in range(8)):
                 characters.append(current_grid)
                 current_grid = [[0]*8 for _ in range(8)]
-
 ```
 
 **Key insight:** MIDI devices use standardized message formats. Novation Launchpad maps its 8x8 grid to MIDI notes where `key = row*16 + col`. Note On (0x90) with velocity > 0 = button lit, Note Off (0x80) = button off. Sequences of all-off messages separate characters displayed on the grid.
 
 **Detection:** USB PCAP with bulk transfer packets containing 3-byte or 4-byte payloads. USB device descriptor shows MIDI class (Audio class, subclass MIDI Streaming). Challenge mentions "MIDI", "Launchpad", "music controller", or "grid".
 
-------
+---
 
 ## Tektronix Logic-Analyzer CSV Clock-Edge Extraction (35C3 2018)
 
@@ -725,7 +712,6 @@ with open('capture.csv') as f:
             bits.append((int(row[2]), int(row[3]), int(row[4])))
         prev_clk = clk
 # Reshape bits into image and render with PIL
-
 ```
 
 **Key insight:** Logic-analyzer CSV is always edge-sampled. Identify the clock column by its 50%-duty cycle, then sample the data columns synchronously at every rising edge. Works for any synchronous bus (RGB, SPI, I²C clock line).

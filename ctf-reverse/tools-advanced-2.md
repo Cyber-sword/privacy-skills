@@ -3,7 +3,6 @@
 Advanced GDB scripting, Ghidra automation, patching frameworks, and CTF-specific GDB-driven techniques. Continuation of [tools-advanced.md](tools-advanced.md).
 
 ## Table of Contents
-
 - [Advanced GDB Techniques](#advanced-gdb-techniques)
   - [Python Scripting](#python-scripting)
   - [Brute-Force with GDB Script](#brute-force-with-gdb-script)
@@ -20,7 +19,7 @@ Advanced GDB scripting, Ghidra automation, patching frameworks, and CTF-specific
 - [LD_PRELOAD to Dump Execute-Only Binary (BackdoorCTF 2017)](#ld_preload-to-dump-execute-only-binary-backdoorctf-2017)
 - [PEDA current_inst Bit-by-Bit Flag Scraper (CONFidence CTF 2019 Teaser)](#peda-current_inst-bit-by-bit-flag-scraper-confidence-ctf-2019-teaser)
 
-------
+---
 
 ## Advanced GDB Techniques
 
@@ -160,7 +159,7 @@ gef> heap chunks          # Heap chunk listing
 gef> pattern create 100   # De Bruijn pattern
 ```
 
-------
+---
 
 ## Advanced Ghidra Scripting
 
@@ -208,7 +207,7 @@ for func in fm.getFunctions(True):
             print(f"Comparison in {func.getName()} at {func.getEntryPoint()}")
 ```
 
-------
+---
 
 ## Patching Strategies
 
@@ -242,8 +241,8 @@ binary = lief.parse("binary")
 # Add a new section
 section = lief.ELF.Section(".patch")
 section.content = list(b"\xcc" * 0x100)
-section.type = lief.ELF.SECTION_TYPES.PROGBITS
-section.flags = lief.ELF.SECTION_FLAGS.EXECINSTR | lief.ELF.SECTION_FLAGS.ALLOC
+section.type = lief.ELF.Section.TYPE.PROGBITS
+section.flags = lief.ELF.Section.FLAGS.EXECINSTR | lief.ELF.Section.FLAGS.ALLOC
 binary.add(section)
 
 # Modify entry point
@@ -257,7 +256,7 @@ binary.write("patched")
 
 **LIEF advantages:** Cross-format (ELF, PE, Mach-O), Python API, can add sections/segments, modify headers, patch imports.
 
-------
+---
 
 ## GDB Constraint Extraction with ILP/LP Solver (BackdoorCTF 2017)
 
@@ -289,7 +288,6 @@ print("Flag:", flag)
 ```
 
 **GDB automation to extract constraints:**
-
 ```python
 # In GDB Python: set input[i]=i, run, log every CMP instruction result
 import gdb
@@ -305,7 +303,7 @@ class CmpLogger(gdb.Breakpoint):
 
 **References:** BackdoorCTF 2017
 
-------
+---
 
 ## GDB Position-Encoded Input with Zero Flag Monitoring (EKOPARTY 2017)
 
@@ -335,7 +333,7 @@ Maps each input byte to its required value in one pass without manual reversing.
 
 **References:** EKOPARTY CTF 2017
 
-------
+---
 
 ## LD_PRELOAD to Dump Execute-Only Binary (BackdoorCTF 2017)
 
@@ -381,7 +379,7 @@ __attribute__((constructor)) void dump() {
 
 **References:** BackdoorCTF 2017
 
-------
+---
 
 ## PEDA current_inst Bit-by-Bit Flag Scraper (CONFidence CTF 2019 Teaser)
 

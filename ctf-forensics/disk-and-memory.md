@@ -1,7 +1,6 @@
 # CTF Forensics - Disk and Memory Analysis
 
 ## Table of Contents
-
 - [Memory Forensics (Volatility 3)](#memory-forensics-volatility-3)
 - [Disk Image Analysis](#disk-image-analysis)
 - [VM Forensics (OVA/VMDK)](#vm-forensics-ovavmdk)
@@ -20,22 +19,21 @@
 - [corkami/pocs MD5 PDF Collision Generation (35C3 2018)](#corkamipocs-md5-pdf-collision-generation-35c3-2018)
 - [See Also](#see-also)
 
-------
+---
 
 ## Memory Forensics (Volatility 3)
 
 ```bash
-vol3 -f memory.dmp windows.info
-vol3 -f memory.dmp windows.pslist
-vol3 -f memory.dmp windows.cmdline
-vol3 -f memory.dmp windows.netscan
-vol3 -f memory.dmp windows.filescan
-vol3 -f memory.dmp windows.dumpfiles --physaddr <addr>
-vol3 -f memory.dmp windows.mftscan | grep flag
+vol -f memory.dmp windows.info
+vol -f memory.dmp windows.pslist
+vol -f memory.dmp windows.cmdline
+vol -f memory.dmp windows.netscan
+vol -f memory.dmp windows.filescan
+vol -f memory.dmp windows.dumpfiles --physaddr <addr>
+vol -f memory.dmp windows.mftscan | grep flag
 ```
 
 **Common plugins:**
-
 - `windows.pslist` / `windows.pstree` - Process listing
 - `windows.cmdline` - Command line arguments
 - `windows.netscan` - Network connections
@@ -43,7 +41,7 @@ vol3 -f memory.dmp windows.mftscan | grep flag
 - `windows.dumpfiles` - Extract files by physical address
 - `windows.mftscan` - MFT FILE objects in memory (timestamps, filenames). Note: `mftparser` was Volatility 2 only; Vol3 uses `mftscan`
 
-------
+---
 
 ## Disk Image Analysis
 
@@ -60,7 +58,7 @@ photorec image.dd
 foremost -i image.dd
 ```
 
-------
+---
 
 ## VM Forensics (OVA/VMDK)
 
@@ -74,19 +72,17 @@ tar -xvf machine.ova
 ```
 
 **Key files to extract from VM images:**
-
 - `Windows/System32/config/SAM` - Password hashes
 - `Windows/System32/config/SYSTEM` - Boot key
 - `Windows/System32/config/SOFTWARE` - Installed software
 - `Users/*/NTUSER.DAT` - User registry
 - `Users/*/AppData/` - Browser data, credentials
 
-------
+---
 
 ## VMware Snapshot Forensics
 
 **Converting VMware snapshots to memory dumps:**
-
 ```bash
 # .vmss (suspended state) + .vmem (memory) → memory.dmp
 vmss2core -W path/to/snapshot.vmss path/to/snapshot.vmem
@@ -94,7 +90,6 @@ vmss2core -W path/to/snapshot.vmss path/to/snapshot.vmem
 ```
 
 **Malware hunting in snapshots (Armorless):**
-
 1. Check Amcache for executed binaries near encryption timestamp
 2. Look for deceptive names (Unicode lookalikes: `ṙ` instead of `r`)
 3. Dump suspicious executables from memory
@@ -102,23 +97,20 @@ vmss2core -W path/to/snapshot.vmss path/to/snapshot.vmem
 5. If PyArmor-protected: use PyArmor-Unpacker
 
 **Ransomware key recovery via MFT:**
-
 - Even if original files deleted, MFT preserves modification timestamps
 - Seed-based encryption: recover mtime → derive key
-
 ```bash
-vol3 -f memory.dmp windows.mftscan | grep flag
+vol -f memory.dmp windows.mftscan | grep flag
 # mtime as Unix epoch → seed for PRNG → derive encryption key
 ```
 
-------
+---
 
 ## GIMP Raw Memory Dump Visual Inspection (INShAck 2018)
 
 **Pattern:** When Volatility fails or profiles don't match, open raw memory dumps directly in GIMP as raw image data. Scroll through memory while adjusting image width to find previously-displayed images rendered as pixel data.
 
 **Steps:**
-
 1. Open `.dmp` file in GIMP: File > Open, set image type to "Raw image data"
 2. Set pixel format to RGB, width to ~1920 (monitor resolution)
 3. Scroll through the file offset while adjusting width with arrow keys
@@ -151,7 +143,7 @@ for width in [1920, 1366, 1280, 1024]:
 
 **Key insight:** Raw memory dumps contain framebuffer data that was displayed on screen. GIMP can render arbitrary binary data as pixels. When the image width matches the original display stride, screenshots of the user's desktop become visible without any forensics tools, profiles, or decryption.
 
-------
+---
 
 ## Coredump Analysis
 
@@ -162,14 +154,13 @@ gdb -c core.dump
 (gdb) find 0x0, 0xffffffff, "flag"
 ```
 
-------
+---
 
 ## Windows KAPE Triage Analysis (UTCTF 2026)
 
 **Pattern (Landfall, Sherlockk, Cold Workspace):** KAPE (Kroll Artifact Parser and Extractor) triage collection ZIP containing Windows forensic artifacts. Multiple challenges reference the same triage dataset.
 
 **KAPE triage structure:**
-
 ```text
 Modified_KAPE_Triage_Files/
 ├── C/
@@ -192,14 +183,12 @@ Modified_KAPE_Triage_Files/
 **High-value artifacts:**
 
 1. **PowerShell history** — reveals attacker commands:
-
 ```bash
 cat "C/Users/*/AppData/Local/Microsoft/Windows/PowerShell/PSReadLine/ConsoleHost_history.txt"
 # Look for: credential access, lateral movement, data staging
 ```
 
 2. **Amcache** — executed programs with timestamps and hashes:
-
 ```bash
 # Parse with Eric Zimmerman's AmcacheParser or regipy
 python3 -c "
@@ -211,7 +200,6 @@ for entry in reg.recurse_subkeys(as_json=True):
 ```
 
 3. **MFT resident data** — small files stored directly in MFT records:
-
 ```python
 # Parse MFT for resident file data (files < ~700 bytes stored inline)
 # Use analyzeMFT or python-ntfs
@@ -228,7 +216,6 @@ for flag in flags:
 ```
 
 4. **Environment variables from memory dumps** (Cold Workspace pattern):
-
 ```bash
 # Small .dmp files may be minidumps with environment variable blocks
 strings -a cold-workspace.dmp | grep -i "flag\|password\|key\|secret"
@@ -236,7 +223,6 @@ strings -a cold-workspace.dmp | grep -i "flag\|password\|key\|secret"
 ```
 
 **Challenge patterns from UTCTF 2026:**
-
 - **Landfall:** Flag hidden in PowerShell history or Amcache execution records
 - **Sherlockk:** Correlate Amcache entries with MFT timestamps to identify malicious activity
 - **Cold Workspace:** Flag in environment variables extracted from memory dump
@@ -244,31 +230,28 @@ strings -a cold-workspace.dmp | grep -i "flag\|password\|key\|secret"
 
 **Key insight:** KAPE triage ZIPs contain pre-collected forensic artifacts — no need for full disk imaging. Start with PowerShell history (fastest wins) → Amcache (execution timeline) → MFT (resident data for small files) → registry hives (persistence, credentials).
 
-------
+---
 
 ## PowerShell Ransomware Analysis
 
 **Pattern (Email From Krampus):** PowerShell memory dump + network capture.
 
 **Analysis workflow:**
-
 1. Extract script blocks from minidump:
-
 ```bash
 python power_dump.py powershell.DMP
 # Or: strings powershell.DMP | grep -A5 "function\|Invoke-"
 ```
 
 2. Identify encryption (typically AES-CBC with SHA-256 key derivation)
-3. Extract encrypted attachment from PCAP:
 
+3. Extract encrypted attachment from PCAP:
 ```bash
 # Filter SMTP traffic in Wireshark
 # Export attachment, base64 decode
 ```
 
 4. Find encryption key in memory dump:
-
 ```bash
 # Key often generated with Get-Random, regex search:
 strings powershell.DMP | grep -E '^[A-Za-z0-9]{24}$' | sort | head
@@ -276,7 +259,7 @@ strings powershell.DMP | grep -E '^[A-Za-z0-9]{24}$' | sort | head
 
 5. Find archive password similarly, decrypt layers
 
-------
+---
 
 ## Android Forensics
 
@@ -308,7 +291,7 @@ mkdir android_mount && mount -o ro android_image.img android_mount/
 
 **Key insight:** Android stores app data in `/data/data/<package>/` with SQLite databases and XML shared preferences. `adb backup` captures the full app state. For CTFs, check `shared_prefs/` for hardcoded secrets and `databases/` for flags.
 
-------
+---
 
 ## Container Forensics (Docker)
 
@@ -336,12 +319,11 @@ dive IMAGE:TAG
 # /root/.bash_history     — build-time commands
 # /etc/shadow             — leaked credentials
 # Deleted files visible in earlier layers even if removed in later ones
-
 ```
 
 **Key insight:** Docker images are layered — a file deleted in a later layer still exists in the earlier layer's tar. Use `docker history --no-trunc` to see full Dockerfile commands including secrets passed via `ARG` or `ENV`. The `dive` tool visualizes layer diffs interactively.
 
-------
+---
 
 ## Cloud Storage Forensics (AWS S3 / GCP / Azure)
 
@@ -361,12 +343,11 @@ gsutil cp gs://target-bucket/flag.txt .
 # Azure Blob Storage
 az storage blob list --container-name target --account-name storageaccount
 az storage blob download --container-name target --name flag.txt --account-name storageaccount
-
 ```
 
 **Key insight:** Cloud storage versioning preserves deleted objects. Even if a flag file is deleted from the bucket, previous versions may still be accessible via `list-object-versions`. Always check for versioning-enabled buckets.
 
-------
+---
 
 ## BSON (Binary JSON) Format Reconstruction (IceCTF 2016)
 
@@ -401,12 +382,11 @@ for chunk in chunks:
 
 with open('reconstructed.png', 'wb') as f:
     f.write(reconstructed)
-
 ```
 
 **Key insight:** BSON starts with a 4-byte little-endian size field. If the file appears corrupted, check if the first bytes are missing or incorrect. Parse with `bson.decode_all()` (from pymongo), sort chunks by index, and concatenate base64-decoded data to reconstruct embedded files.
 
-------
+---
 
 ## TrueCrypt / VeraCrypt Volume Mounting (GreHack CTF 2016)
 
@@ -439,12 +419,11 @@ truecrypt -t -p "hidden_password" volume.tc /mnt/tc
 # Use VeraCrypt (backwards-compatible with TrueCrypt volumes)
 # Add --truecrypt flag for old TC volumes:
 veracrypt -t --truecrypt -p "password" volume.tc /mnt/vc
-
 ```
 
 **Key insight:** TrueCrypt volumes have no magic bytes or identifiable header -- they look like random data. Identify them from context clues (related images showing TrueCrypt logo, file sizes that are exact multiples of 512, or challenge descriptions mentioning encryption). VeraCrypt with `--truecrypt` flag handles legacy TC volumes.
 
-------
+---
 
 ## Volatility mftparser Offset-Based Deleted File Recovery (BSides Delhi 2018)
 
@@ -461,14 +440,13 @@ vol.py -f Challenge.raw --profile=Win7SP1x86 mftparser \
 
 ls ./out/
 # file.data.$DATA contains the recovered content
-
 ```
 
 **Key insight:** NTFS marks files "deleted" by flipping one bit in the MFT record header (`0x16` byte: `0x01 == in use`). Until the record is reallocated, the entire `$DATA` attribute is still intact and only lazily freed. Use `mftparser --offset=<record>` for resident files (under ~700 bytes — stored inline in the MFT) and `dd`/`icat` with the cluster runs for larger files. Always also grep for the filename in `windows.mftscan` output before giving up: memory-resident MFT fragments are still findable after on-disk deletion.
 
 **References:** BSides Delhi CTF 2018 — Never Too Late Mister, writeups 11963, 11970
 
-------
+---
 
 ## Brotli Blob Detection via ASCII-Art Signature (ASIS Finals 2018)
 
@@ -481,14 +459,13 @@ try:
     if b'rrrooottl' in out or b'Brotli' in out:
         print('Brotli-compressed')
 except Exception: pass
-
 ```
 
 **Key insight:** Any compressor without a magic byte is identifiable by trial decompression. For Brotli, `zstd`, `snappy`, `lzma-alone`, spin through each library in order until one succeeds without raising.
 
 **References:** ASIS CTF Finals 2018 — Green Cabbage, writeup 12419
 
-------
+---
 
 ## corkami/pocs MD5 PDF Collision Generation (35C3 2018)
 
@@ -500,14 +477,13 @@ ps2pdf out.ps base.pdf
 python pdf.py base.pdf target1.pdf target2.pdf
 fastcoll -p base.pdf -o target1.pdf target2.pdf
 md5sum target1.pdf target2.pdf    # identical
-
 ```
 
 **Key insight:** PDF collision is a one-command pipeline with the right toolchain. The harder variant is chosen-prefix MD5 (different visible content) which requires `hashclash` and 10-20 CPU-hours. Check `pocs/collisions/` for every file format with prebuilt scaffolds.
 
 **References:** 35C3 CTF 2018 — collider, writeup 12836
 
-------
+---
 
 ## See Also
 

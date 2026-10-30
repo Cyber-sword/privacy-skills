@@ -18,7 +18,7 @@ Programmatic interaction with CTFd-based CTF platforms via REST API. Eliminates 
 - [Python CTFd Client](#python-ctfd-client)
 - [Troubleshooting](#troubleshooting)
 
-------
+---
 
 ## Detect CTFd
 
@@ -39,13 +39,12 @@ curl -s "$CTF_URL/login" | grep -oE 'name="nonce"'
 ```
 
 **Key indicators:**
-
 - `/api/v1/` returns Swagger/RESTX documentation
 - HTML contains `/themes/core/` asset paths
 - Login form includes a `nonce` hidden field
 - Response headers may include `CTFd` in `Server` or `X-Powered-By`
 
-------
+---
 
 ## Authentication
 
@@ -92,7 +91,7 @@ curl -s -b cookies.txt "$CTF_URL/api/v1/users/me" | jq .
 
 **Key insight:** The nonce is a CSRF token required for form-based login. API token auth bypasses this entirely — always prefer tokens when available.
 
-------
+---
 
 ## List Challenges
 
@@ -110,7 +109,6 @@ curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/challenges" | \
 ```
 
 **Response structure:**
-
 ```json
 {
   "success": true,
@@ -131,7 +129,7 @@ curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/challenges" | \
 }
 ```
 
-------
+---
 
 ## Challenge Details
 
@@ -156,7 +154,7 @@ curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/challenges/$CHALL_
   jq -r '.data.description' | grep -oE '(nc |ssh |https?://)[^ <"]+' | head -5
 ```
 
-------
+---
 
 ## Download Challenge Files
 
@@ -180,7 +178,7 @@ done
 
 **Key insight:** File URLs include a query-string token (`?token=...`) that authenticates the download. The token is time-limited — re-fetch the challenge details if downloads return 403.
 
-------
+---
 
 ## Submit Flags
 
@@ -193,18 +191,17 @@ curl -s -X POST -H "Authorization: Token $CTF_TOKEN" \
 ```
 
 **Response statuses:**
-
-| Status           | Meaning                             |
-| ---------------- | ----------------------------------- |
-| `correct`        | Flag accepted                       |
-| `incorrect`      | Wrong flag                          |
-| `already_solved` | Previously solved by you/team       |
-| `ratelimited`    | Too many attempts (default: 10/min) |
-| `paused`         | CTF is paused                       |
+| Status | Meaning |
+|--------|---------|
+| `correct` | Flag accepted |
+| `incorrect` | Wrong flag |
+| `already_solved` | Previously solved by you/team |
+| `ratelimited` | Too many attempts (default: 10/min) |
+| `paused` | CTF is paused |
 
 **Key insight:** Rate limit is 10 incorrect submissions per minute per user. Space out brute-force attempts or you get locked out temporarily.
 
-------
+---
 
 ## Scoreboard
 
@@ -223,7 +220,7 @@ curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/scoreboard/top/20"
 
 **Note:** Scoreboard is cached server-side for 60 seconds.
 
-------
+---
 
 ## Hints and Unlocks
 
@@ -242,7 +239,7 @@ curl -s -X POST -H "Authorization: Token $CTF_TOKEN" \
   -d "{\"target\": $HINT_ID, \"type\": \"hints\"}" | jq .
 ```
 
-------
+---
 
 ## Notifications
 
@@ -259,7 +256,7 @@ curl -s -H "Authorization: Token $CTF_TOKEN" \
   "$CTF_URL/api/v1/notifications?since_id=$LAST_ID" | jq .
 ```
 
-------
+---
 
 ## User and Team Info
 
@@ -282,7 +279,7 @@ TEAM_ID=$(curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/teams/me
 curl -s -H "Authorization: Token $CTF_TOKEN" "$CTF_URL/api/v1/teams/$TEAM_ID/solves" | jq .
 ```
 
-------
+---
 
 ## Full Competition Workflow
 
@@ -329,7 +326,7 @@ curl -s -X POST -H "Authorization: Token $CTF_TOKEN" \
   jq -r '.data | "\(.status): \(.message)"'
 ```
 
-------
+---
 
 ## Python CTFd Client
 
@@ -453,16 +450,16 @@ if __name__ == '__main__':
     # print(f"{status}: {msg}")
 ```
 
-------
+---
 
 ## Troubleshooting
 
-| Symptom                    | Cause                               | Fix                                                          |
-| -------------------------- | ----------------------------------- | ------------------------------------------------------------ |
-| 401 Unauthorized           | Token expired or invalid            | Re-generate token via web UI or session login                |
-| 403 on file download       | File token expired                  | Re-fetch challenge details to get fresh file URLs            |
-| 403 on challenges          | CTF not started or email unverified | Check `/api/v1/users/me` for `verified` field                |
-| 429 Rate Limited           | Too many wrong flag submissions     | Wait 60 seconds; default is 10 incorrect/min                 |
-| Empty challenge list       | CTF hasn't started                  | Check CTF start time in notifications or config              |
-| `nonce` missing            | Login page changed or anti-bot      | Try API token auth instead of session login                  |
-| Connection info not in API | Some CTFs use dynamic instances     | Check for challenge-specific instance API or Docker endpoints |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| 401 Unauthorized | Token expired or invalid | Re-generate token via web UI or session login |
+| 403 on file download | File token expired | Re-fetch challenge details to get fresh file URLs |
+| 403 on challenges | CTF not started or email unverified | Check `/api/v1/users/me` for `verified` field |
+| 429 Rate Limited | Too many wrong flag submissions | Wait 60 seconds; default is 10 incorrect/min |
+| Empty challenge list | CTF hasn't started | Check CTF start time in notifications or config |
+| `nonce` missing | Login page changed or anti-bot | Try API token auth instead of session login |
+| Connection info not in API | Some CTFs use dynamic instances | Check for challenge-specific instance API or Docker endpoints |

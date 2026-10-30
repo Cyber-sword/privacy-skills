@@ -3,7 +3,6 @@
 FILE-structure (_IO_FILE) exploitation for libc 2.23-2.27+: fastbin→stdout vtable hijack, _IO_buf_base null byte overwrites, glibc 2.24+ vtable validation bypass, unsorted-bin attacks on FILE fields, and menu-driven UAF / refcount bugs that land through these FILE primitives. For classical heap attacks (House of *, unlink, tcache, musl), see [heap-techniques.md](heap-techniques.md).
 
 ## Table of Contents
-
 - [Fastbin stdout Vtable Two-Stage Hijack for PIE + Full RELRO (ASIS CTF 2017)](#fastbin-stdout-vtable-two-stage-hijack-for-pie--full-relro-asis-ctf-2017)
 - [_IO_buf_base Null Byte Overwrite for stdin Hijack (Tokyo Westerns 2017)](#_io_buf_base-null-byte-overwrite-for-stdin-hijack-tokyo-westerns-2017)
 - [glibc 2.24+ _IO_FILE Vtable Validation Bypass (HITCON 2017)](#glibc-224-_io_file-vtable-validation-bypass-hitcon-2017)
@@ -12,7 +11,7 @@ FILE-structure (_IO_FILE) exploitation for libc 2.23-2.27+: fastbin→stdout vta
 - [realloc(ptr, 0) as free() for UAF (AceBear 2018)](#reallocptr-0-as-free-for-uaf-acebear-2018)
 - [Single-Byte Reference Counter Wraparound to UAF (WhiteHat Grand Prix 2018)](#single-byte-reference-counter-wraparound-to-uaf-whitehat-grand-prix-2018)
 
-------
+---
 
 ## Fastbin stdout Vtable Two-Stage Hijack for PIE + Full RELRO (ASIS CTF 2017)
 
@@ -55,14 +54,13 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 
 **References:** ASIS CTF 2017
 
-------
+---
 
 ## _IO_buf_base Null Byte Overwrite for stdin Hijack (Tokyo Westerns 2017)
 
 **Pattern:** A null-byte (off-by-one) heap overflow corrupts the least significant byte of `_IO_buf_base` in stdin's `_IO_FILE` structure. This redirects the stdin input buffer pointer to `_short_buf` — a small internal buffer that lies within the FILE struct itself. Subsequent `scanf`/`fgets` calls then write attacker input directly into the FILE structure, enabling overwrite of `_IO_buf_base`/`_IO_buf_end` to arbitrary addresses for a full write primitive.
 
 **How it works:**
-
 ```c
 // Null byte overwrite targets _IO_buf_base's LSB
 // Before: _IO_buf_base = 0x7f...XX00  (points to heap input buffer)
@@ -74,7 +72,6 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 ```
 
 **Exploitation chain:**
-
 ```python
 # 1. Arrange heap: allocation immediately before stdin's _IO_buf_base
 #    (requires heap grooming so chunk is adjacent to FILE struct)
@@ -96,14 +93,13 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 
 **References:** Tokyo Westerns CTF 2017
 
-------
+---
 
 ## glibc 2.24+ _IO_FILE Vtable Validation Bypass (HITCON 2017)
 
 **Pattern:** glibc 2.24+ validates vtable pointers against the `_IO_vtables` section, rejecting pointers outside that range. Bypass: use unchecked sub-function entries reachable via two-hop dereference. Arrange two heap pointers 0x10 bytes apart (via unsorted bin fd/bk). The first pointer is set to `valid_vtable_addr - 0x18`; the second to `system()`. `_IO_flush_all_lockp` dereferences `*(addr + 0xd8) + 0x18`, landing in an unchecked sub-function that calls `*(addr + 0xe8)`.
 
 **How the two-hop bypass works:**
-
 ```c
 // _IO_flush_all_lockp calls:
 //   fp->vtable->_IO_overflow(fp)
@@ -117,7 +113,6 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 ```
 
 **Setup:**
-
 ```python
 # Place two pointers 0x10 apart using unsorted bin fd/bk as write targets
 # unsorted bin attack: write main_arena+88 to target, leak heap/libc
@@ -129,14 +124,13 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 
 **References:** HITCON CTF 2017
 
-------
+---
 
 ## Unsorted Bin Attack on stdin _IO_buf_end (HITCON 2017)
 
 **Pattern:** An off-by-one NULL byte creates overlapping heap chunks. Free into the unsorted bin, then use the unsorted bin attack (corrupting `bk` of an unsorted bin chunk) to overwrite `_IO_buf_end` of stdin's FILE structure with a large libc address (main_arena+88). The next `scanf` call then reads attacker data into libc's stdin buffer region — enabling overwrite of `__malloc_hook` with a one_gadget.
 
 **Exploit chain:**
-
 ```python
 # 1. Off-by-one NULL: corrupt next chunk's PREV_INUSE, set prev_size
 #    → create overlapping chunks via heap consolidation
@@ -160,14 +154,13 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 
 **References:** HITCON CTF 2017
 
-------
+---
 
 ## Unsorted Bin Corruption via mp_ Structure (HITCON 2017)
 
 **Pattern:** glibc's `mp_` (`malloc_par`) global structure lies near the unsorted bin in libc's data segment. A heap overflow combined with unsorted bin corruption overwrites `mp_->bk` with an address inside `mp_`. The `mp_` structure contains fields that, when interpreted as a free chunk header, pass unsorted bin validation (`size < system_mem`). Allocating from this "chunk" grants write access inside `mp_`, enabling overwrite of `__malloc_hook`. Requires partial ASLR brute-force (1/16 chance) for the heap address alignment.
 
 **Why mp_ works:**
-
 ```c
 // mp_ layout (glibc 2.23, near unsorted bin in libc BSS):
 // struct malloc_par {
@@ -182,7 +175,6 @@ write_to(fake_stdout_chunk, p64(gets_addr))  # vtable → gets
 ```
 
 **Exploitation:**
-
 ```python
 # Heap overflow: corrupt unsorted bin chunk's bk to point into mp_
 corrupted_bk = mp_addr + FAKE_CHUNK_OFFSET  # offset where size field looks valid
@@ -201,14 +193,13 @@ write_to_result(one_gadget)  # overwrites __malloc_hook
 
 **References:** HITCON CTF 2017
 
-------
+---
 
 ## realloc(ptr, 0) as free() for UAF (AceBear 2018)
 
 **Pattern:** `realloc(ptr, 0)` behaves like `free(ptr)` in many glibc versions, returning the chunk to the freelist while the application may retain the old pointer — creating a use-after-free.
 
 **How it works:**
-
 ```c
 // C standard says realloc(ptr, 0) is implementation-defined
 // In glibc: realloc(ptr, 0) calls free(ptr) and returns NULL
@@ -222,7 +213,6 @@ ptr = realloc(ptr, 0);    // freed, but saved still points to freed chunk
 ```
 
 **Exploitation:**
-
 ```python
 from pwn import *
 
@@ -243,7 +233,6 @@ view(0)  # UAF read — sees "BBBB" written by index 1
 ```
 
 **Tcache variant (glibc 2.26+):**
-
 ```python
 # realloc(ptr, 0) puts the chunk in the tcache bin
 # Subsequent malloc of the same size returns the same chunk
@@ -264,14 +253,13 @@ add(3, 0x80, payload)    # returns target address → arbitrary write
 
 **References:** AceBear 2018
 
-------
+---
 
 ## Single-Byte Reference Counter Wraparound to UAF (WhiteHat Grand Prix 2018)
 
 **Pattern:** A struct stores its own reference count in a `uint8_t` field. The object is freed only when `refcount == 0`, but because the counter wraps at 256, calling the `addref()` path 256 times brings `refcount` back to zero while every outstanding handle still holds a live pointer. The next call to `release()` frees the object — all other handles become dangling.
 
 **Exploit sketch:**
-
 ```c
 struct Book {
     uint8_t refcount;     // 1 byte — vulnerable

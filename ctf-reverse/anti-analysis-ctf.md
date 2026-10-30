@@ -3,7 +3,6 @@
 CTF-specific anti-analysis techniques: signal-handler tricks, instruction-trace inversion, call-less function chaining, parent-patched child binary dumping. For the core anti-analysis taxonomy (Linux/Windows anti-debug, anti-VM, anti-DBI, code integrity, anti-disassembly), see [anti-analysis.md](anti-analysis.md).
 
 ## Table of Contents
-
 - [SIGILL Handler for Execution Mode Switching (Hack.lu 2015)](#sigill-handler-for-execution-mode-switching-hacklu-2015)
 - [SIGFPE Signal Handler Side-Channel via strace Counting (PlaidCTF 2017)](#sigfpe-signal-handler-side-channel-via-strace-counting-plaidctf-2017)
 - [Instruction Trace Inversion with Keystone and Unicorn (MeePwn CTF 2017)](#instruction-trace-inversion-with-keystone-and-unicorn-meepwn-ctf-2017)
@@ -11,7 +10,7 @@ CTF-specific anti-analysis techniques: signal-handler tricks, instruction-trace 
   - [Parent-Patched Child Binary Dump via strace process_vm_writev (Google CTF Quals 2018)](#parent-patched-child-binary-dump-via-strace-process_vm_writev-google-ctf-quals-2018)
 - [ConfuserEx Dynamic Module Dump via Constructor Breakpoint (Kaspersky 2018)](#confuserex-dynamic-module-dump-via-constructor-breakpoint-kaspersky-2018)
 
-------
+---
 
 ## SIGILL Handler for Execution Mode Switching (Hack.lu 2015)
 
@@ -34,7 +33,7 @@ void sigill_handler(int sig, siginfo_t *info, void *ucontext) {
 
 **Key insight:** If a binary installs signal handlers for SIGILL/SIGSEGV/SIGTRAP early in execution, suspect custom instruction dispatch. Trace signal deliveries with `strace -e signal` or set GDB to not intercept: `handle SIGILL nostop pass`.
 
-------
+---
 
 ## SIGFPE Signal Handler Side-Channel via strace Counting (PlaidCTF 2017)
 
@@ -52,14 +51,13 @@ done
 
 **Key insight:** Signal handlers (SIGFPE, SIGSEGV, SIGILL) create implicit control flow invisible to static analysis. The number of signals raised correlates with validation progress. Counting signals via `strace -e signal=SIGFPE` turns opaque signal-based validation into a measurable side-channel for character-by-character brute-force.
 
-------
+---
 
 ## Instruction Trace Inversion with Keystone and Unicorn (MeePwn CTF 2017)
 
 UPX-packed binary applies a sequence of arithmetic-only transforms (sub, add, xor, rol, ror) to the flag. No memory side-effects — purely register arithmetic. IDAPython traces non-jump instructions, the sequence is then inverted to recover the flag.
 
 **Inversion rules:**
-
 - Reverse the instruction sequence (last instruction first)
 - Swap inverse pairs: `add ↔ sub`, `rol ↔ ror`, `xor` is self-inverse
 
@@ -113,14 +111,13 @@ flag_bytes = uc.reg_read(UC_X86_REG_RAX).to_bytes(8, 'little')
 
 **References:** MeePwn CTF 2017
 
-------
+---
 
 ### Call-less Function Chaining via Stack Frame Manipulation (THC CTF 2018)
 
 **Pattern:** Binary hides function calls by building a linked list of function pointers on the stack, then modifying saved RBP and return addresses so `leave; ret` instructions chain through the list without any explicit `CALL` instructions. IDA fails to decompile because push/pop are unbalanced and function boundaries cannot be determined.
 
 Each function in the chain:
-
 1. Pushes operands and the next function's address onto the stack
 2. Sets saved RBP to point to the next stack frame
 3. Sets the return address to the next function
@@ -147,14 +144,13 @@ def reverse_processing(byte):
 
 **References:** THC CTF 2018
 
-------
+---
 
 ### Parent-Patched Child Binary Dump via strace process_vm_writev (Google CTF Quals 2018)
 
 **Pattern (Keygenme):** The binary forks. The child is stub code full of `int3` (`0xcc`) traps. The parent uses `ptrace` + `process_vm_writev` to write the real instructions into the child right before each trap fires, then stepping continues. Static analysis of the child sees only junk; dynamic analysis in a single-process debugger misses the parent's writes.
 
 **Bypass — let strace do the work:**
-
 ```bash
 # Record every process_vm_writev the parent performs, including full iov contents.
 strace -f -e trace=process_vm_writev -e write=all -o trace.log ./keygenme
@@ -165,7 +161,6 @@ strace -f -e trace=process_vm_writev -e write=all -o trace.log ./keygenme
 ```
 
 Parse the log to extract `(remote_addr, bytes)` pairs and emit an IDA `patch_bytes` script:
-
 ```python
 import re, pathlib
 patches = []
@@ -189,7 +184,7 @@ Load `patch.py` in IDA (File → Script file) to apply every parent-written inst
 
 **References:** Google CTF Quals 2018 — writeup 10330
 
-------
+---
 
 ## ConfuserEx Dynamic Module Dump via Constructor Breakpoint (Kaspersky 2018)
 

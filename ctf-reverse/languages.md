@@ -1,7 +1,6 @@
 # CTF Reverse - Language-Specific Techniques
 
 ## Table of Contents
-
 - [Python Bytecode Reversing (dis.dis output)](#python-bytecode-reversing-disdis-output)
   - [Common Pattern: XOR Validation with Split Indices](#common-pattern-xor-validation-with-split-indices)
   - [Bytecode Analysis Tips](#bytecode-analysis-tips)
@@ -28,20 +27,18 @@
 For platform/framework-specific techniques (Android, Roblox, Godot, Electron, Node.js, Verilog, Ruby/Perl polyglot, etc.), see [languages-platforms.md](languages-platforms.md).
 For Go and Rust binary reversing, see [languages-compiled.md](languages-compiled.md).
 
-------
+---
 
 ## Python Bytecode Reversing (dis.dis output)
 
 ### Common Pattern: XOR Validation with Split Indices
 
 Challenge gives raw CPython bytecode (dis.dis disassembly). Common pattern:
-
 1. Check flag length
 2. XOR chars at even indices with key1, compare to list p1
 3. XOR chars at odd indices with key2, compare to list p2
 
 **Reversing:**
-
 ```python
 # Given: p1, p2 (expected values), key1, key2 (XOR keys)
 flag = [''] * flag_length
@@ -52,7 +49,6 @@ print(''.join(flag))
 ```
 
 ### Bytecode Analysis Tips
-
 - `LOAD_CONST` followed by `COMPARE_OP` reveals expected values
 - `BINARY_XOR` identifies the transformation
 - `BUILD_TUPLE`/`BUILD_LIST` with constants = expected output array
@@ -61,16 +57,14 @@ print(''.join(flag))
 
 **Key insight:** Python bytecode challenges give you the algorithm in explicit stack operations. Focus on `LOAD_CONST` values (expected outputs), `BINARY_XOR`/`BINARY_ADD` (the transform), and `BUILD_TUPLE` (the target array) to reconstruct the validation logic without running the bytecode.
 
-------
+---
 
 ## Python Opcode Remapping
 
 ### Identification
-
 Decompiler fails with opcode errors.
 
 ### Recovery
-
 1. Find modified `opcode.pyc` in PyInstaller bundle
 2. Compare with original Python opcodes
 3. Build mapping: `{new_opcode: original_opcode}`
@@ -83,7 +77,7 @@ Decompiler fails with opcode errors.
 
 **Key insight:** Opcode remapping breaks all standard decompilers. The fastest fix is to find the modified `opcode.pyc` in the PyInstaller bundle, diff it against the stock Python opcodes, and patch the target `.pyc` back to standard opcodes before decompiling.
 
-------
+---
 
 ## Pyarmor 8/9 Static Unpack (1shot)
 
@@ -92,7 +86,6 @@ Decompiler fails with opcode errors.
 - Quick signature check: payload typically starts with `PY` + six digits (Pyarmor 7 and earlier `PYARMOR` format is not supported)
 
 Workflow:
-
 1. Ensure target directory contains armored scripts and matching `pyarmor_runtime` library.
 2. Run one-shot unpack to emit `.1shot.` outputs (disassembly + experimental decompile).
 3. Treat disassembly as ground truth; verify decompiled source with bytecode when inconsistent.
@@ -102,7 +95,6 @@ python /path/to/oneshot/shot.py /path/to/scripts
 ```
 
 Optional flags:
-
 ```bash
 # Specify runtime explicitly
 python /path/to/oneshot/shot.py /path/to/scripts -r /path/to/pyarmor_runtime.so
@@ -112,18 +104,16 @@ python /path/to/oneshot/shot.py /path/to/scripts -o /path/to/output
 ```
 
 Notes:
-
 - `oneshot/pyarmor-1shot` executable must exist before running `shot.py`.
 - PyInstaller bundles or archives should be unpacked first, then processed with 1shot.
 
 **Key insight:** Pyarmor 8/9 wraps scripts with runtime decryption. The 1shot tool statically unpacks without execution by directly processing the armored bytecode and `pyarmor_runtime` library. Treat the disassembly output as ground truth when the experimental decompiled source looks inconsistent.
 
-------
+---
 
 ## DOS Stub Analysis
 
 PE files can hide code in DOS stub:
-
 1. Check for large DOS stub in Ghidra/IDA
 2. Run in DOSBox
 3. Load in IDA as 16-bit DOS
@@ -131,7 +121,7 @@ PE files can hide code in DOS stub:
 
 **Key insight:** PE files can embed a fully functional 16-bit DOS program in the DOS stub (before the PE header). If the stub is unusually large, load it in IDA as 16-bit DOS or run it in DOSBox -- the challenge logic may live entirely in the stub.
 
-------
+---
 
 ## Unity IL2CPP Games
 
@@ -145,7 +135,7 @@ Please note most of that the executable file for the PC platform is GameAssembly
 
 **Key insight:** IL2CPP compiles C# to native code, but Il2CppDumper recovers method names and offsets. If the dumper fails, the `global-metadata.dat` is likely encrypted -- trace the metadata loading path in the native binary to find the custom decryption before dumping.
 
-------
+---
 
 ## HarmonyOS HAP/ABC Reverse (abc-decompiler)
 
@@ -154,7 +144,6 @@ Please note most of that the executable file for the PC platform is GameAssembly
 - Download `jadx-dev-all.jar` from releases
 
 Critical startup note:
-
 - `java -jar` may enter GUI mode
 - For CLI mode, always use:
 
@@ -163,7 +152,6 @@ java -cp "./jadx-dev-all.jar" jadx.cli.JadxCLI [options] <input>
 ```
 
 Most common commands:
-
 ```bash
 # Basic decompile to directory
 java -cp "./jadx-dev-all.jar" jadx.cli.JadxCLI -d "out" ".abc"
@@ -173,7 +161,6 @@ java -cp "./jadx-dev-all.jar" jadx.cli.JadxCLI -m simple -d "out_hap" "modules.a
 ```
 
 Recommended parameters for this challenge:
-
 - `-m simple`: reduce high-level reconstruction to avoid SSA/PHI-heavy failures
 - `--log-level ERROR`: keep only critical errors
 - Full recommended command:
@@ -183,12 +170,10 @@ java -cp "./jadx-dev-all.jar" jadx.cli.JadxCLI -m simple --log-level ERROR -d "o
 ```
 
 Parameter quick reference:
-
 - `-d` output directory
 - `--help` help
 
 Notes:
-
 - `.hap` is a package: extract it first (zip), then locate and analyze `.abc`
 - Quote paths containing spaces or non-ASCII characters
 - Use a new output directory name per run to avoid stale results
@@ -196,7 +181,6 @@ Notes:
 - If `auto` fails, switch to `-m simple` first
 
 Standard workflow:
-
 1. Run with `-m simple --log-level ERROR`
 2. Inspect key business files in output (for example `pages/Index.java`)
 3. If cleaner output is needed, retry with `-m auto` or `-m restructure`
@@ -204,7 +188,7 @@ Standard workflow:
 
 **Key insight:** HarmonyOS `.hap` packages are ZIP archives containing `.abc` bytecode. Use the abc-decompiler's CLI mode (`jadx.cli.JadxCLI`) with `-m simple` for the most reliable decompilation -- GUI mode may launch instead of processing files.
 
-------
+---
 
 ## Brainfuck/Esolangs
 
@@ -217,7 +201,6 @@ Standard workflow:
 **Pattern (i-love-my-bf-part1):** BF programs that validate input character-by-character follow a recognizable pattern: `,` (read char) followed by a sequence of `+` operations whose count equals the expected ASCII value of that character.
 
 **Extraction technique:**
-
 ```python
 import re
 
@@ -243,7 +226,6 @@ print(f"Flag: {flag}")
 ```
 
 **Variations:**
-
 - `-` operations: character value = `256 - minus_count`
 - Mixed `+`/`-`: net increment determines value
 - Cell reset (`[-]`) between characters: each segment is independent
@@ -340,14 +322,13 @@ def instrumented_bf_run(bf_code, dummy_input):
 **Key insight:** Compiled BF programs reuse fixed idioms for operations like equality comparison, conditional branching, and loops. Pattern-matching these idioms in the BF source or during execution lets you extract constants without fully understanding the program logic.
 
 **Common BF idioms:**
-
 - `[-]` — clear cell (set to 0)
 - `[->+<]` — move cell right
 - `<[-<->] +<[>-<[-]]>[-<+>]` — equality comparison of two cells
 
 **References:** BSidesSF 2026 "i-love-my-bf-part3"
 
-------
+---
 
 ## UEFI Binary Analysis
 
@@ -362,12 +343,11 @@ file extracted/* | grep "PE32+"
 
 **Key insight:** UEFI binaries are PE32+ executables. Extract the firmware with `7z`, identify PE files with `file`, and load them in Ghidra/IDA. Bootkits replace the boot loader, so focus on DXE drivers and boot services protocols for the challenge logic.
 
-------
+---
 
 ## Transpilation to C
 
 For heavily obfuscated code:
-
 ```python
 for opcode, args in instructions:
     if opcode == 'XOR':
@@ -380,21 +360,19 @@ Compile with `-O3` for constant folding.
 
 **Key insight:** Transpiling obfuscated VM bytecode to C and compiling with `-O3` lets the compiler's constant folding and dead code elimination simplify the algorithm automatically. This is faster than manual deobfuscation for complex instruction sets.
 
-------
+---
 
 ## Code Coverage Side-Channel Attack
 
 **Pattern (Coverup, Nullcon 2026):** PHP challenge provides XDebug code coverage data alongside encrypted output.
 
 **How it works:**
-
 - PHP code uses `xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE | XDEBUG_CC_BRANCH_CHECK)`
 - Encryption uses data-dependent branches: `if ($xored == chr(0)) ... if ($xored == chr(1)) ...`
 - Coverage JSON reveals which branches were executed during encryption
 - This leaks the set of XOR intermediate values that occurred
 
 **Exploitation:**
-
 ```python
 import json
 
@@ -423,14 +401,13 @@ for pos in range(len(ciphertext)):
 
 **Mitigation detection:** Look for branchless/constant-time crypto implementations that defeat this attack.
 
-------
+---
 
 ## Functional Language Reversing (OPAL)
 
 **Pattern (Opalist, Nullcon 2026):** Binary compiled from OPAL (Optimized Applicative Language), a purely functional language.
 
 **Recognition markers:**
-
 - `.impl` (implementation) and `.sign` (signature) source files
 - `IMPLEMENTATION` / `SIGNATURE` keywords
 - Nested `IF..THEN..ELSE..FI` structures
@@ -438,14 +415,12 @@ for pos in range(len(ciphertext)):
 - Heavy use of `seq[nat]`, `string`, `denotation` types
 
 **Reversing approach:**
-
 1. Pure functions are mathematically invertible — reverse each step in the pipeline
 2. Identify the transformation chain: `f_final(f_n(...f_2(f_1(input))...))`
 3. For each function, build the inverse
 
 **Aggregate brute-force for scramble functions:**
 When a transformation accumulates state that depends on original (unknown) values:
-
 ```python
 # Example: f8 adds cumulative offset based on parity of original bytes
 # offset contribution per element depends on whether pre-scramble value is even/odd
@@ -465,7 +440,7 @@ for total_offset_S in range(256):
 
 **Key lesson:** When a scramble function has a chicken-and-egg dependency (result depends on original, which is unknown), brute-force the aggregate effect (often mod 256 = 256 possibilities) rather than all possible states (exponential).
 
-------
+---
 
 ## Python Version-Specific Bytecode (VuwCTF 2025)
 
@@ -482,21 +457,19 @@ cd Python-3.14.0a4 && ./configure && make -j$(nproc)
 ```
 
 **Common validation:** Flag compared against tuple of squared ASCII values:
-
 ```python
 # Reverse: flag[i] = sqrt(expected_tuple[i])
 import math
 flag = ''.join(chr(int(math.isqrt(v))) for v in expected_values)
 ```
 
-------
+---
 
 ## Non-Bijective Substitution Cipher Reversing
 
 **Pattern (Coverup, Nullcon 2026):** S-box/substitution table has collisions (multiple inputs map to same output).
 
 **Detection:**
-
 ```python
 sbox = [...]  # substitution table
 if len(set(sbox)) < len(sbox):
@@ -504,24 +477,21 @@ if len(set(sbox)) < len(sbox):
 ```
 
 **Building reverse lookup:**
-
 ```python
 from collections import defaultdict
 rev_sub = defaultdict(list)
 for i, v in enumerate(sbox):
     rev_sub[v].append(i)
 # rev_sub[output] = [list of possible inputs]
-
 ```
 
 **Disambiguation strategies:**
-
 1. Known plaintext format (e.g., `ENO{`, `flag{`) fixes key bytes at known positions
 2. Side-channel data (code coverage, timing) eliminates impossible candidates
 3. Printable ASCII constraint (32-126) reduces candidate space
 4. Re-encrypt candidates and verify against known ciphertext
 
-------
+---
 
 ## FRACTRAN Program Inversion (Boston Key Party 2016)
 
@@ -538,14 +508,13 @@ def fractran_step(n, fractions):
 # Inversion: swap num/denom in fraction table
 inverted = [(d, n) for n, d in fraction_table]
 # Run target output through inverted program to recover input
-
 ```
 
 **Key insight:** FRACTRAN programs can be inverted by swapping numerators and denominators. The prime factorization encoding is the key to understanding I/O -- factor the result to extract exponents of sequential primes, map to ASCII.
 
 **Detection:** Challenge mentions fractions, prime factorization, or provides a list of rational numbers.
 
-------
+---
 
 ## GNU Make Turing Machine Simulator (Hack.lu 2018)
 
@@ -555,7 +524,6 @@ inverted = [(d, n) for n, d in fraction_table]
 # Example sink — 14 words of 9 bits each form the transition table
 PROGRAM := 0 1A 1R 1 1B 1L 1 1C 1R 0 1D 1L 0 1A 1L 1 1E 1R 1 1A 1L \
            1 1A 1L 0 1E 1R 0 1F 1R 0 1F 1L 1 1E 1L 1 1H 1R 0 1C 1R
-
 ```
 
 ```python
@@ -578,7 +546,6 @@ while state != "H":
     tape[head] = write
     head += 1 if move == "R" else -1
 print(sum(tape))   # Busy-beaver score → hashed for the flag
-
 ```
 
 **Key insight:** `Makefile` is Turing-complete via recursive `$(eval)` and string substitution, so any CTF that ships "just a Makefile" can be hiding a full interpreter. The fastest reverse path is to extract the transition table as text, decode each word, and either simulate locally or search public busy-beaver databases — most hand-rolled BB machines match published ones within the first 6 states. Use `make -n` to see expanded commands without executing, and `make -d` to watch the recursive eval graph.

@@ -3,7 +3,6 @@
 Non-image steganography techniques (PDF, SVG, terminal, text, compression, spreadsheet) and general-purpose image stego patterns (PNG structure, file overlays, GIF, autostereograms, interleaving). For image-specific steganography (JPEG DQT/F5/slack, BMP bitplane, PNG palette, pixel permutation, edge matching), see [stego-image.md](stego-image.md). For advanced techniques (FFT, SSTV, audio, video, JPEG XL), see [stego-advanced.md](stego-advanced.md) and [stego-advanced-2.md](stego-advanced-2.md).
 
 ## Table of Contents
-
 - [Quick Tools](#quick-tools)
 - [Binary Border Steganography](#binary-border-steganography)
 - [Multi-Layer PDF Steganography (Pragyan 2026)](#multi-layer-pdf-steganography-pragyan-2026)
@@ -28,7 +27,7 @@ Non-image steganography techniques (PDF, SVG, terminal, text, compression, sprea
 - [Angecryption: AES-CBC Encrypting One Valid File into Another (34C3 CTF 2017)](#angecryption-aes-cbc-encrypting-one-valid-file-into-another-34c3-ctf-2017)
 - [SVG Micro-Coordinate Steganography (SharifCTF 8)](#svg-micro-coordinate-steganography-sharifctf-8)
 
-------
+---
 
 ## Quick Tools
 
@@ -42,7 +41,7 @@ stegseek image.jpg rockyou.txt  # Faster than stegcracker
 # Common weak passphrases: "simple", "password", "123456"
 ```
 
-------
+---
 
 ## Binary Border Steganography
 
@@ -65,14 +64,13 @@ for y in range(h-2, 0, -1): bits.append(0 if sum(img.getpixel((0, y))[:3]) < 384
 msg = ''.join(chr(int(''.join(map(str, bits[i:i+8])), 2)) for i in range(0, len(bits)-7, 8))
 ```
 
-------
+---
 
 ## Multi-Layer PDF Steganography (Pragyan 2026)
 
 **Pattern (epstein files):** Flag hidden across multiple layers in a PDF.
 
 **Layer checklist:**
-
 1. `strings file.pdf | grep -i hidden` -- hidden comments in PDF objects
 2. Extract hex strings, try XOR with theme-related keywords
 3. Check bytes **after `%%EOF`** marker -- may contain GPG/encrypted data
@@ -87,7 +85,7 @@ print(data[eof+5:].hex())
 "
 ```
 
-------
+---
 
 ## Advanced PDF Steganography (Nullcon 2026 rdctd series)
 
@@ -96,7 +94,6 @@ Six distinct hiding techniques in a single PDF:
 **1. Invisible text separators:** Underscores rendered as invisible line segments. Extract with `pdftotext -layout` and normalize whitespace to underscores.
 
 **2. URI annotations with escaped braces:** Link annotations contain flag in URI with `\{` and `\}` escapes:
-
 ```python
 import pikepdf
 pdf = pikepdf.Pdf.open(pdf_path)
@@ -109,7 +106,6 @@ for page in pdf.pages:
 ```
 
 **3. Blurred/redacted image with Wiener deconvolution:**
-
 ```python
 from skimage.restoration import wiener
 import numpy as np
@@ -132,17 +128,11 @@ deconv = wiener(img_arr, gaussian_psf(3.0), balance=0.003, clip=False)
 **6. Document metadata:** Check Producer, Author, Keywords fields: `pdfinfo doc.pdf` or `exiftool doc.pdf`.
 
 **Official writeup details (Nullcon 2026 rdctd 1-6):**
-
 - **rdctd 1:** Flag is visible in plain text (Section 3.4)
-
 - **rdctd 2:** Flag in hyperlink URI with escaped braces (`\{`, `\}`)
-
 - **rdctd 3:** LSB stego in Blue channel, **bit plane 5** (not bit 0!). Use `zsteg` with all planes: `zsteg -a extracted.ppm | grep ENO`
-
 - **rdctd 4:** QR code hidden under black redaction box. Use Master PDF Editor to remove the box, scan QR
-
 - **rdctd 5:** Flag in FlateDecode compressed stream (not visible with `strings`):
-
   ```python
   import re, zlib
   pdf = open('file.pdf', 'rb').read()
@@ -152,11 +142,9 @@ deconv = wiener(img_arr, gaussian_psf(3.0), balance=0.003, clip=False)
           if b'ENO{' in dec: print(dec)
       except: pass
   ```
-
 - **rdctd 6:** Flag in `/Producer` metadata field
 
 **Comprehensive PDF flag hunt checklist:**
-
 1. `strings -a file.pdf | grep -o 'FLAG_FORMAT{[^}]*}'`
 2. `exiftool file.pdf` (all metadata fields)
 3. `pdfimages -all file.pdf img` + `zsteg -a img-*.ppm`
@@ -165,7 +153,7 @@ deconv = wiener(img_arr, gaussian_psf(3.0), balance=0.003, clip=False)
 6. Parse link annotations for URIs with escaped characters
 7. `mutool clean -d file.pdf clean.pdf && strings clean.pdf`
 
-------
+---
 
 ## SVG Animation Keyframe Steganography (UTCTF 2024)
 
@@ -175,7 +163,7 @@ deconv = wiener(img_arr, gaussian_psf(3.0), balance=0.003, clip=False)
 
 **Detection:** SVG files with `<animate>` tags, `keyTimes`/`values` attributes. Check favicon.svg and other vector assets. Two-value alternation patterns encode binary or Morse.
 
-------
+---
 
 ## APNG (Animated PNG) Frame Extraction (IceCTF 2016)
 
@@ -209,7 +197,7 @@ for i, (png, control) in enumerate(im.frames):
 
 **Key insight:** Regular PNG viewers display only the first frame of an APNG. Hidden data can be in any subsequent frame. The `acTL` chunk signals APNG format; `fcTL`/`fdAT` chunks contain additional frame data.
 
-------
+---
 
 ## PNG Height/CRC Manipulation for Hidden Content (H4ckIT CTF 2016)
 
@@ -247,7 +235,7 @@ def fix_png_height(filename):
 
 **Key insight:** PNG stores image dimensions in the IHDR chunk with a CRC. If the height is reduced, data below the visible area is hidden but still present in IDAT chunks. Brute-forcing the height against the stored CRC reveals the correct dimensions. If the CRC was also modified, try increasing the height and recalculating the CRC.
 
-------
+---
 
 ## PNG Chunk Reordering (0xFun 2026)
 
@@ -284,7 +272,7 @@ with open('fixed.png', 'wb') as f:
         f.write(struct.pack('>I', length) + typ + data + crc)
 ```
 
-------
+---
 
 ## File Format Overlays (0xFun 2026)
 
@@ -303,7 +291,7 @@ if trailer[:4] == b'\x89PNG':
     open('hidden.7z', 'wb').write(trailer)
 ```
 
-------
+---
 
 ## Nested PNG with Iterating XOR Keys (VuwCTF 2025)
 
@@ -311,7 +299,7 @@ if trailer[:4] == b'\x89PNG':
 
 **Identification:** Matryoshka/nested hints. Try incrementing key patterns for recursive extraction.
 
-------
+---
 
 ## GIF Frame Differential + Morse Code (BaltCTF 2013)
 
@@ -332,7 +320,7 @@ done
 
 **Key insight:** `compare -fuzz 10%` reveals subtle single-pixel modifications invisible to the eye. The diff images show isolated dots whose timing/spacing encodes Morse code. Decode dots → dashes/dots → letters → flag.
 
-------
+---
 
 ## GZSteg + Spammimic Text Steganography (VolgaCTF 2013)
 
@@ -344,7 +332,7 @@ done
 
 **Key insight:** GZSteg exploits redundancy in the gzip DEFLATE compression format to embed covert data. The extracted payload often uses a second steganographic layer (spammimic encodes data as innocuous-looking spam text). Look for `.gz` files larger than expected for their content.
 
-------
+---
 
 ## Spreadsheet Frequency Analysis Binary Recovery (Sharif CTF 2016)
 
@@ -371,20 +359,18 @@ binary = bytes(mapping[v] for v in all_cell_values)
 
 **Key insight:** 256 unique values suggest byte-level encoding. The frequency distribution of the mapped output should resemble typical binary file statistics.
 
-------
+---
 
 ## Kitty Terminal Graphics Protocol Decoding (BSidesSF 2026)
 
 **Pattern (kitty):** A file contains Kitty terminal graphics protocol escape sequences (`ESC_G`) that embed zlib-compressed RGB image data in base64-encoded chunks.
 
 **Protocol format:**
-
 ```text
 \x1b_Ga=T,q=2,f=24,o=z,m=1,s=WIDTH,v=HEIGHT;BASE64DATA\x1b\\
 ```
 
 **Header fields:**
-
 - `a=T` — action: transmit
 - `q=2` — quiet mode (suppress responses)
 - `f=24` — format: 24-bit RGB
@@ -393,7 +379,6 @@ binary = bytes(mapping[v] for v in all_cell_values)
 - `s=WIDTH,v=HEIGHT` — image dimensions (present in first chunk only)
 
 **Decoding workflow:**
-
 ```python
 import re
 import base64
@@ -428,14 +413,13 @@ img.save('recovered.png')
 
 **References:** BSidesSF 2026 "kitty"
 
-------
+---
 
 ## ANSI Escape Sequence Steganography in Terminal Art (BSidesSF 2026)
 
 **Pattern (roar):** Flag text is interleaved between ANSI color escape codes and Unicode braille characters in terminal art. When rendered in a terminal, the art displays normally while the flag characters are invisible (zero-width or same-color-as-background). However, the flag is extractable by stripping all escape sequences and non-ASCII characters.
 
 **Extraction:**
-
 ```python
 import re
 
@@ -454,7 +438,6 @@ print(''.join(flag_chars))
 ```
 
 **Alternative approach — diff against rendered output:**
-
 ```bash
 # Render with ANSI codes, capture visible text
 cat art.txt | col -b > rendered.txt
@@ -467,14 +450,13 @@ cat art.txt | col -b > rendered.txt
 
 **References:** BSidesSF 2026 "roar"
 
-------
+---
 
 ### Autostereogram / Magic Eye Solving (BSidesSF 2026)
 
 **Pattern (stereotype):** Challenge image is an autostereogram (Magic Eye). The hidden 3D content (flag text) is revealed by viewing with crossed/divergent eyes or programmatically via layer difference.
 
 **Programmatic solve (GIMP or Python):**
-
 1. Duplicate the image as a second layer
 2. Set the top layer's blending mode to "Difference"
 3. Slide the top layer horizontally by the repeat width (~100 pixels)
@@ -488,7 +470,6 @@ img = np.array(Image.open('stereogram.png'))
 shift = 100  # Repeat width — try values 80-120
 diff = np.abs(img[:, shift:].astype(int) - img[:, :-shift].astype(int))
 Image.fromarray(diff.astype(np.uint8)).save('revealed.png')
-
 ```
 
 **Finding the shift value:** The repeat width is the horizontal distance between identical vertical strips. Autocorrelate a single row: `np.correlate(row, row, mode='full')` — the first peak after center is the shift.
@@ -499,24 +480,21 @@ Image.fromarray(diff.astype(np.uint8)).save('revealed.png')
 
 **References:** BSidesSF 2026 "stereotype"
 
-------
+---
 
 ### Two-Layer Byte+Line Interleaving (BSidesSF 2026)
 
 **Pattern (seeing-double):** Two PNG files are interleaved at the byte level into a single file. After byte-level deinterlacing, the resulting images have their scanlines interleaved, requiring a second round of line-level deinterlacing.
 
 **Step 1 — Byte deinterleave:**
-
 ```python
 data = open('interleaved.ppnngg', 'rb').read()
 file_a = bytes(data[i] for i in range(0, len(data), 2))  # Even bytes
 file_b = bytes(data[i] for i in range(1, len(data), 2))  # Odd bytes
 # file_a and file_b are valid PNGs
-
 ```
 
 **Step 2 — Line deinterleave (if needed):**
-
 ```python
 from PIL import Image
 import numpy as np
@@ -527,7 +505,6 @@ sub1 = img[0::2]  # Lines 0, 2, 4, ...
 sub2 = img[1::2]  # Lines 1, 3, 5, ...
 Image.fromarray(sub1).save('final_a.png')
 Image.fromarray(sub2).save('final_b.png')
-
 ```
 
 **Key insight:** The two-layer interleaving (first bytes, then scanlines) means simple deinterleaving at one level produces garbled results. Recognize multi-layer interleaving by: (1) deinterleaved file is a valid image but content looks "striped" or has alternating line artifacts, (2) file extension hints (`.ppnngg` = two PNGs interleaved).
@@ -536,7 +513,7 @@ Image.fromarray(sub2).save('final_b.png')
 
 **References:** BSidesSF 2026 "seeing-double"
 
-------
+---
 
 ### Multi-Stream Video Container Steganography (BSidesSF 2026)
 
@@ -552,7 +529,6 @@ ffmpeg -i flag.mp4 -map 0:1 -c copy second_stream.mp4
 
 # Or extract just the first frame from stream 1
 ffmpeg -i flag.mp4 -map 0:1 -frames:v 1 flag.jpg
-
 ```
 
 **Key insight:** MP4/MKV containers can hold multiple video, audio, and subtitle tracks. Most players default to stream 0:0. Always run `ffprobe` or `mediainfo` to enumerate ALL streams. The `-map 0:N` flag in ffmpeg selects specific streams. VLC can also switch tracks via Video → Video Track menu.
@@ -560,14 +536,13 @@ ffmpeg -i flag.mp4 -map 0:1 -frames:v 1 flag.jpg
 **When to recognize:** Challenge provides a video file where the visible content seems irrelevant or is a red herring. `ffprobe` shows multiple `Stream` entries. Check metadata fields like `handler_name` for hints (e.g., "CTF Trickery").
 
 **Detection checklist:**
-
 1. `ffprobe -hide_banner file.mp4` — count Stream lines
 2. `mediainfo file.mp4` — check track count
 3. VLC → Video → Video Track → try all tracks
 
 **References:** BSidesSF 2026 "ads"
 
-------
+---
 
 ## Progressive PNG Layered XOR Decryption (OpenCTF 2016)
 
@@ -575,7 +550,6 @@ ffmpeg -i flag.mp4 -map 0:1 -frames:v 1 flag.jpg
 
 1. Extract the custom `scRT` chunk data from the PNG
 2. Use xortool to guess the XOR key (expected most frequent byte: `\xFF` for image data):
-
 ```bash
 # Extract scRT chunk contents
 python3 -c "
@@ -596,7 +570,6 @@ while pos < len(data):
 # Guess XOR key
 xortool -c ff layer.bin
 # Output: key = 'nacho'
-
 ```
 
 3. Decrypt and split: the decrypted data contains a valid `IDAT` chunk followed by another `scRT`
@@ -609,14 +582,13 @@ xortool -c ff layer.bin
 
 **Key insight:** Custom PNG chunks (non-standard 4-letter types) often contain hidden data. The PNG spec allows arbitrary ancillary chunks — parsers ignore unknown types. When multiple layers use different XOR keys, each must be cracked independently using frequency analysis. The shortcut works because XOR with a short repeating key preserves large-scale pixel patterns, similar to ECB mode's visual leakage.
 
-------
+---
 
 ### QR Code Reconstruction from Curved Glass Reflection in Video (PlaidCTF 2018)
 
 **Pattern:** QR code visible only as a curved reflection on a glass sphere in surveillance footage (~100px wide). Manual reconstruction required flipping, de-warping, identifying as Version 2 (25x25), decoding format string for ECC level, and pixel-by-pixel reconstruction using known flag prefix to fix initial data bytes.
 
 **Steps:**
-
 1. Extract best frame from video, crop the reflection
 2. Flip horizontally (mirror reflection) and apply de-warping
 3. Identify QR version (25x25 = Version 2) and decode format bits for ECC level and mask pattern
@@ -657,12 +629,11 @@ qr_img.save('reconstructed_qr.png')
 
 # Step 5: Scan with zbarimg or use known prefix to fix errors
 # zbarimg reconstructed_qr.png
-
 ```
 
 **Key insight:** QR codes with high ECC levels (Q or H) can tolerate significant reconstruction errors. When a QR code is partially visible (reflection, damage, low resolution), manually reconstruct what you can, use known plaintext to fix early data modules, and let ECC correct the rest.
 
-------
+---
 
 ### GIF Palette Manipulation for QR Code Reconstruction (3DSCTF 2017)
 
@@ -683,12 +654,11 @@ out = Image.new('L', (width, width))
 out.putdata(pixels)
 out.save('qr.png')
 # zbarimg qr.png
-
 ```
 
 **Key insight:** GIF frames with identical pixel data but different color palettes encode binary data through palette manipulation. The number of frames is a perfect square, giving the side length of the hidden image. Each frame represents one pixel; the palette's first entry determines its color. When a GIF has an unusually large number of frames whose count is a perfect square, check for palette-based encoding.
 
-------
+---
 
 ### Angecryption: AES-CBC Encrypting One Valid File into Another (34C3 CTF 2017)
 
@@ -702,12 +672,11 @@ aes = AES.new(key, AES.MODE_CBC, iv)
 encrypted = aes.encrypt(open('flag.png', 'rb').read())
 # encrypted is ALSO a valid PNG (a mask image)
 # Overlay the mask on the original to reveal hidden content
-
 ```
 
 **Key insight:** Angecryption exploits the fact that file format headers have enough degrees of freedom to survive AES-CBC encryption with chosen key/IV. The technique crafts the IV so that decrypting the "mask" file header produces a valid "flag" file header. When you find two valid image files and an AES key/IV in a challenge, try encrypting one — the result may be the other, and visual comparison reveals the flag.
 
-------
+---
 
 ### SVG Micro-Coordinate Steganography (SharifCTF 8)
 
@@ -720,7 +689,6 @@ SVG contains a visible graphic plus a second `<g>` element with extremely small 
     <!-- hidden content becomes visible -->
   </g>
 </svg>
-
 ```
 
 **Key insight:** SVG coordinates with many decimal places hide micro-scale drawings invisible at normal zoom. Check for `<g>` elements with coordinate values that cluster in a tiny range. The fractional parts of the coordinates define the hidden image. Scale up by 100-1000x and translate to the cluster center to reveal. When SVG file size is unexpectedly large for the visible content, inspect coordinate precision in `<path>`, `<line>`, or `<g>` elements.

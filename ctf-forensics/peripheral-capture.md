@@ -3,7 +3,6 @@
 USB, HID, and Bluetooth peripheral traffic reconstruction from packet captures. For general network PCAP forensics (DNS/TCP/ICMP/SMB/RADIUS/RC4), see [network-advanced.md](network-advanced.md). For basic network forensics, see [network.md](network.md).
 
 ## Table of Contents
-
 - [USB HID Mouse/Pen Drawing Recovery (EHAX 2026)](#usb-hid-mousepen-drawing-recovery-ehax-2026)
 - [USB HID Keyboard Capture Decoding (EKOPARTY CTF 2016)](#usb-hid-keyboard-capture-decoding-ekoparty-ctf-2016)
 - [USB Keyboard LED Morse Code Exfiltration (BITSCTF 2017)](#usb-keyboard-led-morse-code-exfiltration-bitsctf-2017)
@@ -11,24 +10,22 @@ USB, HID, and Bluetooth peripheral traffic reconstruction from packet captures. 
 - [Bluetooth RFCOMM Packet Reassembly (HITCON 2018)](#bluetooth-rfcomm-packet-reassembly-hitcon-2018)
 - [GBA USB URB_INTERRUPT Framebuffer Extraction (hxp 2018)](#gba-usb-urb_interrupt-framebuffer-extraction-hxp-2018)
 
-------
+---
 
 ## USB HID Mouse/Pen Drawing Recovery (EHAX 2026)
 
 **Pattern (Painter):** PCAP contains USB HID interrupt transfers from a mouse/pen device. Drawing data encoded as relative movements with multiple draw modes.
 
 **Packet format (7-byte HID reports):**
-
-| Byte | Field         | Notes                                 |
-| ---- | ------------- | ------------------------------------- |
-| 0    | Button state  | 0x01 = pressed (may be constant)      |
-| 1    | Mode/pad      | 0=hover, 1=draw mode 1, 2=draw mode 2 |
-| 2-3  | dx (int16 LE) | Relative X movement                   |
-| 4-5  | dy (int16 LE) | Relative Y movement                   |
-| 6    | Wheel         | Usually 0                             |
+| Byte | Field | Notes |
+|------|-------|-------|
+| 0 | Button state | 0x01 = pressed (may be constant) |
+| 1 | Mode/pad | 0=hover, 1=draw mode 1, 2=draw mode 2 |
+| 2-3 | dx (int16 LE) | Relative X movement |
+| 4-5 | dy (int16 LE) | Relative Y movement |
+| 6 | Wheel | Usually 0 |
 
 **Extraction and rendering:**
-
 ```python
 import struct
 from PIL import Image, ImageDraw
@@ -81,7 +78,6 @@ for mode in [1, 2]:
 ```
 
 **Key techniques:**
-
 - **Separate modes:** Different button/mode values draw different text layers — render each independently
 - **Skip pen lifts:** Large dx/dy jumps indicate pen was lifted, not drawn — filter by distance threshold
 - **High resolution:** Scale 5-8x with margins for readable handwriting
@@ -89,7 +85,6 @@ for mode in [1, 2]:
 - **Character segmentation:** Group consecutive same-mode points by large X gaps to isolate characters
 
 **Alternative: AWK extraction + SVG rendering (faster pipeline):**
-
 ```bash
 # Extract capdata and convert to signed deltas in one pass
 tshark -r pref.pcap -Y "usb.transfer_type==0x01 && usb.endpoint_address==0x81 && usb.capdata" \
@@ -105,12 +100,11 @@ function s16(u){ return (u>=32768)?u-65536:u }
   y=s16(hex2dec(substr(d,11,2) substr(d,9,2)))
   print btn, x, y }' capdata.txt > deltas.txt
 ```
-
 Then render with SVG (Python) — filter on pen-down state (button=2), accumulate deltas, flip Y axis, draw strokes between consecutive pen-down points.
 
 **Difference from keyboard HID:** Mouse HID uses relative movements (accumulated), keyboard uses keycodes (direct). Mouse drawing requires rendering; keyboard requires keymap lookup.
 
-------
+---
 
 ## USB HID Keyboard Capture Decoding (EKOPARTY CTF 2016)
 
@@ -166,7 +160,7 @@ def decode_hid_keyboard(capture_data):
 
 **Key insight:** USB HID keyboards send 8-byte reports where byte 0 is modifiers (Shift/Ctrl/Alt) and bytes 2-7 are active key scan codes. In Wireshark, filter with `usb.transfer_type == 1` and extract `usb.capdata`. Ignore reports where byte 2 is 0x00 (key release).
 
-------
+---
 
 ## USB Keyboard LED Morse Code Exfiltration (BITSCTF 2017)
 
@@ -198,9 +192,9 @@ for i in range(0, len(signals) - 1, 2):
     # Gap between signals indicates letter/word boundary
 ```
 
-**Key insight:** Data exfiltration via keyboard LED state changes captured in USB pcap. The LED control packets use HID SET_REPORT class requests. Timing analysis of on/off transitions reveals Morse code patterns. Tools: Wireshark USB dissector, filter on `usb.transfer_type == 0x02` (interrupt) and direction host→device.
+**Key insight:** Data exfiltration via keyboard LED state changes captured in USB pcap. The LED control packets use HID SET_REPORT class requests. Timing analysis of on/off transitions reveals Morse code patterns. Tools: Wireshark USB dissector, filter on `usb.transfer_type == 0x02` (control) and direction host→device.
 
-------
+---
 
 ## USB HID Keyboard Arrow Key Navigation Tracking (HackIT 2017)
 
@@ -212,7 +206,6 @@ tshark -r capture.pcap -T fields -e usb.capdata | \
 ```
 
 Arrow key HID codes to track:
-
 - `0x4F` = Right Arrow
 - `0x50` = Left Arrow
 - `0x51` = Down Arrow (next line)
@@ -239,7 +232,7 @@ for report in hid_reports:
 
 **Key insight:** USB keyboard captures must account for cursor movement keys (arrows, backspace). Track cursor line position to reconstruct text typed on each line separately — the flag may be on a non-zero line that arrow keys navigated to.
 
-------
+---
 
 ## Bluetooth RFCOMM Packet Reassembly (HITCON 2018)
 
@@ -266,7 +259,7 @@ open("payload.bin", "wb").write(binary)
 
 **References:** HITCON CTF 2018 — EV3 Basic, writeup 11902
 
-------
+---
 
 ## GBA USB URB_INTERRUPT Framebuffer Extraction (hxp 2018)
 

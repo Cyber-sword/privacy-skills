@@ -3,13 +3,11 @@
 Techniques for Software-Defined Radio (SDR) signal processing using In-phase/Quadrature (IQ) data.
 
 ## IQ File Formats
-
 - **cf32** (complex float 32): GNU Radio standard, `np.fromfile(path, dtype=np.complex64)`
 - **cs16** (complex signed 16-bit): `np.fromfile(path, dtype=np.int16).reshape(-1,2)`, then `I + jQ`
 - **cu8** (complex unsigned 8-bit): RTL-SDR raw format
 
 ## Analysis Pipeline
-
 ```python
 import numpy as np
 from scipy import signal
@@ -38,11 +36,9 @@ filtered = signal.lfilter(lpf, 1.0, baseband)
 ```
 
 ## QAM-16 Demodulation with Carrier + Timing Recovery
-
 QAM-16 (Quadrature Amplitude Modulation) — the key challenge is carrier frequency offset causing constellation rotation (circles instead of points).
 
 **Decision-directed carrier recovery + Mueller-Muller timing:**
-
 ```python
 # Loop parameters (2nd order PLL)
 carrier_bw = 0.02  # wider BW = faster tracking, more noise
@@ -70,7 +66,6 @@ for each symbol sample:
 ```
 
 **Mueller-Muller timing error detector:**
-
 ```python
 timing_error = (Re(y[n]-y[n-1]) * Re(d[n-1]) - Re(d[n]-d[n-1]) * Re(y[n-1]))
              + (Im(y[n]-y[n-1]) * Im(d[n-1]) - Im(d[n]-d[n-1]) * Im(y[n-1]))
@@ -78,7 +73,6 @@ timing_error = (Re(y[n]-y[n-1]) * Re(d[n-1]) - Re(d[n]-d[n-1]) * Re(y[n-1]))
 ```
 
 ## Key Insights for RF CTF Challenges
-
 - **Circles in constellation** = constant frequency offset (points rotate at fixed rate, forming a ring)
 - **Spirals** = frequency offset that drifts over time (ring radius changes as amplitude/AGC also drifts). If you see points tracing outward arcs rather than closed circles, suspect combined frequency + gain instability
 - **Blobs on grid** = correct sync, just noise
@@ -90,7 +84,6 @@ timing_error = (Re(y[n]-y[n-1]) * Re(d[n-1]) - Re(d[n]-d[n-1]) * Re(y[n-1]))
 - **GNU Radio's QAM-16 default mapping** is NOT Gray code - always check the provided constellation map
 
 ## Common Framing Patterns
-
 - Idle/sync pattern repeating while link is idle
 - Start delimiter (often a single symbol like 0)
 - Data payload (nibble pairs for QAM-16: high nibble first, low nibble)

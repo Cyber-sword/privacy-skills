@@ -3,7 +3,6 @@
 Techniques specific to hiding data in image formats (JPEG, PNG, BMP, GIF). For non-image steganography (PDF, audio, terminal, text), see [steganography.md](steganography.md). For advanced techniques (FFT, SSTV, audio, video, JPEG XL), see [stego-advanced.md](stego-advanced.md) and [stego-advanced-2.md](stego-advanced-2.md).
 
 ## Table of Contents
-
 - [JPEG Unused Quantization Table LSB Steganography (EHAX 2026)](#jpeg-unused-quantization-table-lsb-steganography-ehax-2026)
 - [BMP Bitplane QR Code Extraction + Steghide (BYPASS CTF 2025)](#bmp-bitplane-qr-code-extraction--steghide-bypass-ctf-2025)
 - [Image Jigsaw Puzzle Reassembly via Edge Matching (BYPASS CTF 2025)](#image-jigsaw-puzzle-reassembly-via-edge-matching-bypass-ctf-2025)
@@ -25,7 +24,7 @@ Techniques specific to hiding data in image formats (JPEG, PNG, BMP, GIF). For n
 - [Steghide Passphrase in JPEG Header Metadata (Saudi/Oman CTF 2019)](#steghide-passphrase-in-jpeg-header-metadata-saudioman-ctf-2019)
 - [Corrupted PNG Magic and Lowercase Chunk Repair (Pragyan CTF 2019)](#corrupted-png-magic-and-lowercase-chunk-repair-pragyan-ctf-2019)
 
-------
+---
 
 ## JPEG Unused Quantization Table LSB Steganography (EHAX 2026)
 
@@ -60,7 +59,6 @@ print(flag)
 ```
 
 **Manual DQT extraction (when PIL doesn't expose all tables):**
-
 ```python
 # Parse JPEG manually to find all DQT markers (0xFFDB)
 data = open('challenge.jpg', 'rb').read()
@@ -80,7 +78,7 @@ while pos < len(data) - 1:
 
 **Key insight:** JPEG quantization tables are metadata — they survive recompression and most image processing. Unused table IDs (2-15) can carry arbitrary data without affecting the image.
 
-------
+---
 
 ## BMP Bitplane QR Code Extraction + Steghide (BYPASS CTF 2025)
 
@@ -110,14 +108,13 @@ Image.fromarray(lsb_img).save('lsb_all.png')
 ```
 
 **Full attack chain:**
-
 1. Extract bitplanes → find QR code in specific bitplane (often bit 1, not bit 0)
 2. Scan QR with `zbarimg bit_G_1.png` → get steghide password
 3. `steghide extract -sf challenge.bmp -p <password>` → extract hidden file
 
 **Key insight:** Standard LSB (least significant bit) tools check bit 0 only. Hidden QR codes may be in bit 1 or bit 2 — always check multiple bitplanes systematically. BMP format preserves exact pixel values (no compression artifacts).
 
-------
+---
 
 ## Image Jigsaw Puzzle Reassembly via Edge Matching (BYPASS CTF 2025)
 
@@ -188,14 +185,13 @@ final.save('reassembled.png')
 
 **Key insight:** Edge-matching works by minimizing pixel differences at shared borders. The greedy approach (place piece with smallest total edge difference to already-placed neighbors) works well for most CTF puzzles. For harder puzzles, add backtracking.
 
-------
+---
 
 ## F5 JPEG DCT Coefficient Ratio Detection (ApoorvCTF 2026)
 
 **Pattern (Engraver's Fault):** Detect F5 steganography in JPEG images by analyzing DCT coefficient distributions. F5 decrements ±1 AC coefficients toward 0, creating a measurable ratio shift.
 
 **Detection metric — ±1/±2 AC coefficient ratio:**
-
 ```python
 import numpy as np
 from PIL import Image
@@ -212,7 +208,6 @@ def f5_ratio(jpeg_path):
 ```
 
 **Sparse image edge case:** Images with >80% zero DCT coefficients give misleading ±1/±2 ratios. Use a secondary metric:
-
 ```python
 def f5_sparse_check(jpeg_path):
     """For sparse images, ±2/±3 ratio below 2.5 indicates modification."""
@@ -230,7 +225,7 @@ is_modified = r12 < 0.15 or (r12 < 0.25 and r23 < 2.5)
 
 **Key insight:** F5 steganography shifts ±1 coefficients toward 0, reducing the ±1/±2 ratio. Natural JPEGs have ratio 0.25-0.45; F5-modified drop below 0.10. Sparse images (mostly flat/white) need the secondary ±2/±3 metric because their ±1 counts are inherently low.
 
-------
+---
 
 ## PNG Unused Palette Entry Steganography (ApoorvCTF 2026)
 
@@ -258,14 +253,13 @@ def extract_unused_plte(png_path):
 
 **Key insight:** PNG palette can have up to 256 entries but images typically use fewer. Unused entries are invisible to viewers but persist in the file. Metadata hints like "collector", "the entries that don't make it to the page", or "red light" point to this technique. Always check which palette indices are actually referenced vs. allocated.
 
-------
+---
 
 ## QR Code Tile Reconstruction (UTCTF 2026)
 
 **Pattern (QRecreate):** QR code split into tiles/pieces that must be reassembled. Tiles may be scrambled, rotated, or have missing alignment patterns.
 
 **Reconstruction workflow:**
-
 ```python
 from PIL import Image
 import numpy as np
@@ -312,14 +306,13 @@ for perm in permutations(range(len(tiles))):
 
 **Key insight:** QR codes have structural constraints (finder patterns, timing patterns, format info) that drastically reduce the search space. Use QR structure as anchors before brute-forcing tile positions.
 
-------
+---
 
 ## Seed-Based Pixel Permutation + Multi-Bitplane QR (L3m0nCTF 2025)
 
 **Pattern (Lost Signal):** Image with randomized pixel colors hides a QR code. Pixels are visited in a seed-determined permutation order, and data is interleaved across multiple bitplanes of the luminance (Y) channel.
 
 **Extraction workflow:**
-
 1. Convert image to YCbCr and extract Y (luminance) channel
 2. Generate the pixel visit order using the known seed
 3. Extract LSB bits from multiple bitplanes in interleaved order
@@ -357,7 +350,6 @@ qr = bits.reshape((h, w))
 qr_img = Image.fromarray((255 * (1 - qr)).astype(np.uint8))
 qr_img.save("recovered_qr.png")
 # zbarimg recovered_qr.png
-
 ```
 
 **Key insight:** The seed defines a deterministic pixel visit order (Fisher-Yates shuffle via `RandomState`). Without the correct seed, output is random noise. Bits from different bitplanes are interleaved (bit 0 from pixel N, bit 1 from pixel N, bit 0 from pixel N+1, ...), doubling the data density. Try the Y (luminance) channel first — it has the highest contrast for hidden binary data.
@@ -366,7 +358,7 @@ qr_img.save("recovered_qr.png")
 
 **Detection:** Image appears as random colored noise but has suspicious dimensions (perfect square, power of 2). Challenge mentions "seed", "random", or "signal".
 
-------
+---
 
 ## JPEG Thumbnail Pixel-to-Text Mapping (RuCTF 2013)
 
@@ -383,12 +375,11 @@ for y in range(thumb.height):
         r, g, b = thumb.getpixel((x, y))[:3]
         if r < 100 and g < 100 and b < 100:  # Dark pixel = selected char
             result += text_lines[y][x]
-
 ```
 
 **Key insight:** Extract thumbnails with `exiftool -b -ThumbnailImage`. Dark pixels act as a selection mask over the photographed text. Use OCR (ABBYY FineReader, Tesseract) to get the text grid, then map dark thumbnail pixels to character positions.
 
-------
+---
 
 ## Conditional LSB Extraction — Near-Black Pixel Filter (BaltCTF 2013)
 
@@ -405,12 +396,11 @@ for pixel in img.getdata():
     bits += str(r & 1) + str(g & 1) + str(b & 1)
 # Convert bits to bytes
 flag = bytes(int(bits[i:i+8], 2) for i in range(0, len(bits)-7, 8))
-
 ```
 
 **Key insight:** When standard `zsteg`/`stegsolve` find nothing, try filtering pixels by value range before LSB extraction. The carrier pixels may be restricted to near-black, near-white, or specific color ranges.
 
-------
+---
 
 ## JPEG Slack Space Steganography (BSidesSF 2025)
 
@@ -424,7 +414,6 @@ JPEG compression pads images to 8x8 pixel block boundaries. Data hidden in the p
 python3 jpeg_uncrop.py input.jpg --width 256 --height 200
 # Or use ImageMagick to force full decode
 magick input.jpg -define jpeg:size=256x200 extended.png
-
 ```
 
 3. **Decode binary from slack pixels:** Black=0, white=1 in the padding region. Common encoding:
@@ -436,7 +425,7 @@ magick input.jpg -define jpeg:size=256x200 extended.png
 
 **Key insight:** Most image editors and viewers crop to the stated dimensions, hiding the padding. Use `jpegtran -crop` or raw DCT decoders to access full block data.
 
-------
+---
 
 ## Nearest-Neighbor Interpolation Steganography (BSidesSF 2025)
 
@@ -446,14 +435,13 @@ Hidden data encoded as a pixel grid at regular intervals within a high-resolutio
 # Hidden pixels spaced 16 apart in a 4096x3072 image
 # Downscale by 16x with nearest-neighbor to recover 256x192 hidden image
 magick flag.webp -interpolate nearest-neighbor -interpolative-resize 256x192 flag_visible.png
-
 ```
 
 **Key insight:** Nearest-neighbor interpolation selects exact pixel values (no blending), preserving the hidden data. Bilinear or bicubic interpolation would average surrounding pixels, destroying the message. The challenge name or description often hints at the interpolation method.
 
 **Detection:** Open in image viewer and zoom to see repeating pixel patterns at regular intervals. Calculate GCD of image dimensions and suspected grid spacing.
 
-------
+---
 
 ## RGB Parity Steganography (Break In 2016)
 
@@ -468,14 +456,13 @@ for x in range(img.width):
         r, g, b = img.getpixel((x, y))[:3]
         out.putpixel((x, y), (r + g + b) % 2)
 out.save('hidden.png')
-
 ```
 
 **Key insight:** Unlike LSB (Least Significant Bit) stego (single channel, single bit), parity stego uses the combined sum of all channels. Look for challenge hints about "pairs", "couples", or "adding colors".
 
 **Detection:** Image appears normal but pixel RGB sums show non-random parity distribution.
 
-------
+---
 
 ## Pixel Coordinate Chain Steganography (H4ckIT CTF 2016)
 
@@ -507,12 +494,11 @@ def extract_coordinate_chain(image_path, start_x=0, start_y=0):
 # - (R,G) = coordinates, B = data byte
 # - Coordinates stored as (G*256+B) for images wider than 256px
 # - Starting pixel indicated by metadata or known offset
-
 ```
 
 **Key insight:** Linked-list pixel traversal hides both the message and the reading order. Standard LSB analysis misses this because only specific pixels carry data. Look for images where green/blue channels have suspiciously structured values (small numbers that could be coordinates).
 
-------
+---
 
 ## AVI Frame Differential Pixel Steganography (H4ckIT CTF 2016)
 
@@ -552,12 +538,11 @@ def extract_frame_differential(frame_dir, num_frames):
 # Extract frames from AVI first:
 # binwalk video.avi  (extracts embedded PNG/BMP frames)
 # or: ffmpeg -i video.avi frame_%04d.png
-
 ```
 
 **Key insight:** Frame differential steganography hides data in the temporal domain rather than spatial. Standard image stego tools analyze single frames and miss inter-frame changes. Extract all frames, then diff consecutive pairs looking for single-pixel-value increments.
 
-------
+---
 
 ### JPEG Single-Bit-Flip Brute Force with OCR (SECCON 2017)
 
@@ -570,7 +555,6 @@ for byte_pos in range(len(data)):
         candidate = data[:byte_pos] + bytes([data[byte_pos] ^ (1 << bit)]) + data[byte_pos+1:]
         with open(f'attempt_{byte_pos}_{bit}.jpg', 'wb') as f:
             f.write(candidate)
-
 ```
 
 ```bash
@@ -581,12 +565,11 @@ for f in attempt_*.jpg; do
         echo "FOUND in $f: $result"
     fi
 done
-
 ```
 
 **Key insight:** For small files (< 10KB), the total search space for single-bit flips is `8 * file_size` — typically under 80,000 candidates, easily brute-forceable. Use thumbnail generation as a fast validity check (corrupt JPEGs fail to decode), then OCR on survivors. JPEG compressed data rule: `0xFF` is always followed by `0x00` (stuffed byte) or a marker — violations indicate the corruption location.
 
-------
+---
 
 ## GIF Frame PLTE Chunk Concatenation to ELF (IceCTF 2018)
 
@@ -616,14 +599,13 @@ with Image.open("carrier.gif") as gif:
         payload += read_png_plte(png_buf.getvalue())
 
 open("recovered.elf", "wb").write(payload)
-
 ```
 
 **Key insight:** GIF frames are internally stored with their own palettes. When you re-encode each frame as a PNG, the palette survives as a `PLTE` chunk — an ignored but byte-accurate container. Any stego carrier that uses a multi-frame format with per-frame metadata (GIF palettes, APNG frame data, PDF page streams, MKV tracks) lets you embed data in the *metadata channel* instead of the pixel channel, bypassing most LSB-style detection. When a GIF looks like a harmless animation but contains extra frames or palette entries, dump chunk-by-chunk before touching the pixels.
 
 **References:** IceCTF 2018 — ilovebees, writeup 11418
 
-------
+---
 
 ## Nested-Resize QR Overlay at Survivor Pixels (SECCON 2018)
 
@@ -639,14 +621,13 @@ for i in range(50):
     for j in range(50):
         px[10*i+7, 10*j+7] = sx[i, j]
 big.save('trap.png')
-
 ```
 
 **Key insight:** Nearest-neighbor resize keeps exactly one pixel per source block; its offset depends on rounding (PIL picks `floor(original*scale)+0.5`). Compute the survivor index once per resize step, then compose the nested stego at those indices. Works for any number of cascaded resizes as long as the interpolation is nearest-neighbor.
 
 **References:** SECCON 2018 — QRChecker, writeup 12014
 
-------
+---
 
 ## ImageMagick +append Puzzle Stitching + gaps Solver (X-MAS CTF 2018)
 
@@ -656,14 +637,13 @@ big.save('trap.png')
 foremost -t png -i disk.img -o pieces
 convert +append pieces/*.png strip.png
 gaps --image=strip.png --size=273
-
 ```
 
 **Key insight:** CTF jigsaw challenges rarely require manual work. Carve pieces, stitch, run `gaps` — it uses a genetic algorithm to reassemble in minutes. Read `exiftool` on each piece for the size hint.
 
 **References:** X-MAS CTF 2018 — Message from Santa, writeup 12662
 
-------
+---
 
 ## Steghide Passphrase in JPEG Header Metadata (Saudi/Oman CTF 2019)
 
@@ -678,14 +658,13 @@ xxd info.jpg | head -20
 # Confirm steghide payload with the passphrase
 steghide --info info.jpg       # prompts for passphrase
 steghide extract -sf info.jpg -p badisbad
-
 ```
 
 **Key insight:** Always scan the first ~256 bytes of a JPEG with `xxd`/`hexdump -C` for ASCII runs — authors sometimes stuff passphrases into reserved areas of JFIF/APPn segments where `exiftool` doesn't surface them, but they're trivially visible in a hex view. Pair the leak with `steghide`, `outguess`, or `stegseek` wordlist seeding.
 
 **References:** Quals Saudi and Oman National Cyber Security CTF 2019 — Hack a nice day, writeup 13232
 
-------
+---
 
 ## Corrupted PNG Magic and Lowercase Chunk Repair (Pragyan CTF 2019)
 

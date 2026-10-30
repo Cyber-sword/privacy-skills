@@ -3,7 +3,6 @@
 Techniques for attacking ML models directly: weight manipulation, model inversion, encoder collision, LoRA adapter exploitation, model extraction, and membership inference. For adversarial example generation and data poisoning, see [adversarial-ml.md](adversarial-ml.md). For LLM-specific attacks, see [llm-attacks.md](llm-attacks.md).
 
 ## Table of Contents
-
 - [ML Model Weight Perturbation Negation (DiceCTF 2026)](#ml-model-weight-perturbation-negation-dicectf-2026)
 - [ML Model Inversion via Gradient Descent (BSidesSF 2025)](#ml-model-inversion-via-gradient-descent-bsidessf-2025)
 - [Neural Network Encoder Collision (RootAccess2026)](#neural-network-encoder-collision-rootaccess2026)
@@ -11,7 +10,7 @@ Techniques for attacking ML models directly: weight manipulation, model inversio
 - [Model Extraction via Query API](#model-extraction-via-query-api)
 - [Membership Inference Attack](#membership-inference-attack)
 
-------
+---
 
 ## ML Model Weight Perturbation Negation (DiceCTF 2026)
 
@@ -60,12 +59,11 @@ for seq in output:
 **Key insight:** Fine-tuning adds a delta to weights. Negating that delta reverses suppression into amplification. Check which layers differ most with `(orig_sd[k] - chal_sd[k]).abs().max()` to confirm fine-tuning targeted specific layers. If only certain layers changed, the delta is sparse and negation is even more effective.
 
 **Variations:**
-
 - **Partial negation with scaling:** Sometimes `W_orig + alpha * (W_orig - W_chal)` with `alpha > 1` works better than pure negation. Try `alpha` values from 1.0 to 3.0.
 - **Layer-selective negation:** Only negate layers that show significant delta (threshold by L2 norm of difference).
 - **LoRA-aware negation:** If fine-tuning used LoRA, the delta is low-rank. Extract and negate only the LoRA component.
 
-------
+---
 
 ## ML Model Inversion via Gradient Descent (BSidesSF 2025)
 
@@ -79,11 +77,14 @@ from torchvision import transforms
 from PIL import Image
 
 # Load the challenge model
-model = torch.load("challenge_model.pt", map_location="cpu")
+# NOTE (PyTorch 2.6+): torch.load defaults to weights_only=True, which blocks
+# full pickled models. CTF model files need weights_only=False (only load
+# files you trust — untrusted pickles can execute arbitrary code).
+model = torch.load("challenge_model.pt", map_location="cpu", weights_only=False)
 model.eval()
 
 # Target: the output we want to invert (e.g., a specific embedding or class)
-target_output = torch.load("target_embedding.pt")  # shape depends on model
+target_output = torch.load("target_embedding.pt", weights_only=False)  # shape depends on model
 
 # Initialize random input (e.g., 3x224x224 image)
 input_tensor = torch.randn(1, 3, 224, 224, requires_grad=True)
@@ -123,12 +124,11 @@ print("Recovered input saved to recovered_input.png")
 **Key insight:** Neural networks are differentiable, so you can backpropagate through them to optimize the input. Total variation regularization produces more natural-looking images. If the model has batch normalization, set it to eval mode (`model.eval()`) to use running statistics rather than batch statistics.
 
 **Variations:**
-
 - **Feature visualization:** Maximize a specific neuron's activation instead of matching a target output.
 - **Deep Dream style:** Use layer activations as optimization targets for artistic reconstruction.
 - **Gradient-free inversion:** If gradients are unavailable (black-box), use CMA-ES or other evolutionary strategies.
 
-------
+---
 
 ## Neural Network Encoder Collision (RootAccess2026)
 
@@ -139,8 +139,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-# Load the encoder model
-encoder = torch.load("encoder.pt", map_location="cpu")
+# Load the encoder model (weights_only=False required on PyTorch 2.6+ for pickled models)
+encoder = torch.load("encoder.pt", map_location="cpu", weights_only=False)
 encoder.eval()
 
 # Initialize two random inputs
@@ -193,12 +193,11 @@ with torch.no_grad():
 **Key insight:** Encoders compress information, so collisions must exist by the pigeonhole principle. The optimization simultaneously minimizes embedding distance while maximizing input distance. Starting with very different random initializations helps avoid trivial solutions.
 
 **Variations:**
-
 - **Targeted collision:** Force both inputs to map to a specific target embedding.
 - **Near-collision with hamming constraint:** Find inputs that differ in only a few pixels but produce identical embeddings.
 - **Hash-like collision:** If the encoder output is discretized (e.g., binary hash), collision search is easier via relaxation.
 
-------
+---
 
 ## LoRA Adapter Weight Merging (ApoorvCTF 2026)
 
@@ -282,12 +281,11 @@ print(tokenizer.decode(output[0], skip_special_tokens=True))
 **Key insight:** LoRA adapters modify only a small subset of weights via low-rank matrices. The `adapter_config.json` file contains `lora_alpha`, `r` (rank), and `target_modules` which tell you exactly which layers were modified. Sometimes the hidden content is not in the model's text output but in the weight matrices themselves — try visualizing `B @ A` as an image.
 
 **Variations:**
-
 - **Weight visualization:** Reshape `B @ A` delta matrices and render as images; flags may be encoded visually in the weight pattern.
 - **Multi-adapter stacking:** Multiple LoRA adapters applied sequentially; merge in correct order.
 - **Quantized adapters:** QLoRA uses 4-bit quantization; dequantize before merging.
 
-------
+---
 
 ## Model Extraction via Query API
 
@@ -349,12 +347,11 @@ print(f"Extracted bias: {base_logit}")
 **Key insight:** Linear models can be extracted exactly with `dim + 1` queries (one per basis vector plus zero vector). For neural networks, use model distillation: train a student network on input-output pairs from the API. Decision trees can be extracted by probing decision boundaries with binary search.
 
 **Variations:**
-
 - **Logit extraction:** If API returns only class labels (not confidence), use inputs near decision boundaries with binary search.
 - **Functionally equivalent extraction:** Train a neural network on API responses; fidelity > 99% is often achievable with 10K-100K queries.
 - **Side-channel extraction:** Timing differences in API responses can leak model architecture (deeper = slower).
 
-------
+---
 
 ## Membership Inference Attack
 
@@ -366,8 +363,8 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
-# Load challenge model
-model = torch.load("target_model.pt", map_location="cpu")
+# Load challenge model (weights_only=False required on PyTorch 2.6+ for pickled models)
+model = torch.load("target_model.pt", map_location="cpu", weights_only=False)
 model.eval()
 
 def get_prediction_metrics(model, x, true_label):
@@ -423,7 +420,6 @@ print(f"Likely member: {threshold_attack(metrics)}")
 **Key insight:** Models overfit to training data, producing measurably different behavior on seen vs. unseen samples. The gap between training and test confidence is the core signal. More sophisticated attacks train a binary classifier on (metrics, member/non-member) pairs from shadow models trained on similar data distributions.
 
 **Variations:**
-
 - **Label-only attack:** When only the predicted class is returned (no confidence), use perturbation sensitivity: members are more robust to small perturbations.
 - **Augmentation attack:** Apply data augmentations; members maintain consistent predictions across augmentations.
 - **LiRA (Likelihood Ratio Attack):** Train multiple shadow models with/without the target sample; compare loss distributions.

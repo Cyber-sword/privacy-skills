@@ -5,7 +5,6 @@ Emulation frameworks (Qiling, Triton) and side-channel measurement tools (Intel 
 For core dynamic analysis tools (Frida, angr, lldb, x64dbg), see [tools-dynamic.md](tools-dynamic.md).
 
 ## Table of Contents
-
 - [Qiling Framework (Cross-Platform Emulation)](#qiling-framework-cross-platform-emulation)
   - [Qiling Installation](#qiling-installation)
   - [Basic Usage](#basic-usage)
@@ -18,7 +17,7 @@ For core dynamic analysis tools (Frida, angr, lldb, x64dbg), see [tools-dynamic.
 - [LD_PRELOAD time() Freeze for Deterministic Analysis (EKOPARTY 2017)](#ld_preload-time-freeze-for-deterministic-analysis-ekoparty-2017)
   - [LD_PRELOAD memcmp Side-Channel for Byte-by-Byte Bruteforce (Blaze CTF 2018)](#ld_preload-memcmp-side-channel-for-byte-by-byte-bruteforce-blaze-ctf-2018)
 
-------
+---
 
 ## Qiling Framework (Cross-Platform Emulation)
 
@@ -96,7 +95,6 @@ for ch in string.printable:
 ```
 
 **Advantages over GDB/Frida:**
-
 - No debugger artifacts (bypasses all anti-debug by default)
 - Cross-platform without hardware (ARM, MIPS, RISC-V on x86 host)
 - Scriptable with Python (faster iteration than GDB)
@@ -106,7 +104,7 @@ for ch in string.printable:
 
 **When to use:** Foreign architecture binaries, IoT firmware, heavy anti-debug, automated testing of many inputs.
 
-------
+---
 
 ## Triton (Dynamic Symbolic Execution)
 
@@ -131,7 +129,7 @@ flag = ''.join(chr(v.getValue()) for _, v in sorted(model.items()))
 
 **Best for:** Single-path symbolic execution, deobfuscation, taint analysis. Faster than angr for linear code paths.
 
-------
+---
 
 ## Intel Pin Instruction-Counting Side Channel (Hackover CTF 2015)
 
@@ -142,7 +140,7 @@ import string
 from subprocess import Popen, PIPE
 
 pin = './pin'
-tool = './source/tools/ManualExamples/obj-ia32/inscount0.so'
+tool = './source/tools/ManualExamples/obj-intel64/inscount0.so'
 binary = './target'
 
 key = ''
@@ -162,7 +160,7 @@ while True:
 
 **Key insight:** Movfuscated binaries (compiled with `movfuscator`) expand every instruction into sequences of `mov` operations, making static analysis impractical. However, character-by-character comparison still creates measurable instruction count differences. Pin's `inscount0.so` counts total executed instructions — the correct character at each position causes ~1000+ more instructions (proceeding further in the comparison). Also works for obfuscated binaries with sequential input checks.
 
-------
+---
 
 ### Intel Pin Instruction Counting with Genetic Algorithm (hxp CTF 2017)
 
@@ -219,7 +217,6 @@ for generation in range(10000):
 
 **Modified Pin for Go binaries (table-lookup flag checking):**
 When standard `inscount` fails because counter increments don't correlate with correctness (e.g., table-lookup comparison), modify Pin's icount tool to only count executions at the success-branch address. Brute-force character-by-character with this targeted counter:
-
 ```cpp
 // Modified inscount0.cpp — count only executions of a specific address
 static ADDRINT target_addr = 0x401234;  // success-branch address
@@ -239,14 +236,13 @@ VOID Instruction(INS ins, VOID *v) {
 
 **References:** hxp CTF 2017
 
-------
+---
 
 ## Opcode-Only Trace Reconstruction (0CTF 2016)
 
 Given an execution trace with only opcodes (no register/memory values), reconstruct the program: sort/dedup trace by address, split into basic blocks, annotate functions. Sorting algorithms are particularly vulnerable -- branch decisions leak element ordering.
 
 **Approach:**
-
 1. Sort trace entries by address, deduplicate to recover code layout
 2. Identify basic block boundaries (jumps, calls, returns)
 3. Map branch taken/not-taken decisions from trace order
@@ -254,7 +250,7 @@ Given an execution trace with only opcodes (no register/memory values), reconstr
 
 **Key insight:** Execution traces without data values still leak information through branch decisions. Quicksort partition comparisons reveal which element is greater/lesser at each step, enabling full recovery of the sorted input from branch direction alone.
 
-------
+---
 
 ## LD_PRELOAD time() Freeze for Deterministic Analysis (EKOPARTY 2017)
 
@@ -284,7 +280,6 @@ done
 ```
 
 If `srand()` or `rand()` is also involved, override `rand()` too:
-
 ```c
 int rand(void) { return 42; }
 ```
@@ -293,7 +288,7 @@ int rand(void) { return 42; }
 
 **References:** EKOPARTY CTF 2017
 
-------
+---
 
 ### LD_PRELOAD memcmp Side-Channel for Byte-by-Byte Bruteforce (Blaze CTF 2018)
 

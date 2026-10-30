@@ -1,7 +1,6 @@
 # CTF Reverse - Competition-Specific Patterns (Part 2)
 
 ## Table of Contents
-
 - [Multi-Layer Self-Decrypting Binary (DiceCTF 2026)](#multi-layer-self-decrypting-binary-dicectf-2026)
 - [Embedded ZIP + XOR License Decryption (MetaCTF 2026)](#embedded-zip--xor-license-decryption-metactf-2026)
 - [Stack String Deobfuscation from .rodata XOR Blob (Nullcon 2026)](#stack-string-deobfuscation-from-rodata-xor-blob-nullcon-2026)
@@ -11,7 +10,7 @@
 - [GF(2^8) Gaussian Elimination for Flag Recovery (ApoorvCTF 2026)](#gf28-gaussian-elimination-for-flag-recovery-apoorvctf-2026)
 - [ROP Chain Obfuscation in Modified Binary (PlaidCTF 2016)](#rop-chain-obfuscation-in-modified-binary-plaidctf-2016)
 
-------
+---
 
 ## Multi-Layer Self-Decrypting Binary (DiceCTF 2026)
 
@@ -20,7 +19,6 @@
 **Oracle for correct key:** Wrong key bytes produce garbage code. Correct key bytes produce code with exactly 2 `call read@plt` instructions (next layer's reads). Brute-force all 65536 candidates per layer using this oracle.
 
 **JIT execution approach (fastest):**
-
 ```c
 // Map binary's memory at original virtual addresses into solver process
 // Compile solver at non-overlapping address: -Wl,-Ttext-segment=0x10000000
@@ -46,40 +44,35 @@ for (int candidate = 0; candidate < 65536; candidate++) {
 ```
 
 **Performance tiers:**
-
-| Approach                      | Speed   | 256-layer estimate |
-| ----------------------------- | ------- | ------------------ |
-| Python subprocess             | ~2/s    | days               |
-| Ptrace fork injection         | ~119/s  | 6+ hours           |
-| JIT + fork-per-candidate      | ~1000/s | 140 min            |
-| JIT + shared BSS + 32 workers | ~3500/s | **~17 min**        |
+| Approach | Speed | 256-layer estimate |
+|----------|-------|--------------------|
+| Python subprocess | ~2/s | days |
+| Ptrace fork injection | ~119/s | 6+ hours |
+| JIT + fork-per-candidate | ~1000/s | 140 min |
+| JIT + shared BSS + 32 workers | ~3500/s | **~17 min** |
 
 **Shared BSS optimization:** BSS (16MB+) stored in `/dev/shm` as `MAP_SHARED` in parent. Children remap as `MAP_PRIVATE` for COW. Reduces fork overhead from 16MB page-table setup to ~4KB.
 
 **Key insight:** Multi-layer decryption challenges are fundamentally about building fast brute-force engines. JIT execution (mapping binary memory into solver, running code directly as function calls) is orders of magnitude faster than ptrace. Fork-based COW provides free memory isolation per candidate.
 
 **Gotchas:**
-
 - Real binary may use `call` (0xe8) instead of `jmp` (0xe9) for layer transitions — adjust tail patching
 - BSS may extend beyond ELF MemSiz via kernel brk mapping — map extra space
 - SHA-NI instructions work even when not advertised in `/proc/cpuinfo`
 
-------
+---
 
 ## Embedded ZIP + XOR License Decryption (MetaCTF 2026)
 
 **Pattern (License To Rev):** Binary requires a license file as argument. Contains an embedded ZIP archive with the expected license, and an XOR-encrypted flag.
 
 **Recognition:**
-
 - `strings` reveals `EMBEDDED_ZIP` and `ENCRYPTED_MESSAGE` symbols
 - Binary is not stripped — `nm` or `readelf -s` shows data symbols in `.rodata`
 - `file` shows PIE executable, source file named `licensed.c`
 
 **Analysis workflow:**
-
 1. **Find data symbols:**
-
 ```bash
 readelf -s binary | grep -E "EMBEDDED|ENCRYPTED|LICENSE"
 # EMBEDDED_ZIP at offset 0x2220, 384 bytes
@@ -87,7 +80,6 @@ readelf -s binary | grep -E "EMBEDDED|ENCRYPTED|LICENSE"
 ```
 
 2. **Extract embedded ZIP:**
-
 ```python
 import struct
 with open('binary', 'rb') as f:
@@ -99,13 +91,11 @@ open('embedded.zip', 'wb').write(data[zip_start:zip_start+384])
 ```
 
 3. **Extract license from ZIP:**
-
 ```bash
 unzip embedded.zip  # Contains license.txt
 ```
 
 4. **XOR decrypt the flag:**
-
 ```python
 license = open('license.txt', 'rb').read()
 enc_msg = open('encrypted_msg.bin', 'rb').read()  # Extract from .rodata
@@ -116,30 +106,26 @@ print(flag.decode())
 **Key insight:** No need to run the binary or bypass the expiry date check. The embedded ZIP and encrypted message are both in `.rodata` — extract and XOR offline.
 
 **Disassembly confirms:**
-
 - `memcmp(user_license, decompressed_embedded_zip, size)` — license validation
 - Date parsing with `sscanf("%d-%d-%d")` on `EXPIRY_DATE=` field
 - XOR loop: `ENCRYPTED_MESSAGE[i] ^ license[i]` → `putc()` per byte
 
 **Lesson:** When a binary has named symbols (`EMBEDDED_*`, `ENCRYPTED_*`), extract data directly from the binary without execution. XOR with known plaintext (the license) is trivially reversible.
 
-------
+---
 
 ## Stack String Deobfuscation from .rodata XOR Blob (Nullcon 2026)
 
 **Pattern (stack_strings_1/2):** Binary mmaps a blob from `.rodata`, XOR-deobfuscates it, then uses the blob to validate input. Flag is recovered by reimplementing the verification loop.
 
 **Recognition:**
-
 - `mmap()` call followed by XOR loop over `.rodata` data
 - Verification loop with running state (`eax`, `ebx`, `r9`) updated with constants like `0x9E3779B9`, `0x85EBCA6B`, `0xA97288ED`
 - `rol32()` operations with position-dependent shifts
 - Expected bytes stored in deobfuscated buffer
 
 **Approach:**
-
 1. Extract `.rodata` blob with pyelftools:
-
    ```python
    from elftools.elf.elffile import ELFFile
    with open(binary, "rb") as f:
@@ -147,36 +133,30 @@ print(flag.decode())
        ro = elf.get_section_by_name(".rodata")
        blob = ro.data()[offset:offset+size]
    ```
-
 2. Recover embedded constants (length, magic values) by XOR with known keys from disassembly
-
 3. Reimplement the byte-by-byte verification loop:
-
    - Each iteration: compute two hash-like values from running state
    - XOR them together and with expected byte to recover input byte
    - Update running state with constant additions
 
 **Variant (stack_strings_2):** Adds position permutation + state dependency on previous character:
-
 - Position permutation: byte `i` may go to position `pos[i]` in the output
 - State dependency: `need = (expected - rol8(prev_char, 1)) & 0xFF`
 - Must track `state` variable that updates to current character each iteration
 
 **Key constants to look for:**
-
 - `0x9E3779B9` (golden ratio fractional, common in hash functions)
 - `0x85EBCA6B` (MurmurHash3 finalizer constant)
 - `0xA97288ED` (related hash constant)
 - `rol32()` with shift `i & 7`
 
-------
+---
 
 ## Prefix Hash Brute-Force (Nullcon 2026)
 
 **Pattern (Hashinator):** Binary hashes every prefix of the input independently and outputs one digest per prefix. Given N output digests, the flag has N-1 characters.
 
 **Attack:** Recover input one character at a time:
-
 ```python
 for pos in range(1, len(target_hashes)):
     for ch in charset:
@@ -191,21 +171,19 @@ for pos in range(1, len(target_hashes)):
 
 **Detection:** Binary outputs multiple hash lines. Changing last character only changes last hash. Different input lengths produce different numbers of output lines.
 
-------
+---
 
 ## CVP/LLL Lattice for Constrained Integer Validation (HTB ShadowLabyrinth)
 
 **Pattern:** Binary validates flag via matrix multiplication where grouped input characters are multiplied by coefficient matrices and checked against expected 64-bit results. Standard algebra fails because solutions must be printable ASCII (32-126). Lattice-based CVP (Closest Vector Problem) with LLL reduction solves this efficiently.
 
 **Identification:**
-
 1. Binary groups input characters (e.g., 4 at a time)
 2. Each group is multiplied by a coefficient matrix
 3. Results compared against hardcoded 64-bit values
 4. Need integer solutions in a constrained range (printable ASCII)
 
 **SageMath CVP solver:**
-
 ```python
 from sage.all import *
 
@@ -243,13 +221,11 @@ def solve_constrained_matrix(coefficients, targets, char_range=(32, 126)):
 ```
 
 **Two-phase validation pattern:**
-
 1. **Phase 1 (matrix math):** Solve via CVP/LLL → recovers first N characters
 2. First N characters become AES key → decrypt `file.bin` (XOR last 16 bytes + AES-256-CBC + zlib decompress)
 3. **Phase 2 (custom VM):** Decrypted bytecode runs in custom VM, validates remaining characters via another linear system (mod 2^32)
 
 **Modular linear system solving (Phase 2 — VM validation):**
-
 ```python
 import numpy as np
 from sympy import Matrix
@@ -265,21 +241,19 @@ solution = M_mod.solve(v_mod)  # Returns flag characters
 
 **Detection:** Binary performs matrix-like operations on grouped input, compares against 64-bit constants, and a brute-force search space is too large (e.g., 256^4 per group × 12 groups).
 
-------
+---
 
 ## Decision Tree Function Obfuscation (HTB WonderSMS)
 
 **Pattern:** Binary routes input through ~200+ auto-generated functions, each computing a polynomial expression from input positions, comparing against a constant, and branching left/right. The tree makes static analysis impractical without scripted extraction.
 
 **Identification:**
-
 1. Large number of similar functions with random-looking names (e.g., `f315732804`)
 2. Each function computes arithmetic on specific input positions
 3. Functions call other tree functions or a final validation function
 4. Decompiled code shows `if (expr cmp constant) call_left() else call_right()`
 
 **Ghidra headless scripting for mass extraction:**
-
 ```python
 # Extract comparison constants from all tree functions
 # Run via: analyzeHeadless project/ tmp -import binary -postScript extract_tree.py
@@ -301,7 +275,6 @@ for func in fm.getFunctions(True):
 ```
 
 **Constraint propagation from known output format:**
-
 1. Start from known output bytes (e.g., `http://HTB{...}`) → fix several input positions
 2. Fixed positions cascade through arithmetic constraints → determine dependent positions
 3. Tree root equation pins down remaining free variables
@@ -311,14 +284,13 @@ for func in fm.getFunctions(True):
 
 **Detection:** Binary with hundreds of similarly-structured functions, 3-5 input position references per function, branching to two other functions or a common leaf.
 
-------
+---
 
 ## GF(2^8) Gaussian Elimination for Flag Recovery (ApoorvCTF 2026)
 
 **Pattern (Forge):** Stripped binary performs Gaussian elimination over GF(2^8) (Galois Field with 256 elements, using the AES polynomial). A matrix and augmentation vector are embedded in `.rodata`. The solution vector is the flag.
 
 **GF(2^8) arithmetic with AES polynomial (x^8+x^4+x^3+x+1 = 0x11b):**
-
 ```python
 def gf_mul(a, b):
     """Multiply in GF(2^8) with AES reduction polynomial."""
@@ -343,7 +315,6 @@ def gf_inv(a):
 ```
 
 **Solving the linear system:**
-
 ```python
 # Extract N×N matrix + N-byte augmentation from binary .rodata
 N = 56  # Flag length
@@ -371,7 +342,7 @@ flag = bytes(aug[i][N] for i in range(N))
 
 **Detection:** Binary with a large matrix in `.rodata` (N² bytes), XOR-based row operations, constants `0x1b` or `0x11b`, and flag length matching sqrt of matrix size.
 
-------
+---
 
 ## ROP Chain Obfuscation in Modified Binary (PlaidCTF 2016)
 
@@ -381,7 +352,6 @@ flag = bytes(aug[i][N] for i in range(N))
 
 1. **Detect the ROP dispatch:** Look for `mov esp, eax; ret` or similar stack pivot — this redirects execution into the ROP chain
 2. **Dump the ROP chain:** Script GDB to disassemble instructions after each return address in the chain:
-
 ```python
 # GDB script to trace ROP gadgets
 import gdb
@@ -405,8 +375,8 @@ while offset < buf_size:
    - Hash prefix comparison
    - XOR of input with hash as keystream
    - Comparison with embedded constants
-5. **Extract and solve:** Dump the embedded constants, brute-force any intermediate values (e.g., character sum → MD5 with matching prefix), then XOR to recover the key:
 
+5. **Extract and solve:** Dump the embedded constants, brute-force any intermediate values (e.g., character sum → MD5 with matching prefix), then XOR to recover the key:
 ```python
 import hashlib
 

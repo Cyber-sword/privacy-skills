@@ -1,7 +1,6 @@
 # CTF Reverse - Platform & Framework-Specific Techniques
 
 ## Table of Contents
-
 - [Roblox Place File Analysis](#roblox-place-file-analysis)
 - [Godot Game Asset Extraction](#godot-game-asset-extraction)
 - [Rust serde_json Schema Recovery](#rust-serde_json-schema-recovery)
@@ -26,14 +25,13 @@
 For core language reversing (Python, BF/esolangs, DOS, Unity, OPAL), see [languages.md](languages.md).
 For Go and Rust binary reversing, see [languages-compiled.md](languages-compiled.md).
 
-------
+---
 
 ## Roblox Place File Analysis
 
 **Pattern (MazeRunna, 0xFun 2026):** Roblox game with flag hidden in older version; latest version contains decoy.
 
 **Version history via Asset Delivery API:**
-
 ```bash
 # Extract placeId and universeId from game page HTML
 # Query each version (requires .ROBLOSECURITY cookie):
@@ -43,7 +41,6 @@ curl -H "Cookie: .ROBLOSECURITY=..." \
 ```
 
 **Binary format parsing:** `.rbxlbin` files contain chunks:
-
 - **INST** — class buckets and referent IDs
 - **PROP** — per-instance fields (including `Script.Source`)
 - **PRNT** — parent-child relationships (object tree)
@@ -52,32 +49,29 @@ Decode chunk payloads, walk PROP entries for `Source` field, dump `Script.Source
 
 **Key lesson:** Always check version history. Latest version may contain decoy flag while real flag is in an older version. Diff script sources across versions.
 
-------
+---
 
 ## Godot Game Asset Extraction
 
 **Pattern (Steal the Xmas):** Encrypted Godot .pck packages.
 
 **Tools:**
-
 - [gdsdecomp](https://github.com/GDRETools/gdsdecomp) - Extract Godot packages
 - [KeyDot](https://github.com/Titoot/KeyDot) - Extract encryption key from Godot executables
 
 **Workflow:**
-
 1. Run KeyDot against game executable → extract encryption key
 2. Input key into gdsdecomp
 3. Extract and open project in Godot editor
 4. Search scripts/resources for flag data
 
-------
+---
 
 ## Rust serde_json Schema Recovery
 
 **Pattern (Curly Crab, PascalCTF 2026):** Rust binary reads JSON from stdin, deserializes via serde_json, prints success/failure emoji.
 
 **Approach:**
-
 1. Disassemble serde-generated `Visitor` implementations
 2. Each visitor's `visit_map` / `visit_seq` reveals expected keys and types
 3. Look for string literals in deserializer code (field names like `"pascal"`, `"CTF"`)
@@ -90,24 +84,21 @@ Decode chunk payloads, walk PROP entries for `Source` field, dump `Script.Source
 
 **Key insight:** Flag is the concatenation of JSON keys in schema order. Reading field names in order reveals the flag.
 
-------
+---
 
 ## Android JNI RegisterNatives Obfuscation (HTB WonderSMS)
 
 **Pattern:** Android app loads native library with `System.loadLibrary()`, but uses `RegisterNatives` in `JNI_OnLoad` instead of standard JNI naming convention (`Java_com_pkg_Class_method`). This hides which C++ function handles each Java native method.
 
 **Identification:**
-
 ```java
 // In decompiled Java (jadx):
 static { System.loadLibrary("audio"); }
 private final native ProcessedMessage processMessage(SmsMessage msg);
 ```
-
 Standard JNI would have a symbol `Java_com_rloura_wondersms_SmsReceiver_processMessage`. If that symbol is missing from the `.so`, `RegisterNatives` is being used.
 
 **Finding the real handler in Ghidra:**
-
 1. Locate `JNI_OnLoad` (exported symbol, always present)
 2. Trace to `RegisterNatives(env, clazz, methods, count)` call
 3. The `methods` array contains `{name, signature, fnPtr}` structs
@@ -122,7 +113,6 @@ static JNINativeMethod methods[] = {
 ```
 
 **Architecture selection for analysis:**
-
 ```bash
 # x86_64 gives best Ghidra decompilation (most similar to desktop code)
 # Extract from APK:
@@ -134,7 +124,7 @@ ls extracted/lib/x86_64/  # Prefer this over arm64-v8a for static analysis
 
 **Detection:** Native method declared in Java + no matching JNI symbol in `.so` + `JNI_OnLoad` present. The library is typically stripped (no debug symbols).
 
-------
+---
 
 ## Android DEX Runtime Bytecode Patching via /proc/self/maps (Google CTF 2017)
 
@@ -161,7 +151,7 @@ for i in range(patch_offset, patch_offset + 144):
 
 **Key insight:** Native libraries can modify DEX bytecode in memory via `/proc/self/maps` + `mprotect`, making static analysis of the APK alone insufficient. The XOR key and patch offsets must be extracted from the native `.so` to reconstruct the actual runtime DEX. Only works on Dalvik (API < 21), not ART.
 
-------
+---
 
 ### Android Native .so Loading Bypass in New Project (Codegate CTF 2018)
 
@@ -187,7 +177,7 @@ public class Main4Activity extends AppCompatActivity {
 
 **References:** Codegate CTF 2018
 
-------
+---
 
 ## Frida Firebase Cloud Functions Bypass (BSidesSF 2026)
 
@@ -221,21 +211,19 @@ Java.perform(function() {
 
 **References:** BSidesSF 2026 "vinyl-drop"
 
-------
+---
 
 ## Verilog/Hardware Reverse Engineering (srdnlenCTF 2026)
 
 **Pattern (Rev Juice):** Verilog HDL source for a vending machine with hidden product unlocked by specific coin insertion and selection sequence.
 
 **Approach:**
-
 1. Analyze Verilog modules to understand state machine and history tracking
 2. Identify hidden conditions (e.g., product 8 enabled only when `COINS_HISTORY` array has specific values at specific taps)
 3. Build timing model for each action type (how many clock cycles each operation takes)
 4. Work backward from required history values to construct the correct input sequence
 
 **Timing model construction:**
-
 ```python
 # Map each action to its cycle count (determined from Verilog state machines)
 TIMING = {
@@ -257,37 +245,33 @@ TIMING = {
 
 **Detection:** Look for `.v` or `.sv` (Verilog/SystemVerilog) files, `always @(posedge clk)` blocks, shift register patterns, and state machine `case` statements with hidden conditions gated on history values.
 
-------
+---
 
 ## Prefix-by-Prefix Hash Reversal (Nullcon 2026)
 
 See [patterns-ctf-2.md](patterns-ctf-2.md#prefix-hash-brute-force-nullcon-2026) for the full technique. This section covers language-specific considerations.
 
 **Language-specific notes:**
-
 - Hash algorithm may be uncommon (MD2, custom) — don't need to identify it, just match outputs by running the binary
 - Use `subprocess.run()` with `timeout=2` to handle binaries that hang on bad input
 - For stripped binaries, check if `ltrace` reveals the hash function name (e.g., `MD2_Update`)
 
-------
+---
 
 ## Ruby/Perl Polyglot Constraint Satisfaction (BearCatCTF 2026)
 
 **Pattern (Polly's Key):** A single file valid in both Ruby and Perl. Each language imposes different validation constraints on a 50-character key. Satisfy both simultaneously to decrypt the flag.
 
 **Polyglot structure exploits:**
-
 - Ruby: `=begin`...`=end` is a block comment
 - Perl: `=begin`...`=cut` is POD (Plain Old Documentation), `=end` is ignored
 - Different code runs in each language based on comment block boundaries
 
 **Typical constraints:**
-
 - **Ruby:** Character set must form a mathematical property (e.g., all 50 printable ASCII chars except `^` used exactly once, each satisfying `XOR(val, (val-16) % 257)` is a primitive root mod 257)
 - **Perl:** Ordering constraint via insertion sort inversion count (hardcoded inversion table determines exact permutation)
 
 **Solution approach:**
-
 1. Find the valid character set (mathematical constraint from one language)
 2. Use the ordering constraint (from other language) to determine exact arrangement
 3. Compute key hash (e.g., MD5) and decrypt
@@ -308,16 +292,14 @@ def reconstruct_from_inversions(chars, inv_counts):
 
 **Detection:** File that runs under multiple interpreters (`ruby file && perl file`). Challenge mentions "polyglot" or provides a file ending in `.rb` that also looks like Perl.
 
-------
+---
 
 ## Electron App + Native Binary Reversing (RootAccess2026)
 
 **Pattern (Rootium Browser):** Electron desktop app bundles a native ELF/DLL binary for sensitive operations (vault, crypto, auth). The Electron layer is a wrapper; the real flag logic is in the native binary.
 
 **Extraction workflow:**
-
 1. **Unpack Electron ASAR archive:**
-
 ```bash
 # Install ASAR tool
 npm install -g @electron/asar
@@ -328,7 +310,6 @@ ls app_extracted/
 ```
 
 2. **Locate native binary:** Search for ELF/DLL files called from JavaScript:
-
 ```bash
 # Find native binaries
 find app_extracted/ -name "*.node" -o -name "*.so" -o -name "*vault*" -o -name "*auth*"
@@ -338,7 +319,6 @@ grep -r "spawn\|execFile\|ffi\|require.*native" app_extracted/
 ```
 
 3. **Reverse the native binary** (XOR + rotation cipher example):
-
 ```python
 def decrypt_password(encrypted_bytes, key):
     """Common pattern: XOR with constant + bit rotation + key XOR."""
@@ -362,14 +342,13 @@ def decrypt_flag(encrypted_flag, password):
 
 **Detection:** `.asar` files in `resources/` directory, Electron framework files, `package.json` with electron dependency.
 
-------
+---
 
 ## Node.js npm Package Runtime Introspection (RootAccess2026)
 
 **Pattern (RootAccess CLI):** Obfuscated npm package with RC4 encoding, control flow flattening, and flag split across multiple fragments. Static analysis is impractical — use runtime introspection instead.
 
 **Dynamic analysis approach:**
-
 ```javascript
 #!/usr/bin/env node
 
@@ -409,7 +388,7 @@ console.log('Hidden methods:', hidden);
 
 **Detection:** npm package with minified/obfuscated `dist/` directory, challenge says "reverse engineer the CLI tool", `package.json` with custom commands.
 
-------
+---
 
 ## Frida Android Certificate Pinning Bypass (h1702ctf 2017)
 
@@ -429,12 +408,11 @@ Calling `hName()` and `hVal()` returns the HTTP header name and value needed to 
 
 **References:** h1702ctf 2017
 
-------
+---
 
 ## Android Anti-Debug: TracerPid, su Binary, System Properties (h1702ctf 2017)
 
 Native ARM code implements three sequential anti-analysis checks:
-
 1. Read `/proc/self/status` and look for a non-zero `TracerPid` (debugger attached)
 2. Check for existence of the `su` binary (root detection)
 3. Read a custom system property via `__system_property_get`
@@ -445,12 +423,11 @@ The checks gate a required register value computation. Bypass via static analysi
 
 **References:** h1702ctf 2017
 
-------
+---
 
 ## Android Log-Based Key Extraction (HackIT 2017)
 
 A secure messenger app logs cryptographic material via Android's `Log.d()`:
-
 - Curve25519 base agreement value
 - Ephemeral shared key per message
 - Message IDs and shift counters
@@ -467,14 +444,13 @@ adb logcat | grep -E "(agreement|ephemeral|shared|key)" > crypto_log.txt
 
 **References:** HackIT CTF 2017
 
-------
+---
 
 ## Native JNI Key Extraction via Memory Dump and Smali Patching (HackIT 2017)
 
 A JNI native library handles request signing using an XOR-obfuscated key stored in the `.data` section. The key is deobfuscated at runtime just before use.
 
 **Workflow:**
-
 1. Load the library in IDA with a GDB stub on a rooted device
 2. Set a breakpoint after the XOR decryption routine
 3. Dump the memory region containing the decrypted key
@@ -488,14 +464,13 @@ apktool d target.apk -o target_decompiled/
 # Rebuild
 apktool b target_decompiled/ -o target_patched.apk
 # Sign and install
-
 ```
 
 **Key insight:** For JNI signing: memory-dump the decrypted key region during execution, then patch smali to sign desired parameters — avoids fully reversing the native signing algorithm.
 
 **References:** HackIT CTF 2017
 
-------
+---
 
 ## IBM AS/400 SAVF File EBCDIC Decoding (EKOPARTY 2017)
 
@@ -515,21 +490,19 @@ flag_chars = [c for c in ascii_data if c.isupper() or c == '_']
 # Or apply take-2-skip-2 pattern after decoding
 flag = ''.join(ascii_data[i] for i in range(0, len(ascii_data), 4)
                if ascii_data[i].isupper() or ascii_data[i] == '_')
-
 ```
 
 **Key insight:** EBCDIC encoding is IBM mainframe-native. Examine character distribution after decoding to identify interleaving patterns. Filtering for uppercase letters and underscores is an effective shortcut for CTF flag formats.
 
 **References:** EKOPARTY CTF 2017
 
-------
+---
 
 ## Intel SGX Enclave Reverse Engineering (Pwn2Win 2017)
 
 Intel SGX enclave `.so` files expose an ECALL dispatch table. The enclave logic (including key derivation) is fully reversible with IDA since SGX code is standard x86-64.
 
 **Workflow:**
-
 1. Locate the ECALL table in the `.so` — a function pointer array indexed by ECALL number
 2. Decompile ECALLs with IDA to identify the remote attestation protocol
 3. Implement the attestation protocol manually in Python using `sgx_crypto_wrapper`
@@ -550,21 +523,19 @@ c.update(shared_secret[:16])
 sk = c.finalize()
 
 # Decrypt flag with AES-128-GCM using derived SK
-
 ```
 
 **Key insight:** SGX remote attestation key derivation is deterministic given the enclave measurement — reimplementing the protocol in Python recovers the same session key.
 
 **References:** Pwn2Win CTF 2017
 
-------
+---
 
 ## Glulx Interactive Fiction Bytecode Matrix Validation (PlaidCTF 2018)
 
 **Pattern:** Challenge is a Glulx interactive fiction story (`.ulx`/`.blorb`) that accepts player input, scrambles it via a matrix multiplication inside the VM, and compares the result to a hardcoded vector. A hidden `xyzzy`-style command enables a debug room whose side exit reveals the target vector and constant matrix.
 
 **Workflow:**
-
 1. Disassemble with `glulxd` (Glulx toolkit) or run under `glulxe`/`git` interpreters while dumping memory at each VM instruction.
 2. Locate the matrix constant (look for aligned 32-bit integers adjacent to the comparison routine) and the target vector referenced by the comparison.
 3. Type the hidden-command trigger to reach the debug room — Glulx games often respond to `xyzzy`, `plugh`, or developer verbs that still appear in the dictionary table (`.DictTable`).
@@ -577,14 +548,13 @@ M = matrix(Zmod(2**32), rows)       # rows[i] = extracted matrix row
 target = vector(Zmod(2**32), output)
 answer = M.solve_right(target)      # required player input as 32-bit words
 print(bytes(answer.list()).decode())
-
 ```
 
 **Key insight:** Adventure-game VMs always keep the original story text in the dictionary and object tables — grep the bytecode for developer verbs (`xyzzy`, `debug`, `god`, `plugh`) to discover hidden rooms before reversing the check itself. Glulx validation routines are typically linear over 32-bit integers, so solving them with Sage matrix inversion is faster than symbolic execution.
 
 **References:** PlaidCTF 2018 — writeup 10019
 
-------
+---
 
 ## Android Smali Injection to Defeat LocalBroadcastManager (TAMUctf 2019)
 
@@ -593,7 +563,6 @@ print(bytes(answer.list()).decode())
 ```bash
 $ adb shell cmd package query-receivers --brief -a com.tamu.ctf.START
 # No receivers found
-
 ```
 
 Swapping the registration for `Context.registerReceiver` force-closes the app (manifest mismatch). Instead, clone the `onReceive` body and inline it into `onCreate` so the deobfuscator (e.g., Paranoid's `Deobfuscator$app$Debug.getString(0)`) runs at startup and the plaintext flag lands in `logcat`.
@@ -606,7 +575,6 @@ const/4 v1, 0x0
 invoke-static {v1}, Lio/michaelrocks/paranoid/Deobfuscator$app$Debug;->getString(I)Ljava/lang/String;
 move-result-object v1
 invoke-static {v1, v1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
-
 ```
 
 ```bash
@@ -617,7 +585,6 @@ jarsigner -keystore ~/.android/debug.keystore -storepass android \
   app/dist/app.apk androiddebugkey
 adb install -r app/dist/app.apk
 adb logcat | grep -i flag
-
 ```
 
 **Key insight:** `LocalBroadcastManager`-registered receivers cannot be invoked from `adb`, so the obvious "send the intent yourself" trick fails and static deobfuscation of Paranoid strings is painful. Smali patching sidesteps both: move the deobfuscation call to a path that runs automatically and redirect its output to `Log.d()`, turning a local-only receiver into a logcat-visible primitive.

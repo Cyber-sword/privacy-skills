@@ -3,7 +3,6 @@
 CVE-era and 2018-era advanced server-side techniques (CSAW, 35C3, ASIS, PlaidCTF). For parts 1-2, see [server-side-advanced.md](server-side-advanced.md) and [server-side-advanced-2.md](server-side-advanced-2.md).
 
 ## Table of Contents
-
 - [WAV Polyglot Upload Bypass via .wave Extension (PlaidCTF 2018)](#wav-polyglot-upload-bypass-via-wave-extension-plaidctf-2018)
 - [Multi-Slash URL Parser `path.startswith` Bypass (CSAW 2018 Finals)](#multi-slash-url-parser-pathstartswith-bypass-csaw-2018-finals)
 - [Xalan XSLT math:random() Seed Guess (35C3 2018)](#xalan-xslt-mathrandom-seed-guess-35c3-2018)
@@ -11,16 +10,15 @@ CVE-era and 2018-era advanced server-side techniques (CSAW, 35C3, ASIS, PlaidCTF
 - [`gopher://` No-Host URL Scheme Bypass (35C3 2018)](#gopher-no-host-url-scheme-bypass-35c3-2018)
 - [SSRF Credential Leak via Attacker-Specified Outbound URL (ASIS Finals 2018)](#ssrf-credential-leak-via-attacker-specified-outbound-url-asis-finals-2018)
 
-------
+---
 
-------
+---
 
 ## WAV Polyglot Upload Bypass via .wave Extension (PlaidCTF 2018)
 
 **Pattern (idIoT: Action):** Site accepts `ogg/wav/wave/webm/mp3` uploads and validates by parsing the RIFF/WAVE header. CSP is `script-src 'self'`, so inline XSS fails, but a same-origin `<script src=...>` to an uploaded file would run. Browsers refuse to load responses whose Content-Type starts with `audio/`, yet Apache on many distros has no MIME mapping for the `.wave` extension and serves it as the default (usually `application/octet-stream` or with no `Content-Type`).
 
 **Exploit build:**
-
 1. Construct a file whose first bytes parse as a valid RIFF/WAVE container but whose `data` chunk contents open a JavaScript block comment and embed the payload.
 2. Save with extension `.wave` (not `.wav`) so Apache does not label it as audio.
 3. Inject `<script src="/uploads/evil.wave"></script>` via the existing XSS sink — the browser now executes the script from a same-origin URL, satisfying `script-src 'self'`.
@@ -30,14 +28,13 @@ RIFF=1/*WAVEfmt ..........]................LIST....INFO
 ISFT....Lavf57.83.100.data........................
 ........*/ ; alert(1);
 ```
-
 Hex view (truncated): the first 4 bytes `52 49 46 46` still form `RIFF`; the quirky length field `3d 31 2f 2a` (`=1/*`) is valid for WAV parsers but also opens a JS comment that runs until the `*/ ;alert(1);` tail at the end of the `data` chunk.
 
 **Key insight:** File-upload filters that only check magic bytes or MIME based on extension are defeated by any extension the web server has no explicit mapping for. Test each permitted extension against the server's MIME database (`mime.types`) — whichever one falls through to `application/octet-stream` becomes a script gadget under `script-src 'self'`. Fix by enforcing a strict response `Content-Type` for user uploads (e.g., `application/octet-stream` + `Content-Disposition: attachment`).
 
 **References:** PlaidCTF 2018 — writeup 10018
 
-------
+---
 
 ## Multi-Slash URL Parser `path.startswith` Bypass (CSAW 2018 Finals)
 
@@ -54,7 +51,7 @@ http://127.0.0.1:5000///flaginfo
 
 **References:** CSAW 2018 Finals — NekoCat, writeups 12130, 12144
 
-------
+---
 
 ## Xalan XSLT math:random() Seed Guess (35C3 2018)
 
@@ -74,7 +71,7 @@ for (long base = time(NULL) - 1; base <= time(NULL) + 1; base++) {
 
 **References:** 35C3 CTF 2018 — Juggle, writeup 12803
 
-------
+---
 
 ## SoapClient _user_agent CRLF Method Smuggling (35C3 2018)
 
@@ -93,7 +90,7 @@ $c->__soapCall('x', []);
 
 **References:** 35C3 CTF 2018 — post, writeup 12808
 
-------
+---
 
 ## `gopher://` No-Host URL Scheme Bypass (35C3 2018)
 
@@ -107,7 +104,7 @@ gopher:///127.0.0.1:1433/_<raw TDS bytes>
 
 **References:** 35C3 CTF 2018 — post, writeup 12808
 
-------
+---
 
 ## SSRF Credential Leak via Attacker-Specified Outbound URL (ASIS Finals 2018)
 

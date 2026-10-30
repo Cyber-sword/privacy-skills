@@ -1,7 +1,6 @@
 # CTF Reverse - Compiled Language Reversing (Go, Rust)
 
 ## Table of Contents
-
 - [Go Binary Reversing](#go-binary-reversing)
   - [Recognition](#recognition)
   - [Symbol Recovery](#symbol-recovery)
@@ -31,7 +30,7 @@
   - [RTTI (Run-Time Type Information)](#rtti-run-time-type-information)
   - [Standard Library Patterns](#standard-library-patterns)
 
-------
+---
 
 ## Go Binary Reversing
 
@@ -50,7 +49,6 @@ strings binary | grep "^go1\."
 ```
 
 **Key indicators:**
-
 - Very large static binary (even "hello world" is ~2MB)
 - Embedded `go.buildid` string
 - `runtime.*` symbols (even in stripped binaries, some remain)
@@ -77,15 +75,12 @@ for fn in data.get('UserFunctions', []):
 ```
 
 **Ghidra with golang-loader:**
-
 ```bash
 # Install: Ghidra → Window → Script Manager → search "golang"
-# Or use: https://github.com/getCUJO/ThreatFox/tree/main/ghidra-golang
 # Recovers function names, string references, interface tables
 ```
 
 **redress (Go binary analysis):**
-
 ```bash
 # https://github.com/goretk/redress
 redress -src binary         # Reconstruct source tree
@@ -140,7 +135,6 @@ gdb ./binary
 ```
 
 **Channel operations in disassembly:**
-
 - `runtime.chansend1` → `ch <- value`
 - `runtime.chanrecv1` → `value = <-ch`
 - `runtime.selectgo` → `select { case ... }`
@@ -149,13 +143,11 @@ gdb ./binary
 ### Common Go Patterns in Decompilation
 
 **Defer mechanism:**
-
 - `runtime.deferproc` → registers deferred function
 - `runtime.deferreturn` → executes deferred functions at function exit
 - Deferred calls execute in LIFO order — relevant for cleanup/crypto key wiping
 
 **Error handling (the `if err != nil` pattern):**
-
 ```text
 # In disassembly, this appears as:
 # call some_function        → returns (result, error) as two values
@@ -164,13 +156,11 @@ gdb ./binary
 ```
 
 **String concatenation:**
-
 - `runtime.concatstrings` → `s1 + s2 + s3`
 - `fmt.Sprintf` → formatted string building
 - Look for format strings in `.rodata`: `"%s%d"`, `"%x"`
 
 **Common stdlib patterns in CTF:**
-
 ```go
 // Crypto operations → look for these in strings/imports:
 // "crypto/aes", "crypto/cipher", "crypto/sha256", "encoding/hex", "encoding/base64"
@@ -196,7 +186,6 @@ gdb ./binary
 ```
 
 **Go embed.FS (Go 1.16+):** Binaries can embed files at compile time:
-
 ```bash
 # Look for embedded file data
 strings binary | grep "embed"
@@ -213,7 +202,6 @@ strings binary | grep "embed"
 **Pattern (see-two):** A Go-compiled C2 client has a UUID embedded via `-ldflags -X`. The C2 server uses mTLS for authentication. To enumerate other clients and their files, patch the UUID to register as a new client, then use the C2 API to list all clients and download their exfiltrated files.
 
 **Approach:**
-
 1. Extract embedded UUID from Go build metadata: `go version -m client_binary`
 2. Binary-patch the UUID (simple byte replacement — Go strings have fixed-length backing arrays)
 3. Register with the C2 server using the patched binary (mTLS certs are embedded or in distfiles)
@@ -243,7 +231,7 @@ chmod +x client_patched
 
 **References:** BSidesSF 2026 "see-two"
 
-------
+---
 
 ## Rust Binary Reversing
 
@@ -260,7 +248,6 @@ strings binary | grep "core::panicking"   # Panic infrastructure
 ```
 
 **Key indicators:**
-
 - `core::panicking::panic` in strings
 - Mangled symbols starting with `_ZN` (Itanium ABI) — e.g., `_ZN4main4main17h...`
 - `.rustc` section in ELF
@@ -285,7 +272,6 @@ nm binary | c++filt | grep "main"
 ### Common Rust Patterns in Decompilation
 
 **Option/Result enum:**
-
 ```text
 # Option<T> in memory: {discriminant (0=None, 1=Some), value}
 # Result<T, E>: {discriminant (0=Ok, 1=Err), union{ok_val, err_val}}
@@ -296,19 +282,22 @@ nm binary | c++filt | grep "main"
 ```
 
 **Vec<T> (same as Go slice):**
-
 ```c
 struct RustVec {
     void *ptr;      // heap pointer
-    uint64 cap;     // capacity
     uint64 len;     // length
+    uint64 cap;     // capacity
 };
+// NOTE: field order (ptr, len, cap) vs (ptr, cap, len) is NOT
+// guaranteed by the Rust ABI and varies by compiler version —
+// confirm against the Vec constructor and its callers in
+// disassembly before trusting offsets.
 ```
 
 **String / &str:**
-
 ```text
-# String (owned): {ptr, capacity, length} — 24 bytes, heap-allocated
+# String (owned): {ptr, length, capacity} — 24 bytes, heap-allocated
+# (same caveat as Vec: field order is compiler-dependent, verify in disassembly)
 # &str (borrowed): {ptr, length} — 16 bytes, can point anywhere
 
 # In decompilation, look for:
@@ -317,22 +306,18 @@ struct RustVec {
 ```
 
 **Iterator chains:**
-
 ```text
 # .iter().map().filter().collect() compiles to loop fusion
 # In disassembly: tight loop with inlined closures
 # Look for: core::iter::adapters::map, filter, etc.
-
 ```
 
 **Panic unwinding:**
-
 ```bash
 # Panic strings reveal source locations and error messages
 strings binary | grep "panicked at"
 strings binary | grep "called .unwrap().. on"
 # These often contain file paths, line numbers, and variable names
-
 ```
 
 ### Rust-Specific Analysis Tools
@@ -343,15 +328,13 @@ cargo install cargo-bloat
 cargo bloat --release -n 50
 
 # Ghidra Rust helper scripts
-# https://github.com/AmateursCTF/ghidra-rust (community scripts for Rust RE)
-
 ```
 
 **Key insight:** Rust panic messages are goldmines — they contain source file paths, line numbers, and descriptive error strings even in release builds. Always `strings binary | grep "panicked"` first. Rust's monomorphization means generic functions get duplicated per type — expect many similar-looking functions.
 
 **Detection:** `core::panicking`, `.rustc` section, `/rustc/` paths, `_ZN` mangled symbols with Rust-style module paths.
 
-------
+---
 
 ## Swift Binary Reversing
 
@@ -369,12 +352,11 @@ swift demangle 's14MyApp0A8ClassC10checkInput6resultSbSS_tF'
 # Key runtime functions: swift_allocObject, swift_release, swift_once
 # String: small (≤15 bytes inline) or large (heap pointer + length)
 # Protocol witness tables = dynamic dispatch (like vtables)
-
 ```
 
 **Detection:** `__swift5_*` sections in Mach-O, `swift_` runtime symbols, `s` prefix in mangled names.
 
-------
+---
 
 ## Kotlin / JVM Binary Reversing
 
@@ -399,11 +381,9 @@ fernflower classes.jar output/       # IntelliJ's decompiler
 # - Null checks: Intrinsics.checkNotNull() everywhere
 # - When expression: compiled as tableswitch/lookupswitch
 # - Sealed classes: instanceof checks in chain
-
 ```
 
 **Kotlin coroutines in disassembly:**
-
 ```text
 # Coroutines compile to state machines:
 # invokeSuspend(result) {
@@ -414,7 +394,6 @@ fernflower classes.jar output/       # IntelliJ's decompiler
 # }
 # Each suspend point becomes a state in the switch.
 # Follow the state machine to understand async flow.
-
 ```
 
 ### Kotlin/Native
@@ -428,12 +407,11 @@ strings binary | grep "konan"
 # Uses LLVM backend, looks similar to C/C++ in disassembly
 # Key functions: InitRuntime, DeinitRuntime, CreateStablePointer
 # Memory management: automatic reference counting (not GC)
-
 ```
 
 **Detection:** `kotlin.Metadata` annotations (JVM), `konan` strings (Native), `kotlin/` package paths.
 
-------
+---
 
 ## D Language Binary Reversing (CSAW CTF 2016)
 
@@ -468,19 +446,17 @@ def reverse_d_cipher(encrypted, num_functions=500):
             result[j] ^= key_len
             result[j] ^= ord(key[j % key_len])
     return bytes(result)
-
 ```
 
 **Key insight:** D binaries are rare in CTFs but identifiable by `_D` symbol prefixes and Phobos library references. The compile-time template system means D functions may be duplicated hundreds of times with different parameters — look for patterns like `enc!("N")` where N varies.
 
-------
+---
 
 ### Haskell Binary Reversing via STG Closures and hsdecomp (hxp CTF 2017, Codegate 2018)
 
 GHC-compiled Haskell binaries use the STG (Spineless Tagless G-machine) execution model, making them notoriously difficult to reverse due to lazy evaluation, closures, and thunks. The STG machine turns everything into closure calls rather than direct function calls.
 
 **Recognition:**
-
 - Shared libraries: `libHSbase-*`, `libHSrts-*`
 - Entry symbol: `hs_main` (replaces standard `main`)
 - Mangled symbols use Z-encoding: `z` = prefix, `Z` = uppercase, `zd` = `.`, `zi` = `$`
@@ -501,7 +477,6 @@ python2 hsdecomp ./binary
 # Compile reference for monkey-patching
 ghc -O0 reference.hs -o reference
 objcopy --dump-section .text=main_code reference
-
 ```
 
 **Monkey-patching technique:**
@@ -512,7 +487,6 @@ When decompilation fails or closures are opaque, compile a minimal Haskell progr
 module Main where
 main :: IO ()
 main = print targetClosure  -- replace with the closure you want to evaluate
-
 ```
 
 **Key insight:** Haskell binaries are notoriously hard to reverse due to lazy evaluation, closures, and thunks. The STG machine turns everything into closure calls rather than direct function calls. `hsdecomp` recovers the closure structure and pattern matching. When decompilation fails, monkey-patching a known `Main_main_info` from a reference binary forces evaluation of hidden closures and prints results.
@@ -521,7 +495,7 @@ main = print targetClosure  -- replace with the closure you want to evaluate
 
 **References:** hxp CTF 2017, Codegate 2018
 
-------
+---
 
 ### Haskell Binary RE via GHC CMM Intermediate Language (N1CTF 2018)
 
@@ -548,7 +522,6 @@ def char_at(n, offset):
     if offset < len(s2): return s2[offset]
     offset -= len(s2)
     return char_at(n-1, offset)
-
 ```
 
 **Key insight:** GHC's CMM (C minus minus) intermediate representation preserves enough structure to identify algorithms. For recursive string constructions that double in size each level, compute segment sizes with memoization and binary-search for target indices instead of materializing the exponentially-growing string.
@@ -557,7 +530,7 @@ def char_at(n, offset):
 
 **References:** N1CTF 2018
 
-------
+---
 
 ## C++ Binary Reversing (Quick Reference)
 
@@ -574,7 +547,6 @@ While C++ RE is well-covered by general tools, these patterns are CTF-specific:
 # Identify polymorphic dispatch:
 # mov rax, [rdi]           # Load vtable from this pointer
 # call [rax + 0x18]        # Call 4th virtual method (0x18/8 = 3rd after typeinfo+dtor)
-
 ```
 
 ### RTTI (Run-Time Type Information)
@@ -586,7 +558,6 @@ c++filt _ZTI7MyClass                        # → typeinfo for MyClass
 
 # In Ghidra: search for vtable references, follow typeinfo pointer
 # typeinfo struct: {vtable_for_typeinfo, name_string, base_class_ptr}
-
 ```
 
 ### Standard Library Patterns
@@ -604,10 +575,9 @@ std::map<K,V>:
 
 std::unordered_map<K,V>:
   Hash table: {bucket_array, size, load_factor_max, ...}
-
 ```
 
-------
+---
 
 ### Rust Lifetime Escape via Compiler Bug #25860 (Hack.lu 2018)
 
@@ -625,19 +595,20 @@ fn bad<T>(v: T) -> &'static T {
 
 fn main() {
     let aliased: &'static Vec<u8> = bad(vec![1u8, 2, 3]);
-    // Reinterpret the Vec as its raw header: (ptr, len, cap)
+    // Reinterpret the Vec as its raw header (field order is
+    // compiler-dependent — NOT guaranteed by the Rust ABI;
+    // confirm against the constructor/callers for this toolchain)
     let header: &(usize, usize, usize) =
         unsafe { std::mem::transmute(aliased) };
     println!("ptr={:#x} len={} cap={}", header.0, header.1, header.2);
 }
-
 ```
 
 **Key insight:** A single soundness bug in the borrow checker turns a sandboxed Rust playground into an arbitrary-read-write primitive — no `unsafe` required. When a Rust CTF bans `unsafe` and pins a specific compiler version, grep the rust-lang issue tracker for `soundness` bugs fixed after that version: each one is an exploitation candidate. Repro this family with `std::mem::transmute` only after you have a lifetime-extended reference; the alias is the hard part.
 
 **References:** Hack.lu CTF 2018 — Rusty CodePad, writeup 11859
 
-------
+---
 
 ### Rust #[no_mangle] libc Override for seccomp Bypass (Hack.lu 2018)
 
@@ -654,7 +625,6 @@ pub extern "C" fn prctl(_a: i64, _b: i64) -> i64 {
 fn main() {
     // The real program runs without seccomp filtering
 }
-
 ```
 
 **Key insight:** Rust's static-linking default means `extern "C"` + `#[no_mangle]` is effectively a dynamic hook at compile time — any libc symbol the sandbox harness calls (`prctl`, `chroot`, `seteuid`, `read`) can be redefined by attacker crate code that ships inside the same binary. Harden by routing syscalls through `libc::syscall(SYS_prctl, ...)` directly (which bypasses the symbol table) or by using `-Wl,-Bsymbolic` to prefer the intended definitions.
@@ -671,14 +641,13 @@ start, end = 0x4A1000, 0x4A1100
 for ea in range(start, end, 4):
     d = idc.get_wide_dword(ea)
     print(chr((d >> 2) ^ 0xA), end='')
-
 ```
 
 **Key insight:** Rust binaries are hard to decompile but very easy to scan for literal data. Any check of the form `input == const_buf` leaves the expected value in `.rodata` untouched. Grep for `mov reg, xmmword [rip+offset]` to find the slot, then dump.
 
 **References:** Insomnihack teaser 2019 — beginner_reverse, writeup 12910
 
-------
+---
 
 ## Nuitka-Compiled Python — Module Stub Injection (X-MAS CTF 2018)
 
@@ -693,7 +662,6 @@ class _Trace:
             return b''
         return f
 import sys; sys.modules[__name__] = _Trace()
-
 ```
 
 Run `./target_bin`; the printed calls reveal the algorithm without decompiling the Nuitka output.

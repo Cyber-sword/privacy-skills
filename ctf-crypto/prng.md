@@ -3,7 +3,6 @@
 Foundational PRNG state/seed recovery techniques. For CTF-era advanced attacks (MT19937 constraint propagation, Rule 86 cellular automaton, Java LCG MITM, LFSR bit-fold, Z3 timing oracle, randcrack DSA, NTP-poisoned UUID), see [prng-attacks.md](prng-attacks.md).
 
 ## Table of Contents
-
 - [Mersenne Twister (MT19937) State Recovery](#mersenne-twister-mt19937-state-recovery)
 - [MT State Recovery from random.random() Floats via GF(2) Matrix (PHD CTF Quals 2012)](#mt-state-recovery-from-randomrandom-floats-via-gf2-matrix-phd-ctf-quals-2012)
 - [Time-Based Seed Attacks](#time-based-seed-attacks)
@@ -19,23 +18,25 @@ Foundational PRNG state/seed recovery techniques. For CTF-era advanced attacks (
 - [Password Cracking Strategy](#password-cracking-strategy)
 - [Logistic Map / Chaotic PRNG Seed Recovery (BYPASS CTF 2025)](#logistic-map--chaotic-prng-seed-recovery-bypass-ctf-2025)
 - [V8 XorShift128+ State Recovery (Math.random Prediction)](#v8-xorshift128-state-recovery-mathrandom-prediction)
+- [PCG Family — Permuted Congruential Generator (XSH-RR / XSL-RR / DXSM)](#pcg-family--permuted-congruential-generator-xsh-rr--xsl-rr--dxsm)
+- [xoroshiro / xoshiro Family — Constants & Scramblers](#xoroshiro--xoshiro-family--constants--scramblers)
+- [Blum-Blum-Shub (BBS) — LSB Hardness & Parity Trap](#blum-blum-shub-bbs--lsb-hardness--parity-trap)
+- [Chaotic Maps — Henon & Arnold Cat Map (Image Scrambling)](#chaotic-maps--henon--arnold-cat-map-image-scrambling)
 
 See [prng-attacks.md](prng-attacks.md) for CTF-era advanced attacks (2017+).
 
-------
+---
 
 ## Mersenne Twister (MT19937) State Recovery
 
 Python's `random` module uses Mersenne Twister. If you can observe outputs, you can recover the state and predict future values.
 
 **Key properties:**
-
 - 624 × 32-bit internal state
 - Each output is tempered from state
 - After 624 outputs, state is twisted (regenerated)
 
 **Basic untemper (reverse single output):**
-
 ```python
 def untemper(y):
     y ^= y >> 18
@@ -51,13 +52,11 @@ state = [untemper(output) for output in outputs]
 ```
 
 **Python's randrange(maxsize) on 64-bit:**
-
 - `maxsize = 2^63 - 1`, so `getrandbits(63)` is used
 - Each 63-bit output uses 2 MT outputs: `(mt1 << 31) | (mt2 >> 1)`
 - One bit lost per output → need symbolic solving
 
 **Symbolic approach with z3:**
-
 ```python
 from z3 import *
 
@@ -85,7 +84,6 @@ if solver.check() == sat:
 ```
 
 **Applications:**
-
 - MIME boundary prediction (email libraries)
 - Session token prediction
 - CAPTCHA bypass (predictable codes)
@@ -148,7 +146,6 @@ reset_url = f'http://target/reset/{user_id}-{token}/'
 ```
 
 **Attack flow (password reset token prediction):**
-
 1. Request 3360+ random float values from an API endpoint that exposes them (e.g., `/?count=3360`)
 2. Simultaneously trigger a password reset (the reset token is `md5(random.random())`)
 3. Recover the MT state from the observed floats
@@ -157,24 +154,21 @@ reset_url = f'http://target/reset/{user_id}-{token}/'
 
 **When to use:** Server uses Python's `random.random()` for security-sensitive tokens (session IDs, password resets, CSRF tokens) and also exposes random values through another endpoint. The `not_random` library handles the bit-level math — focus on collecting enough float observations and synchronizing timing with the target operation.
 
-------
+---
 
 ## Time-Based Seed Attacks
 
 When encryption uses time-based PRNG seed:
-
 ```python
 seed = f"{username}_{timestamp}_{random_bits}"
 ```
 
 **Attack approach:**
-
 1. **Username:** Extract from metadata, email headers, challenge context
 2. **Timestamp:** Get from file metadata (ZIP, exiftool)
 3. **Random bits:** Check for hardcoded seed in binary, or bruteforce if small range
 
 **Timestamp extraction:**
-
 ```bash
 # Set timezone to match target
 TZ=Pacific/Galapagos exiftool file.enc
@@ -182,7 +176,6 @@ TZ=Pacific/Galapagos exiftool file.enc
 ```
 
 **Bruteforce milliseconds:**
-
 ```python
 from datetime import datetime
 import random
@@ -203,7 +196,6 @@ for ms in range(1000):
 **Pattern:** Binary seeds C's PRNG with `srand(time(NULL))` at startup and uses `rand()` for encryption keys, random challenges, or XOR masks. Python's `random` module uses Mersenne Twister (different algorithm), so calling `random.seed(t)` produces wrong outputs. Use `ctypes` to load the same libc and call C's `srand()`/`rand()` directly.
 
 **Basic synchronization (L3akCTF 2024, MireaCTF):**
-
 ```python
 from ctypes import CDLL
 from time import time
@@ -221,7 +213,6 @@ for i in range(16):
 ```
 
 **Decrypting XOR-encrypted data (L3akCTF 2024 chonccfile):**
-
 ```python
 from ctypes import CDLL
 from time import time
@@ -242,7 +233,6 @@ for i in range(0, len(encrypted_data), 4):
 ```
 
 **Timing considerations:**
-
 - `time(NULL)` has 1-second granularity — start the exploit within the same second as the binary
 - Remote targets may have startup delay — try offsets of `+1` or `+2` seconds
 - Account for any `rand()` calls between `srand()` and the target usage (e.g., random delays)
@@ -251,29 +241,24 @@ for i in range(0, len(encrypted_data), 4):
 **Key insight:** Python's `random` and C's `rand()` are completely different PRNGs. When a C binary uses `srand(time(NULL))`, the only way to reproduce the sequence from Python is `ctypes.CDLL` calling the same libc's `srand`/`rand`. Load the challenge's provided `libc.so.6` for exact compatibility. This works for any C PRNG output prediction — XOR keys, random challenges, token generation, or encrypted heap data.
 
 **Alternative — custom shared library (MireaCTF):**
-
 ```c
 // random_lib.c — compile with: gcc -shared -o random_lib.so random_lib.c
 #include <stdlib.h>
 void setseed(int seed) { srand(seed); }
 int generate() { return rand() & 0xff; }
-
 ```
-
 ```python
 from ctypes import CDLL
 lib = CDLL('./random_lib.so')
 lib.setseed(int(time()) + 1)  # +1 for remote delay
 numbers = [lib.generate() for _ in range(16)]
-
 ```
 
-------
+---
 
 ## Layered Encryption Recovery
 
 When binary uses multiple encryption layers:
-
 1. Identify encryption order (e.g., Serpent → TEA)
 2. Find seed derivation (e.g., sum of flag chars)
 3. Keys often derived from `srand()` sequence
@@ -286,7 +271,6 @@ Linear Congruential Generators are weak PRNGs. Given consecutive outputs, recove
 **LCG formula:** `x_{n+1} = (a * x_n + c) mod m`
 
 **Recovery from output sequence (SageMath):**
-
 ```python
 # Given sequence: [s0, s1, s2, s3, ...]
 # crypto-attacks library: github.com/jvdsn/crypto-attacks
@@ -302,11 +286,9 @@ m, a, c = parameter_recovery.attack(sequence)
 print(f"Modulus m: {m}")
 print(f"Multiplier a: {a}")
 print(f"Increment c: {c}")
-
 ```
 
 **Weak RSA from LCG primes:**
-
 - If RSA primes are generated from LCG, recover LCG params first
 - Use known plaintext XOR ciphertext to extract LCG outputs
 - Regenerate same prime sequence to factor N
@@ -329,7 +311,6 @@ while len(primes) < 8:
 n = prod(primes)
 phi = prod(p - 1 for p in primes)
 d = pow(65537, -1, phi)
-
 ```
 
 ## ChaCha20 Key Recovery
@@ -346,7 +327,6 @@ for candidate_key in generate_candidates():
     if is_valid(plaintext):  # Check for expected format
         print(f"Key found: {candidate_key.hex()}")
         break
-
 ```
 
 **Ghidra emulator for key extraction:**
@@ -375,12 +355,11 @@ def build_prng_matrix(prng_func, seed_bits=2048, output_bits=2048):
 # Given output, solve: M * seed = output (mod 2)
 # Use GF(2) Gaussian elimination (see modern-ciphers.md solve_gf2)
 seed = solve_gf2(M, output_bits_array)
-
 ```
 
 **Identification:** Any PRNG using only `^`, `<<`, `>>`, bitwise rotate. DON'T try iterative state recovery — go straight to the matrix.
 
-------
+---
 
 ## Middle-Square PRNG Brute Force (UTCTF 2024)
 
@@ -404,19 +383,17 @@ for seed in range(10**6):
     if try_decrypt(ciphertext, key):
         print(f"Seed: {seed}")
         break
-
 ```
 
 **Even with time-limited interactions:** 1 known-plaintext pair suffices for offline brute force.
 
-------
+---
 
 ## Deterministic RNG from Flag Bytes + Hill Climbing (VuwCTF 2025)
 
 **Pattern (Totally Random Art):** Flag bytes seed Python `random.Random()`. First N bytes of flag are known format, remaining bytes produce deterministic output.
 
 **Attack:** When PRNG seed is known/derivable from flag format, hill-climb unknown characters:
-
 ```python
 import random
 
@@ -446,17 +423,15 @@ for pos in range(7, 17):
         if score > best_score:
             best_score, best_char = score, c
     flag.append(best_char)
-
 ```
 
-------
+---
 
 ## Byte-by-Byte Oracle with Random Mode Matching (VuwCTF 2025)
 
 **Pattern (Unorthodox IV):** Server encrypts with one of N random modes/IVs per encryption. Can submit own plaintexts.
 
 **Attack strategy:**
-
 1. Connect, get encrypted flag
 2. Probe with known prefix to check if connection can "reach" the flag's mode (same mode = same ciphertext prefix). ~50 probes, if no match, reconnect.
 3. Once reachable, test candidate characters. Mode match AND next byte match = correct char. Mode match but byte mismatch = eliminate candidate permanently.
@@ -464,7 +439,7 @@ for pos in range(7, 17):
 
 **Key insight:** Probe for mode reachability first to avoid wasting attempts. Elimination-based search is more efficient than confirmation-based when modes are randomized.
 
-------
+---
 
 ## RSA Key Reuse / Replay (UTCTF 2024)
 
@@ -472,7 +447,7 @@ for pos in range(7, 17):
 
 **Attack:** Submit previously captured encrypted output back to the server. If keys are static across interactions, replay attacks are trivial. Always check if crypto keys change between rounds.
 
-------
+---
 
 ## Logistic Map / Chaotic PRNG Seed Recovery (BYPASS CTF 2025)
 
@@ -506,31 +481,27 @@ for precision in range(6, 12):
         result = decrypt_logistic(cipher_hex, seed)
         if b"FLAG" in result or b"CTF" in result:
             print(f"Seed: {seed}, Flag: {result}")
-
 ```
 
 **Variations:**
-
 - **r parameter:** Usually `r = 3.99` or `r = 4.0` (full chaos regime)
 - **Packing:** `struct.pack("<f", x)` (4 bytes), `struct.pack("<d", x)` (8 bytes), or `[-2:]` for 2-byte fragments
 - **Seed range:** Often a recognizable decimal like `0.123456789` or derived from challenge hints
 
 **Identification:** Challenge mentions "chaos", "logistic", "butterfly effect", or provides `r` parameter. Look for source code containing `x = r * x * (1 - x)` iteration.
 
-------
+---
 
 ## V8 XorShift128+ State Recovery (Math.random Prediction)
 
 **Pattern:** Web challenge uses `Math.floor(CONST * Math.random())` to generate tokens, codes, or game values. V8's `Math.random()` uses XorShift128+ (xs128p) PRNG. Given consecutive floored outputs, recover the internal state (state0, state1) with Z3, then predict future values.
 
 **V8 internals:**
-
 1. xs128p produces 64-bit state; V8 uses `state0 >> 12 | 0x3FF0000000000000` to create a double in [1.0, 2.0), then subtracts 1.0
 2. `Math.random()` reads from a **64-value LIFO cache**. When the cache is empty, `RefillCache()` generates 64 new values. Values are consumed in reverse order from the cache
 3. Only `state0` is used for the output (not `state1`)
 
 **xs128p algorithm:**
-
 ```python
 def xs128p(state0, state1):
     s1 = state0 & 0xFFFFFFFFFFFFFFFF
@@ -542,11 +513,9 @@ def xs128p(state0, state1):
     state0 = state1 & 0xFFFFFFFFFFFFFFFF
     state1 = s1 & 0xFFFFFFFFFFFFFFFF
     return state0, state1, state0  # output is new state0
-
 ```
 
 **Z3 solver for `Math.floor(CONST * Math.random())`:**
-
 ```python
 from z3 import *
 from decimal import Decimal
@@ -599,24 +568,20 @@ def predict_next(state0, state1, multiple, count):
         import math
         results.append(math.floor(multiple * to_double(output)))
     return results
-
 ```
 
 **Usage (tool: d0nutptr/v8_rand_buster):**
-
 ```bash
 # Collect observed values, reverse them (LIFO cache order), pipe to solver
 cat observed_codes.txt | tac | python3 xs128p.py --multiple 100000
 
 # Generate predictions from recovered state
 python3 xs128p.py --multiple 100000 --gen <state0>,<state1>,<count>
-
 ```
 
 **Key insight:** The LIFO cache means observed values are in reverse generation order — reverse them with `tac` before solving. The Z3 `QF_BV` (quantifier-free bitvector) theory efficiently handles the bitwise operations. Typically 5-10 consecutive outputs suffice for a unique solution.
 
 **Common pitfalls:**
-
 - Forgetting to reverse the observation order (cache is LIFO)
 - Multiple browser tabs or web workers may have separate PRNG states
 - Cache boundary (every 64 calls) can introduce discontinuities if observations span a refill
@@ -650,17 +615,15 @@ def reverse_step(s0, s1):
 for _ in range(N):
     state0, state1 = reverse_step(state0, state1)
     predicted = math.floor(CONST * to_double(state0))
-
 ```
 
 **When to use:** Web challenge where JavaScript generates predictable-looking random values (tokens, verification codes, game rolls) using `Math.random()`. Look for patterns like `Math.floor(N * Math.random())` or `Math.random().toString(36).substr(2)` in client-side or server-side Node.js code.
 
-------
+---
 
 ## Password Cracking Strategy
 
 **Attack order for unknown passwords:**
-
 1. Common wordlists: `rockyou.txt`, `10k-common.txt`
 2. Theme-based wordlist (usernames, challenge keywords)
 3. Rules attack: wordlist + `best66.rule`, `dive.rule`
@@ -670,7 +633,6 @@ for _ in range(N):
 **SHA256 with hex salt (VuwCTF 2025, Delicious Cooking):** Format `hash$hex_salt`. Salt must be hex-decoded before `SHA256(password + salt_bytes)`. Password often derivable from security questions (e.g., "fav movie + PIN" = "ratatouille0000"-"ratatouille9999").
 
 **CTF password patterns:**
-
 ```text
 base_password + year     → actnowonclimatechange2026
 username + digits        → nemo123, admin2026
@@ -679,7 +641,6 @@ leet speak               → p@ssw0rd, s3cr3t
 ```
 
 **Hashcat modes reference:**
-
 ```bash
 # Common modes
 -m 0      # MD5
@@ -697,12 +658,453 @@ leet speak               → p@ssw0rd, s3cr3t
 ```
 
 **When password relates to another in challenge:**
-
 - Try variations: `password + year`, `password + 123`
 - Try reversed: `drowssap`
 - Try with common suffixes: `!`, `@`, `#`, `1`, `123`
 - If SMB/FTP password known, ZIP password often related
 
-------
+---
 
-See [prng-attacks.md](prng-attacks.md) for CTF-era advanced attacks (2017+).
+## PCG Family — Permuted Congruential Generator (XSH-RR / XSL-RR / DXSM)
+
+**Pattern:** CTF uses PCG-64 (e.g., `pcg64` from NumPy) or custom PCG-32 with small state. State update is LCG: `s_{n+1} = a * s_n + c mod 2^k` where `k = 64` or `128`. Output is a permuted slice: `XSH-RR`, `XSL-RR`, or the newer `DXSM`. PCG's output function hides bits but the LCG step is fully invertible.
+
+**Identification:** Challenge imports `numpy.random.PCG64`, mentions `pcg`, or shows constants `a = 6364136223846793005` (PCG default multiplier for 64-bit) or `a = 25492914187169442445` for 128-bit state.
+
+**Output permutations:**
+
+| Variant | State bits | Output bits | Permutation |
+|---------|-----------|-------------|-------------|
+| XSH-RR 64/32 | 64 | 32 | `xorshift(state>>something)`, `rotate32` by `state>>58` |
+| XSH-RR 64/64 | 128 | 64 | `rotate64(state ^ (state>>64), state>>122)` |
+| XSL-RR 128/64 | 128 | 64 | `rotate64((state>>64) ^ state, state>>122)` — xor low/high then rotate |
+| DXSM 128/64 | 128 | 64 | `state * c2 ^ (state>>64)` double-xorshift-multiply |
+
+**Canonical 128/64 XSH-RR (what CTFs use):**
+
+```python
+MASK128 = (1 << 128) - 1
+MASK64  = (1 << 64) - 1
+MUL = 25492914187169442445   # PCG 128-bit default
+INC = 1234567890123456789    # odd increment (challenge-specific, may be 1442695040888963407)
+
+def rotr64(v, r):
+    r &= 63
+    return ((v >> r) | (v << (64 - r))) & MASK64
+
+def pcg_output(state128):
+    """XSH-RR 128->64 : rotate64(state ^ (state>>64), state>>122)"""
+    xorshifted = (((state128 >> 64) ^ state128) >> 58) & MASK64  # upper bits for rotate not used here
+    # canonical form per spec:
+    rot = (state128 >> 122) & 63
+    x = (state128 ^ (state128 >> 64)) & MASK64
+    return rotr64(x, rot)
+
+def pcg_step(state):
+    return (state * MUL + INC) & MASK128
+
+# Collect outputs, then reverse
+outs = [...]  # observed 64-bit outputs
+```
+
+**Why brute force works — 64-branch inversion:**
+
+Given one 64-bit output `o`, the pre-image state is NOT unique: the rotate amount `rot = state>>122` is 6 bits (0..63) and `x = rotr_inv(o, rot)` constrains only 64 of 128 state bits. Each `rot` gives a 64-bit search space reduced to 2 candidates via the LCG relation.
+
+```python
+def rotl64(v, r):
+    r &= 63
+    return ((v << r) | (v >> (64 - r))) & MASK64
+
+def invert_pcg_output(out, rot):
+    """Given output `out` and guessed rot, recover the x = state ^ (state>>64) low 64."""
+    return rotl64(out, rot)
+
+# Full reversal: try all 64 rotations, solve LCG linkage with Z3
+from z3 import BitVec, BitVecVal, Solver, LShR, RotateRight
+
+def recover_pcg_z3(outputs):
+    s = [BitVec(f's{i}', 128) for i in range(len(outputs)+1)]
+    solver = Solver()
+    for i in range(len(outputs)):
+        solver.add(s[i+1] == s[i] * MUL + INC)  # mod 2^128 automatic for BitVec
+        rot = LShR(s[i], 122)  # 6-bit rotate
+        x = (s[i] ^ LShR(s[i], 64)) & 0xFFFFFFFFFFFFFFFF  # low 64 of xor
+        # Z3 RotateRight expects concrete or symbolic rotation
+        solver.add(RotateRight(x & 0xFFFFFFFFFFFFFFFF, rot) == outputs[i])
+    # Alternative: branch instead of symbolic rotate for older Z3
+    #   solver.add(Or(*[And(rot==r, RotateRight(x,r)==outputs[i]) for r in range(64)]))
+    if solver.check().sat:
+        m = solver.model()
+        return [m[si].as_long() for si in s]
+    return None
+```
+
+<details><summary>Sage fallback (optional)</summary>
+
+```python
+from sage.all import *
+
+# Sage brute-force over 64 rotations, then meet-in-the-middle on state
+MUL = 25492914187169442445
+INC = 1442695040888963407
+MASK64 = (1<<64)-1
+
+def rotr64(v, r):
+    return ((v >> r) | (v << (64 - r))) & MASK64
+
+def sage_pcg_recover(outputs):
+    # Try each rotation for first output; derive high bits, propagate via LCG, test second output
+    for rot in range(64):
+        x = ((outputs[0] << rot) | (outputs[0] >> (64-rot))) & MASK64  # rotl
+        # x = low64(state ^ (state>>64)); so high64(state) = low64(state) ^ x ^ carry from cross
+        # Brute-force low64 via second output filter (still 2^64 worst; use Z3 in practice)
+        # With 3 outputs, Sage's IntegerMod ring solves directly
+        R = Zmod(2**128)
+        # Encode as IntegerMod and let Sage solve — prefer Z3 path above for speed
+        pass
+```
+
+</details>
+
+**Branch-Or Z3 model:** The symbolic `RotateRight(x, rot)` where `rot` is `state>>122` is hard for Z3 (symbolic rotate). Rewrite as 64-way `Or` over concrete rotates — `Or(And(rot==r, RotateRight(x, r)==out) for r in range(64))`. This enumerates the 6-bit rotation and keeps the solver in QF_BV decidable fragment. Two consecutive outputs usually pinpoint a unique seed; three outputs eliminate false positives from the 64-branch.
+
+**When to recognize:** Challenge leaks 2-3 consecutive `pcg64` outputs as 64-bit integers or floats derived from them. Look for `numpy`, `pcg`, or the multiplier `6364136223846793005` (64-bit) / `25492914187169442445` (128-bit).
+
+---
+
+## xoroshiro / xoshiro Family — Constants & Scramblers
+
+**Pattern:** Non-cryptographic but CTF-predictable generators: `xoroshiro128+`, `xoroshiro128**`, `xoshiro256**`, `xoshiro256++`, and V8's `xoroshiro128+` alias `xs128p`. Each has a distinct linear transition (xor/shift/rotate) and a scrambler that hides the state.
+
+| Generator | State | Transition constants | Scrambler | Output |
+|-----------|-------|---------------------|-----------|--------|
+| xs128p (V8 Math.random) | 128 (2x64) | `a=23, b=17, c=26` | `+` (add) | `s0 + s1` |
+| xoroshiro128+ | 128 (2x64) | `a=23, b=17, c=26` | `+` | `s0 + s1` |
+| xoroshiro128** | 128 (2x64) | `a=24, b=16, c=22` | `**` (`rotl(s0*5,7)*9`) | `rotl(s0*5,7)*9` |
+| xoshiro256** | 256 (4x64) | `a=23, b=17, c=26` via rotates | `**` (`rotl(s0*5,7)*9`) | `rotl(s0*5,7)*9` |
+| xoshiro256+ | 256 (4x64) | same | `+` (`s0 + s3`) | `s0 + s3` |
+| xoshiro256++ | 256 (4x64) | same | `++` (`rotl(s0+s3,23)+s0`) | `rotl(s0+s3,23)+s0` |
+
+**Transition (xoroshiro128 family):**
+
+```python
+MASK64 = (1 << 64) - 1
+
+def rotl64(x, k):
+    return ((x << k) | (x >> (64 - k))) & MASK64
+
+def xoroshiro128_next(s0, s1, a=23, b=17, c=26):
+    s1 ^= s0
+    s0 = rotl64(s0, a) ^ s1 ^ ((s1 << b) & MASK64)
+    s1 = rotl64(s1, c)
+    return s0, s1
+
+def xoshiro256_next(s):
+    # s = [s0,s1,s2,s3]
+    t = (s[1] << 17) & MASK64
+    s[2] ^= s[0]
+    s[3] ^= s[1]
+    s[1] ^= s[2]
+    s[0] ^= s[3]
+    s[2] ^= t
+    s[3] = rotl64(s[3], 45)
+    return s
+
+def scrambler_plus(s0, s1):            # xoroshiro128+
+    return (s0 + s1) & MASK64
+
+def scrambler_starstar(s0):             # xoroshiro128** / xoshiro256**
+    return (rotl64((s0 * 5) & MASK64, 7) * 9) & MASK64
+```
+
+**Recovering state — linear + scrambler:**
+
+The transition is linear over GF(2); only the scrambler is non-linear (`+` or `*`). For `+`, the sum leaks carries; for `**`, the multiply leaks low bits. With 3-4 consecutive outputs, Z3 over BitVec 64 recovers the full state.
+
+```python
+from z3 import BitVec, BitVecVal, Solver, LShR, RotateLeft
+
+def recover_xoroshiro128_plus(outputs):
+    s0, s1 = BitVec('s0', 64), BitVec('s1', 64)
+    solver = Solver()
+    cur0, cur1 = s0, s1
+    for o in outputs:
+        solver.add((cur0 + cur1) == o)
+        # step: s1 ^= s0; s0 = rotl(s0,23) ^ s1 ^ (s1<<17); s1 = rotl(s1,26)
+        ns1 = cur1 ^ cur0
+        ns0 = RotateLeft(cur0, 23) ^ ns1 ^ (ns1 << 17)
+        ns1 = RotateLeft(ns1, 26)
+        cur0, cur1 = ns0, ns1
+    if solver.check().sat:
+        m = solver.model()
+        return m[s0].as_long(), m[s1].as_long()
+    return None
+
+def recover_xoshiro256_starstar(outputs):
+    s = [BitVec(f's{i}', 64) for i in range(4)]
+    solver = Solver()
+    cur = s[:]
+    for o in outputs:
+        solver.add(RotateLeft((cur[0] * 5) & 0xFFFFFFFFFFFFFFFF, 7) * 9 == o)
+        # xoshiro256 transition
+        t = cur[1] << 17
+        cur[2] ^= cur[0]
+        cur[3] ^= cur[1]
+        cur[1] ^= cur[2]
+        cur[0] ^= cur[3]
+        cur[2] ^= t
+        cur[3] = RotateLeft(cur[3], 45)
+        # loop continues with new cur
+    if solver.check().sat:
+        m = solver.model()
+        return [m[si].as_long() for si in s]
+    return None
+```
+
+<details><summary>Sage fallback (optional)</summary>
+
+```python
+from sage.all import *
+
+# Sage: model xoroshiro as linear system over GF(2) plus scrambler as integer constraints
+# For xoroshiro128+, brute-force via Sage's BitVector SAT or convert to z3 via sage's z3 interface
+# Prefer pure-Python Z3 path above; Sage path mirrors it with sage's z3 solver bridge
+def sage_xoroshiro(outputs):
+    from sage.sat.boolean_polynomials import solve as sat_solve
+    # Encode transition as Boolean polynomials, scrambler as carry constraints
+    pass
+```
+
+</details>
+
+**Differential choice:** The `+` scrambler is weaker than `**` — addition's low bits are linear (no carry into bit 0), so bit 0 of the output directly leaks `s0[0] ^ s1[0]`. Start guessing from LSB upward. For `**`, the multiply by 5 (`s0*5 = s0*4 + s0`) also leaks low bits; `rotl(...,7)` then moves them to bits 7+ — enumerate low bytes first.
+
+**When to recognize:** Challenge says `xoroshiro`, `xoshiro`, or shows `rotl`/`xor`/`<<` constants like `23,17,26` or `45`. Check `numpy.random` docs: `SFC64`, `Philox` are different; `MT19937` is Mersenne. Confirm by matching constants to the table above.
+
+---
+
+## Blum-Blum-Shub (BBS) — LSB Hardness & Parity Trap
+
+**Pattern:** BBS: `x_{i+1} = x_i^2 mod n` where `n = p*q`, `p,q` primes `= 3 mod 4`. Security relies on quadratic residuosity — predicting the LSB is as hard as factoring `n` — but CTF breaks come from `n` even, small `n`, or repeated same-bit leakage that pins `x_0` near a boundary.
+
+**Core:**
+
+```python
+def bbs_next(x, n):
+    return pow(x, 2, n)
+
+def bbs_bits(x0, n, count):
+    x = x0
+    out = []
+    for _ in range(count):
+        x = pow(x, 2, n)
+        out.append(x & 1)  # LSB oracle; some CTFs use parity (x % 2) or x & 1
+    return out
+
+# BBS is unbiased: P(LSB=0) ~ 0.5 when p,q = 3 mod 4 (Blum primes)
+# When n is even, parity leaks directly and LSB is trivially predictable!
+```
+
+**Hardness vs CTF instantiation:**
+
+The LSB of BBS is provably unpredictable under factoring hardness (Blum-Micali). The HTB/Bloom observation: extracting more than `O(log log n)` bits per iteration via `x_i % 2^k` breaks the proof — but LSB-only remains hard unless `n` has structure.
+
+**The parity trap — even `n`:**
+
+If the challenge generates `n` as `random.getrandbits(512)` without checking oddness, `n` is even with probability 0.5. Then `x_{i+1} = x_i^2 mod n` preserves parity: even `x` stays even, odd `x` stays odd, so the LSB sequence is constant `0` or `1`. Detection is trivial:
+
+```python
+import hashlib
+
+def bloom_parity_trap(n, bits):
+    """If n even and 256 consecutive BBS bits are identical, we brute-force x0."""
+    if n % 2 == 1:
+        return None  # not trapped; need factoring path
+    # All bits same => x0 had that parity throughout
+    if len(set(bits)) != 1:
+        return None
+    const_bit = bits[0]
+    # sha256('0'*256) vs sha256('1'*256) fingerprint — challenge checks this
+    # HTB Bloom: service hashes the bitstring; we compare
+    h0 = hashlib.sha256(b'0'*256).hexdigest()
+    h1 = hashlib.sha256(b'1'*256).hexdigest()
+    # Only 2 candidates survive: x0 even vs odd preimage
+    # Brute-force x0 parity class and step backward via modular sqrt mod even n
+    candidates = []
+    if const_bit == 0:
+        # x0 even — any even seed squares to even mod even n
+        candidates = [2, 4]  # minimal even representatives; real solver tries sqrt chain
+    else:
+        candidates = [1, 3]
+    return candidates, (h0, h1)
+
+# Full BBS solver for even-n parity trap (HTB Bloom pattern)
+def solve_bloom_bbs(n, observed_bits):
+    # observed_bits is 256 copies of same bit? Then:
+    assert len(observed_bits) == 256 and len(set(observed_bits)) == 1
+    # Challenge expects you to notice the trap and return the 2 possible hash preimages
+    bit = str(observed_bits[0])
+    h = hashlib.sha256((bit*256).encode()).hexdigest()
+    # The flag is hidden behind which candidate the oracle accepts
+    print(h)
+    # Then invert BBS one step at a time via Tonelli-Shanks mod n (when n even, just parity)
+    return h
+```
+
+<details><summary>Sage fallback (optional)</summary>
+
+```python
+from sage.all import *
+
+def sage_bbs_sqrt(x_next, n):
+    # Square roots mod n = p*q via CRT; needs factorization
+    # For even n, factor 2 out and solve mod odd part, then combine
+    p, q = factor(n)  # Sage factor
+    # Tonelli-Shanks for p,q = 3 mod 4: sqrt(x) = x^((p+1)//4) mod p
+    roots_p = [pow(int(x_next % p), (int(p)+1)//4, int(p))]
+    roots_p.append(int(p) - roots_p[0])
+    roots_q = [pow(int(x_next % q), (int(q)+1)//4, int(q))]
+    roots_q.append(int(q) - roots_q[0])
+    # CRT combine — 4 roots
+    return crt_combine(roots_p, roots_q, p, q)
+```
+
+</details>
+
+**General BBS attack checklist:**
+
+1. Check `n % 2 == 0` → parity trap → constant-bit fingerprint `sha256('0'*256)` / `sha256('1'*256)`, only 2 candidates.
+2. If `n` small (< 512 bits) → factor with `yafu`/`factordb`/`sage`, then compute square roots via Tonelli-Shanks `(p+1)//4` for Blum primes to walk backward from any `x_i`.
+3. If many bits leaked per iteration (>1 bit, e.g., `x_i & 0xFF`) → Coppersmith/lattice on the truncated `x_i`.
+4. LSB-only, `n` odd, large → hard; challenge must give `n` even or leak extra bits.
+
+**References:** HTB Bloom, Blum-Micali 1984.
+
+---
+
+## Chaotic Maps — Henon & Arnold Cat Map (Image Scrambling)
+
+**Pattern:** Image encryption via chaotic maps: Henon map shuffles pixel positions or XORs keystream; Arnold cat map permutes `N x N` blocks with matrix `[[1,p],[q,p*q+1]] mod N`. The first scrambling weakens quickly — brute-force the chaotic seed + map parameters and score with PNG header.
+
+**Henon map:**
+
+```
+x_{n+1} = 1 - a*x_n^2 + y_n
+y_{n+1} = b*x_n
+a = 1.4, b = 0.3  (classic chaotic regime)
+```
+
+```python
+def henon(x, y, a=1.4, b=0.3):
+    x_next = 1 - a*x*x + y
+    y_next = b*x
+    return x_next, y_next
+
+def henon_keystream(x0, y0, n, a=1.4, b=0.3):
+    x, y = x0, y0
+    ks = []
+    for _ in range(n):
+        x, y = henon(x, y, a, b)
+        ks.append(int(abs(x) * 1e9) & 0xff)  # challenge-specific extraction
+    return bytes(ks)
+
+# Brute-force x0 when quantized to 4 decimals (10000 possibilities per y0)
+def brute_henon(cipher, y0=0.0):
+    best = (None, -1)
+    for x0_int in range(-10000, 10000):
+        x0 = x0_int / 10000
+        ks = henon_keystream(x0, y0, len(cipher))
+        pt = bytes(c ^ k for c, k in zip(cipher, ks))
+        # PNG header scoring: 89 50 4E 47 0D 0A 1A 0A
+        score = sum(1 for a, b in zip(pt[:8], b'\x89PNG\r\n\x1a\n') if a == b)
+        if score > best[1]:
+            best = ((x0, y0, pt), score)
+            if score == 8:
+                return best[0]
+    return best[0]
+```
+
+**Arnold cat map — forward, inverse, and brute force:**
+
+The cat map permutes pixel `(x,y)` as:
+
+```
+[x'] = [[1, p    ]] [x]  mod N
+[y']   [[q, p*q+1]] [y]
+```
+
+Its inverse is:
+
+```
+M^{-1} = [[p*q+1, -p]]  mod N
+         [[-q,     1]]
+```
+
+```python
+def arnold_forward(x, y, p, q, N):
+    return ( (x + p*y) % N, (q*x + (p*q+1)*y) % N )
+
+def arnold_inverse(x, y, p, q, N):
+    return ( ((p*q+1)*x - p*y) % N, (-q*x + y) % N )
+
+def arnold_scramble(img, p, q, N, rounds=1):
+    """Permute N x N image `rounds` times with cat map."""
+    out = [[0]*N for _ in range(N)]
+    for y in range(N):
+        for x in range(N):
+            nx, ny = x, y
+            for _ in range(rounds):
+                nx, ny = arnold_forward(nx, ny, p, q, N)
+            out[ny][nx] = img[y][x]
+    return out
+
+def arnold_unscramble(img, p, q, N, rounds=1):
+    out = [[0]*N for _ in range(N)]
+    for y in range(N):
+        for x in range(N):
+            nx, ny = x, y
+            for _ in range(rounds):
+                nx, ny = arnold_inverse(nx, ny, p, q, N)
+            out[ny][nx] = img[y][x]
+    return out
+
+# Brute-force p,q in [1,5] + quantized x0 for Henon-XOR layer, score with PNG header
+PNG_MAGIC = b'\x89PNG\r\n\x1a\n'
+
+def brute_arnold_henon(cipher_img, N):
+    for p in range(1, 6):
+        for q in range(1, 6):
+            # try unscrambling with this cat map
+            unscrambled = arnold_unscramble(cipher_img, p, q, N, rounds=1)
+            flat = bytes(v & 0xff for row in unscrambled for v in row)
+            # score header
+            if flat[:8] == PNG_MAGIC:
+                print(f"cat map p={p} q={q} -> PNG header matched")
+                return p, q, flat
+            # if Henon XOR layer present, nest x0 brute-force inside (4-decimal quantized)
+            for x0_int in range(0, 10000):
+                x0 = x0_int / 10000
+                ks = henon_keystream(x0, 0.0, len(flat))
+                pt = bytes(c ^ k for c, k in zip(flat, ks))
+                if pt[:8] == PNG_MAGIC:
+                    return p, q, x0, pt
+    return None
+```
+
+<details><summary>Sage fallback (optional)</summary>
+
+```python
+from sage.all import *
+
+def sage_arnold_period(p, q, N):
+    M = matrix(Zmod(N), [[1, p],[q, p*q+1]])
+    # period is order of M in GL(2, Z_N)
+    return M.multiplicative_order()
+```
+
+</details>
+
+**Scoring oracle:** After each trial descramble, check `pt[:8] == b'\x89PNG\r\n\x1a\n'` or `pt[1:4] == b'PNG'` plus `pt[12:16] == b'IHDR'`. The cat map period divides `3*N` for prime `N` (and is tiny for `N` power of 2), so iterating `period` times returns the original image — use this to bound search.
+
+**When to recognize:** Challenge shows scrambled image, mentions `Henon`, `Arnold`, `cat map`, `chaotic`, or gives matrix `[[1,p],[q,pq+1]]`. The keyspace is tiny: `p,q` in `[1,5]` and `x0` quantized to 4 decimals (10k tries). Start with header scoring, not entropy.

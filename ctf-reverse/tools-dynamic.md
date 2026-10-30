@@ -1,7 +1,6 @@
 # CTF Reverse - Dynamic Analysis Tools
 
 ## Table of Contents
-
 - [Frida (Dynamic Instrumentation)](#frida-dynamic-instrumentation)
   - [Installation](#installation)
   - [Basic Function Hooking](#basic-function-hooking)
@@ -36,7 +35,7 @@
 
 For Qiling/Triton emulation and Intel Pin / LD_PRELOAD side-channel techniques, see [tools-emulation.md](tools-emulation.md).
 
-------
+---
 
 ## Frida (Dynamic Instrumentation)
 
@@ -174,17 +173,34 @@ Stalker.follow(Process.getCurrentThreadId(), {
 
 ### r2frida (Radare2 + Frida Integration)
 
-```bash
-# Attach radare2 to process via Frida
-r2 frida://spawn/./binary
+r2frida drives a live process through Frida but exposes it as an r2 IO plugin, so disassembly, seeks, and native hooks all work inside r2. Dynamic live-process instrumentation — compare r2ghidra (static decompiler) and ESIL (static single-function emulation).
 
-# r2frida commands
-\ii                    # List imports
-\il                    # List loaded modules
-\dt strcmp             # Trace strcmp calls
-\dc                    # Continue execution
-\dm                    # List memory maps
+Core r2 does not register `frida://` on its own: `r2 -L` lists 40+ IO plugins with no frida entry, and `r2 -q frida://0` fails with `ERROR: Cannot open`. Install the version-matched plugin build (observed on r2 6.2.2 with the nowsecure/r2frida 6.2.2 `.deb`, `io_frida.so` 184 MB):
+
+```bash
+# r2pm has no binstall dispatch on this build — extract the .deb manually
+# (same ar x + tar xzf route as the r2ghidra .deb)
+ar x r2frida_6.2.2_amd64.deb && tar xzf data.tar.gz
+mkdir -p ~/.local/share/radare2/plugins
+cp usr/local/share/radare2/plugins/io_frida.so ~/.local/share/radare2/plugins/
+r2 -L | grep frida   # rw_  frida    io plugin for Frida ... frida://
 ```
+
+For a CTF target, spawn the binary through the plugin (host arch) and disassemble live memory. Attaching to unrelated pids fails when `ptrace_scope=1`; `frida://0` attaches to r2 itself, so do not use it as the example:
+
+```bash
+r2 -q -c 's sym.compute; pd 5' 'frida:///abs/path/to/binary'
+```
+
+Native return-value hooks use the `:di*` family (`dif-1` and `dif0` verified below; `difi` needs an explicit argument, `dbc` sets a breakpoint/continue hook, `:dm` lists maps). Hook `compute` so its caller prints `-1` instead of the real result:
+
+```bash
+r2 -q -c 's sym.compute; :dif-1 $$; :dc; :dc' 'frida:///abs/path/to/binary'
+# Target: $$ was called, intercepting return value.
+# -1
+```
+
+Use `:dm` for memory maps — plain `dm` errors with `dm requires the debugger or use om instead`. The `:.` command loads a `.ts`/`.js`/`.c` file into the agent; it is not a full Frida REPL (verified: `Ptr` is undefined so use `NativePointer`, and `Module.findBaseAddress` throws `TypeError: not a function`) — keep JS work in real Frida scripts and use r2frida for disassembly plus `:di*` hooks.
 
 ### Frida for Android/iOS
 
@@ -246,7 +262,6 @@ frida -f ./binary -l memo_hook.js --no-pause
 ```
 
 For multi-argument functions, build a composite key:
-
 ```javascript
 Interceptor.attach(funcAddr, {
     onEnter: function(args) {
@@ -266,7 +281,7 @@ Interceptor.attach(funcAddr, {
 
 **References:** hxp CTF 2017
 
-------
+---
 
 ## angr (Symbolic Execution)
 
@@ -282,7 +297,7 @@ pip install angr
 
 ```python
 import angr
-import claripy
+from angr import claripy
 
 # Load binary
 proj = angr.Project('./binary', auto_load_libs=False)
@@ -306,7 +321,7 @@ if simgr.found:
 
 ```python
 import angr
-import claripy
+from angr import claripy
 
 proj = angr.Project('./binary', auto_load_libs=False)
 
@@ -361,7 +376,6 @@ class AlwaysSucceed(angr.SimProcedure):
         return 1
 
 proj.hook_symbol('check_license', AlwaysSucceed())
-
 ```
 
 ### Exploring from Specific Address
@@ -376,7 +390,6 @@ state.memory.store(0x600000, b"AAAA" + b"\x00" * 28)
 
 simgr = proj.factory.simgr(state)
 simgr.explore(find=0x401300, avoid=0x401350)
-
 ```
 
 ### Common Patterns and Tips
@@ -407,7 +420,6 @@ simgr.explore(find=0x401234, avoid=0x401256, num_find=1)
 # Or use exploration techniques:
 simgr.use_technique(angr.exploration_techniques.DFS())  # Depth-first
 simgr.use_technique(angr.exploration_techniques.LengthLimiter(max_length=500))
-
 ```
 
 ### Dealing with Path Explosion
@@ -433,7 +445,6 @@ class SHA256Hook(angr.SimProcedure):
         self.state.memory.store(output, h)
 
 proj.hook_symbol('SHA256', SHA256Hook())
-
 ```
 
 ### angr CFG Recovery
@@ -452,14 +463,13 @@ for addr, func in cfg.functions.items():
 # Cross-references
 node = cfg.model.get_any_node(0x401234)
 print("Predecessors:", [hex(p.addr) for p in cfg.model.get_predecessors(node)])
-
 ```
 
 **Key insight:** angr works best on flag-checker binaries with clear success/failure paths. For complex binaries, hook expensive functions (crypto, I/O) and use DFS exploration. Start with the simplest approach (just find/avoid addresses) before adding constraints. If angr is slow, constrain input to printable ASCII and add known prefix.
 
 **When to use:** Flag validators with branching logic, maze/path-finding binaries, constraint-heavy checks, automated binary analysis. Less effective for: heavy crypto, floating-point math, complex heap operations.
 
-------
+---
 
 ## lldb (LLVM Debugger)
 
@@ -482,7 +492,6 @@ lldb ./binary
 (lldb) x/s $rsi                     # Examine string (GDB-style)
 (lldb) dis -n main                  # Disassemble function
 (lldb) image list                   # Loaded modules + base addresses
-
 ```
 
 ### Scripting (Python)
@@ -503,12 +512,11 @@ def hook_strcmp(debugger, command, result, internal_dict):
     print(f'strcmp("{s0}", "{s1}")')
 
 # Register in lldb: command script add -f script.hook_strcmp hook_strcmp
-
 ```
 
 **Key insight:** Use lldb for macOS binaries (Mach-O), iOS apps, and when GDB isn't available. `image list` gives ASLR slide for PIE binaries. Scripting API is more structured than GDB's.
 
-------
+---
 
 ## x64dbg (Windows Debugger)
 
@@ -528,7 +536,6 @@ F8      → Step over
 F9      → Run
 Ctrl+G  → Go to address
 Ctrl+F  → Find pattern in memory
-
 ```
 
 ### Scripting
@@ -539,7 +546,6 @@ bp 0x401234                    # Breakpoint
 SetBPX 0x401234, 0, "log {s:utf8@[esp+4]}"  # Log string arg on hit
 run                            # Continue
 StepOver                       # Step over
-
 ```
 
 ### Common CTF Workflow
@@ -551,7 +557,7 @@ StepOver                       # Step over
 
 **Key insight:** x64dbg has built-in pattern scanning, hardware breakpoints, and conditional logging. For Windows CTF binaries, it's often faster than IDA/Ghidra for dynamic analysis. Use the **xAnalyzer** plugin for automatic function argument annotation.
 
-------
+---
 
 ## GDB Register Side-Channel on putchar() (picoCTF 2018)
 
@@ -572,20 +578,18 @@ commands
 end
 
 run
-
 ```
 
 ```bash
 gdb -batch -x script.gdb ./crackme
 cat flag.log
-
 ```
 
 **Key insight:** Any time a program artificially slows output with `usleep`, `nanosleep`, or busy-loop delays, the character to be printed is already in a register before the sleep runs. Breakpoint on the output function (`putchar`, `fputc`, `write` with `fd=1`), print the first-argument register (`$rdi` on x86-64, `$r0` on ARM, `$a0` on RISC-V/MIPS), and let GDB scripting batch-extract the data. Works even on anti-debug binaries when hardware breakpoints are available.
 
 **References:** picoCTF 2018 — learn gdb, writeup 11784
 
-------
+---
 
 ## radare2 Visual Panels for Custom VM Tracing (OTW Advent 2018)
 
@@ -602,7 +606,6 @@ V!                       # enter panels
 # panel 2: pxQ 0x60 @ sp             (stack)
 # panel 3: pxQ 0x60 @ heap           (heap)
 # panel 4: afvd                      (local vars / registers)
-
 ```
 
 Set conditional breakpoints on host-level branches that correspond to VM opcode dispatch, and step with `ds`. Combine with `e io.cache=true` for non-destructive patching of VM opcodes during analysis.
@@ -611,7 +614,7 @@ Set conditional breakpoints on host-level branches that correspond to VM opcode 
 
 **References:** OverTheWire Advent 2018 — Jackinthebox, writeup 12789
 
-------
+---
 
 ## libSegFault.so Register Dump at Crash (OTW Advent 2018)
 
@@ -624,7 +627,6 @@ LD_PRELOAD=/lib32/libSegFault.so ./target
 
 # Force the crash:
 # segfault_handler dumps: RIP, RSP, RAX..R15, stack backtrace
-
 ```
 
 Read the printed registers to discover which already point at your shellcode (common: `RAX` → buffer, `RDI` → zero) and design minimal shellcode.
@@ -633,7 +635,7 @@ Read the printed registers to discover which already point at your shellcode (co
 
 **References:** OverTheWire Advent Bonanza 2018 — Day 22, writeup 12757
 
-------
+---
 
 ## r2pipe Binary Walking + DP Constraint Solver (OTW Advent 2018)
 
@@ -649,20 +651,19 @@ for fn in r.cmdj('aflj'):
         if op == 'cmp':  constraints.append(parse_cmp(block))
         if op == 'call': targets.append(block['jump'])
 # DP: memoize (position, accepted_set) -> char
-
 ```
 
 **Key insight:** Big binaries with hash chains are solvable if you treat each branch as an inequality on input bytes. r2pipe's JSON output is machine-readable; DP over position/value tuples prunes most branches before running.
 
 **References:** OverTheWire Advent Bonanza 2018 — Day 8, writeup 12771
 
-------
+---
 
 ## GDB Commands at strcmp to Recover Dynamic XOR Key (TAMUctf 2019)
 
 **Pattern (Obfuscaxor):** Binary uses the [obfy](https://github.com/fritzone/obfy) C++ template obfuscator to bury a simple `enc(input)` XOR loop under thousands of opaque predicates. The terminal check is still `strcmp(expected_ciphertext, enc(input))` — so instead of unwinding obfy, break at the `strcmp` call and dump both operands:
 
-```
+```gdb
 disassemble verify_key
 # ... 0x5555555560b9 <+96>: call   strcmp@plt
 break *verify_key+96
@@ -675,7 +676,6 @@ commands
   continue
 end
 run
-
 ```
 
 Feed a known plaintext (`AAAAAAAAA`) and record `computed_A[i]`. Because `enc` is a byte-wise XOR keystream, the key byte is recovered directly from the delta with the target:
@@ -686,7 +686,6 @@ def to_ans(got_A, expected):
     return chr(got_A ^ ord('A') ^ expected)
 
 # Sanity: flip just one byte of input and confirm only one computed byte moves.
-
 ```
 
 Chain the per-byte recovery over the full 16-byte target and reconstruct the correct key (`p3Asujmn9CEeCB3A` for this challenge).
@@ -694,4 +693,3 @@ Chain the per-byte recovery over the full 16-byte target and reconstruct the cor
 **Key insight:** When `strcmp` is the last gate, the obfuscator is irrelevant — its output still has to equal a fixed string at a known call site. GDB's `commands` block turns the breakpoint into an automatic oracle: one run with `AAAA...` leaks the keystream, and a second pass with any target string gives the valid input. Works for any keyed transform that is effectively a permutation of the input under a fixed key.
 
 **References:** TAMUctf 2019 — Obfuscaxor, writeup 13574
-

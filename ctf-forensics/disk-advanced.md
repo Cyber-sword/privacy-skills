@@ -1,7 +1,6 @@
 # CTF Forensics - Advanced Disk and Memory Techniques
 
 ## Table of Contents
-
 - [Deleted Partition Recovery](#deleted-partition-recovery)
 - [ZFS Forensics (Nullcon 2026)](#zfs-forensics-nullcon-2026)
 - [GPT Partition GUID Data Encoding (VuwCTF 2025)](#gpt-partition-guid-data-encoding-vuwctf-2025)
@@ -19,14 +18,13 @@
 - [SQLite Edit History Reconstruction from Diff Table (Google CTF 2017)](#sqlite-edit-history-reconstruction-from-diff-table-google-ctf-2017)
 - [See Also](#see-also)
 
-------
+---
 
 ## Deleted Partition Recovery
 
 **Pattern (Till Delete Do Us Part):** USB image with deleted partition table.
 
 **Recovery workflow:**
-
 ```bash
 # Check for partitions
 fdisk -l image.img              # Shows no partitions
@@ -47,17 +45,15 @@ find /mnt/evidence -name ".*"   # Find hidden files
 
 **Flag hiding:** Path components as flag chars (e.g., `/.Meta/CTF/{f/l/a/g}`)
 
-------
+---
 
 ## ZFS Forensics (Nullcon 2026)
 
 **Pattern:** Corrupted ZFS pool image with encrypted dataset.
 
 **Recovery workflow:**
-
 1. **Label reconstruction:** All 4 ZFS labels may be zeroed. Find packed nvlist data elsewhere in the image using `strings` + offset searching.
 2. **MOS object repair:** Copy known-good nvlist bytes to block locations, recompute Fletcher4 checksums:
-
 ```python
 def fletcher4(data):
     a = b = c = d = 0
@@ -68,11 +64,10 @@ def fletcher4(data):
         d = (d + c) & 0xffffffff
     return (d << 96) | (c << 64) | (b << 32) | a
 ```
-
 3. **Encryption cracking:** Extract PBKDF2 parameters (iterations, salt) from ZAP objects. GPU-accelerate with PyOpenCL for PBKDF2-HMAC-SHA1, verify AES-256-GCM unwrap on CPU.
 4. **Passphrase list:** rockyou.txt or similar. GPU rate: ~24k passwords/sec.
 
-------
+---
 
 ## GPT Partition GUID Data Encoding (VuwCTF 2025)
 
@@ -100,7 +95,7 @@ for i in range(128):
 
 **First GUID starts with `BZh11AY&SY`** (bzip2 magic) → concatenate GUIDs, decompress as bzip2, then decode ASCII85.
 
-------
+---
 
 ## Windows Minidump String Carving (0xFun 2026)
 
@@ -112,14 +107,13 @@ strings -a minidump.dmp | grep -i "flag\|ctf\|0xFUN"
 
 **Lesson:** Minidumps contain full memory regions. String constants, keys, and secrets persist. `strings -a` + `grep` is the fast path.
 
-------
+---
 
 ## VMDK Sparse Parsing (0xFun 2026)
 
 **Pattern (VMware):** Split sparse VMDK requires grain directory + grain table traversal.
 
 **Key steps:**
-
 1. Parse VMDK sparse header (grain size, GD offset, GT coverage)
 2. Follow grain directory → grain table → data grains
 3. Calculate absolute disk offsets across split files
@@ -127,7 +121,7 @@ strings -a minidump.dmp | grep -i "flag\|ctf\|0xFUN"
 
 **Lesson:** Don't assume VM images can be mounted directly. Parse the VMDK sparse format manually.
 
-------
+---
 
 ## Memory Dump String Carving (Pragyan 2026)
 
@@ -139,7 +133,7 @@ strings -a -n 6 memdump.bin | grep -E "SYNC|FLAG|SSH_CLIENT|SESSION_KEY"
 # Environment variables may contain keys/tokens
 ```
 
-------
+---
 
 ## Memory Dump Malware Extraction + XOR (VuwCTF 2025)
 
@@ -154,16 +148,14 @@ cipher = open('extracted.bin', 'rb').read()
 plaintext = bytes((b - 0x32) ^ key[i % len(key)] for i, b in enumerate(cipher))
 ```
 
-------
+---
 
 ## Linux Ransomware Memory-Key Recovery (MetaCTF 2026)
 
 **Pattern:** Linux memory dump + encrypted `.veg` files + `enc_key.bin`; ransomware uses hybrid crypto (AES for files, RSA-wrapped key). Volatility may fail process enumeration due symbol/KASLR (Kernel Address Space Layout Randomization) mismatch.
 
 **Fast workflow:**
-
 1. **Confirm archive integrity before analysis.**
-
 ```bash
 unzip -l encrypted_files.zip
 # Compare listed files/sizes vs extracted tree; re-extract cleanly if mismatch
@@ -171,58 +163,48 @@ unzip -o encrypted_files.zip -d encrypted_full
 ```
 
 2. **Reverse ransomware binary quickly to identify mode/layout.**
-
 ```bash
 strings -a ransomware.elf | grep -E "enc_key|EVP_aes|PUBLIC KEY|.veg"
 objdump -d ransomware.elf | less
 ```
-
 - Typical finding: `AES-256-OFB`, IV prepended to each `.veg`, global 32-byte AES key, RSA public key hardcoded.
 
 3. **Try Volatility normally, then pivot immediately if empty/unstable.**
-
 ```bash
 vol -f memdump.raw linux.pslist
 vol -f memdump.raw linux.proc.Maps
 vol -f memdump.raw linux.vmayarascan
 ```
-
 - If Linux plugins return empty/invalid output despite correct banner/symbols, do **raw-memory candidate scanning**.
 
 4. **Recover AES key via anchored candidate scan + magic validation.**
-
 - Use recurring anchor strings in memory (e.g., `/home/.../enc_key.bin`, HOME path).
 - Derive candidate offsets near anchors (page-aligned windows).
 - Test each 32-byte candidate by decrypting first blocks of multiple `.veg` files and checking magic bytes (`%PDF-`, `PK\x03\x04`, `\x89PNG\r\n\x1a\n`).
 - Keep candidates that satisfy multiple independent signatures.
 
 5. **Decrypt full dataset and verify output completeness.**
-
 ```bash
 # OFB: iv = first 16 bytes, ciphertext starts at +16
 # Decrypt all *.veg recursively from a clean extraction directory
 ```
-
 - Validate recovered file count against zip listing.
 - Watch for duplicated mirror trees (e.g., `snap/*/Downloads/...`) and deduplicate logically.
 
 6. **Defend against false flags.**
-
 - Treat metadata-only flags as suspicious until corroborated by challenge context.
 - Prefer tokens from primary project artifacts and perform uniqueness checks:
-
 ```bash
 rg -n -a '[A-Za-z]+CTF\\{[^}]+\\}' recovered_full
 pdftotext recovered_full/**/*.pdf - 2>/dev/null | rg '[A-Za-z]+CTF\\{'
 ```
 
 **Key lessons:**
-
 - Don't trust a partial/stale extraction tree; re-extract zip cleanly.
 - In OFB ransomware, magic-byte validation is a fast key oracle.
 - A plausible `CTF{...}` in metadata can be a decoy; confirm with corpus-wide consistency.
 
-------
+---
 
 ## WordPerfect Macro XOR Extraction (srdnlenCTF 2026)
 
@@ -231,7 +213,6 @@ pdftotext recovered_full/**/*.pdf - 2>/dev/null | rg '[A-Za-z]+CTF\\{'
 **Key insight:** WordPerfect macro files (`.wcm`) can contain executable macros with embedded encrypted data. The XOR formula `(bb + kb) - 2*(bb & kb)` is mathematically equivalent to bitwise XOR.
 
 **Brute-force 4-byte XOR key under charset constraints:**
-
 ```python
 import string
 
@@ -260,21 +241,19 @@ for k0 in cands[0]:
 
 **Lesson:** Legacy document formats (WordPerfect, Lotus 1-2-3) can embed executable macros with obfuscated data. When you know the flag charset, brute-forcing a short XOR key is trivial by filtering each key byte independently.
 
-------
+---
 
 ## Minidump ISO 9660 Recovery + XOR Key (srdnlenCTF 2026)
 
 **Pattern (Trilogy of Death Vol II: The Legendary Armory):** Two relics in volatile memory (minidump) must be XORed; ISO 9660 directory entries in memory fragments point to hidden data.
 
 **Technique:**
-
 1. Search minidump for ISO 9660 directory entry signatures
 2. Parse directory entries to locate target file offset and size
 3. Decrypt file using recovered XOR key (e.g., 8-byte repeating key)
 4. Parse resulting data as ZIP without central directory (local headers only)
 
 **ZIP local header parsing without central directory:**
-
 ```python
 import struct, zlib
 
@@ -299,14 +278,13 @@ while True:
 
 **Key insight:** When ZIP central directory is missing/corrupt, iterate local file headers (`PK\x03\x04`) directly. Each local header contains enough metadata (compression method, sizes, filename) to extract files independently.
 
-------
+---
 
 ## APFS Snapshot Historical File Recovery (srdnlenCTF 2026)
 
 **Pattern (Trilogy of Death Vol III: The Poisoned Apple):** APFS volume maintains historical snapshots; recovering earlier state of a key file reveals authentic value before poisoning.
 
 **Technique:**
-
 1. Extract APFS partition from DMG (locate by sector offset)
 2. Search for APFS volume superblocks (magic `APSB`) across all snapshots, noting transaction IDs (XIDs)
 3. Use `icat` (Sleuth Kit with APFS support) to read specific inodes across different snapshot XIDs
@@ -314,7 +292,6 @@ while True:
 5. Use pre-poisoning value for decryption
 
 **Finding APFS volume superblocks across snapshots:**
-
 ```python
 import struct
 
@@ -347,7 +324,6 @@ for xid, blk in sorted(set(snaps)):
 ```
 
 **Decryption with recovered authentic key:**
-
 ```python
 import hashlib
 from Cryptodome.Cipher import AES
@@ -361,7 +337,7 @@ plaintext = cipher.decrypt(encrypted_flag)
 
 **Key insight:** APFS (and other copy-on-write filesystems like ZFS/Btrfs) preserve historical file states in snapshots. When a challenge involves "poisoned" or "tampered" data, always check for older snapshots containing the original values. Use `icat` with different block offsets to read the same inode across different transaction IDs.
 
-------
+---
 
 ## RAID 5 Disk Recovery via XOR (Crypto-Cat)
 
@@ -370,7 +346,6 @@ plaintext = cipher.decrypt(encrypted_flag)
 **How RAID 5 parity works:** Data is striped across N disks with distributed parity. For any stripe, `Disk1 XOR Disk2 XOR ... XOR DiskN = 0`. If one disk is missing, XOR the remaining disks to recover it.
 
 **Recovery script:**
-
 ```python
 # Recover missing disk2 from disk1 and disk3
 with open('disk1.img', 'rb') as f:
@@ -386,7 +361,6 @@ with open('disk2.img', 'wb') as f:
 ```
 
 **After recovery:**
-
 ```bash
 # Reassemble the RAID array
 mdadm --create /dev/md0 --level=5 --raid-devices=3 \
@@ -394,14 +368,13 @@ mdadm --create /dev/md0 --level=5 --raid-devices=3 \
 
 # Or mount individual recovered disk if it contains a filesystem
 mount -o loop,ro disk2.img /mnt/recovered
-
 ```
 
 **Key insight:** RAID 5 uses XOR parity across all disks in each stripe. XOR is self-inverse: if `A XOR B XOR C = 0`, then `B = A XOR C`. For N-disk RAID 5, XOR all N-1 working disks together to recover the missing one.
 
 **Detection:** Challenge provides multiple disk images of identical size, mentions "array", "redundancy", or "parity". `file` command may identify them as filesystem images or raw data.
 
-------
+---
 
 ## HFS+ Resource Fork Hidden Binary Recovery (CONFidence CTF 2017)
 
@@ -430,14 +403,13 @@ python FSEventsParser.py -s image.dmg -o events.csv
 dd if=image.dmg bs=4096 skip=$BLOCK1 count=$LEN1 of=part1.bin
 dd if=image.dmg bs=4096 skip=$BLOCK2 count=$LEN2 of=part2.bin
 cat part1.bin part2.bin > recovered_binary
-
 ```
 
 **Key insight:** HFS+ Resource Forks are a second data stream attached to files, invisible to most forensic tools that only examine the Data Fork. `binwalk`, `foremost`, and `strings` miss them. HFSExplorer shows both forks in the catalog; 010 Editor with the HFS template reveals extent records for manual extraction. `.fseventsd` logs can reveal that hidden files were created/deleted.
 
 **Detection:** DMG or HFS+ disk image where standard carving finds nothing. `file` identifies as "Apple HFS+" or "Apple Partition Map". Challenge mentions "Mac", "Apple", or "hidden data".
 
-------
+---
 
 ## Kyoto Cabinet Hash Database Forensics via Incremental Key Insertion (ASIS CTF 2018)
 
@@ -458,11 +430,9 @@ for i in $(seq -w 000 088); do
     diff <(xxd tokyo.kch) <(xxd test.kch) | head -5
     # Changed offset reveals which original entry maps to key $i
 done
-
 ```
 
 **Full recovery script (Python):**
-
 ```python
 import subprocess, shutil
 
@@ -486,12 +456,11 @@ for i in range(len(values)):
 # Reconstruct flag from ordered values
 flag = ''.join(values[i] for i in sorted(mapping.keys()))
 print(flag)
-
 ```
 
 **Key insight:** Hash databases store entries at positions determined by key hash values. When keys are zeroed/corrupted, the stored ordering is hash-based, not insertion-order. Insert probe keys one at a time and binary-diff the database to find which slot each probe overwrites, revealing the original key-to-value mapping.
 
-------
+---
 
 ## SQLite Edit History Reconstruction from Diff Table (Google CTF 2017)
 
@@ -514,14 +483,13 @@ for op_type, position, text in diffs:
     # Check for flag at each step (may have been typed then deleted)
     if 'CTF{' in document or 'flag{' in document:
         print(f"Flag found: {document}")
-
 ```
 
 **Key insight:** Collaborative editing tools store incremental diffs. Replaying all operations sequentially reveals content that existed at any point in the edit history, including secrets that were later deleted. Check for flags at every intermediate state, not just the final document.
 
 **Detection:** SQLite database with tables containing `type`/`operation`, `position`, `text` columns. Challenge mentions "notes", "editor", "collaboration", or "history". Schema inspection via `.schema` or `sqlite3 db.sqlite ".tables"` reveals diff-style tables.
 
-------
+---
 
 ## See Also
 

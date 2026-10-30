@@ -1,6 +1,12 @@
 ---
 name: ctf-misc
 description: Provides miscellaneous CTF challenge techniques for problems that do not cleanly fit the main categories. Use for encoding puzzles, pyjails, bash jails, RF/SDR, DNS oddities, unicode tricks, esoteric languages, QR or audio puzzles, constraint solving, game theory, unusual sandbox escapes, and hybrid logic puzzles. Prefer a more specific skill first when the challenge is mainly web, pwn, reverse, forensics, malware, OSINT, or crypto. Treat this as the fallback skill for genuine cross-category or edge-case challenges, not the default starting point.
+license: MIT
+compatibility: Requires filesystem-based agent (Claude Code or similar) with bash, Python 3, and internet access for tool installation.
+allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch Skill
+metadata:
+  user-invocable: "false"
+  author: Lukasz Jagiello
 ---
 
 # CTF Miscellaneous
@@ -10,25 +16,21 @@ Quick reference for miscellaneous CTF challenges. Each technique has a one-liner
 ## Prerequisites
 
 **Python packages (all platforms):**
-
 ```bash
-pip install z3-solver pwntools Pillow numpy requests dnslib
+pip install "pwntools==4.15.0" "segno==1.6.6" z3-solver Pillow numpy requests dnslib
 ```
 
 **Linux (apt):**
-
 ```bash
-apt install ffmpeg qrencode
+apt install libzbar0 qrencode ffmpeg
 ```
 
 **macOS (Homebrew):**
-
 ```bash
 brew install ffmpeg qrencode
 ```
 
 **Manual install:**
-
 - SageMath — Linux: `apt install sagemath`, macOS: `brew install --cask sage`
 
 ## Additional Resources
@@ -37,6 +39,7 @@ brew install ffmpeg qrencode
 - [bashjails.md](bashjails.md) - Bash jail/restricted shell escape techniques, HISTFILE file read trick, bash -v verbose mode, ctypes.sh direct C library calls
 - [encodings.md](encodings.md) - Encodings, QR codes, esolangs, UTF-16 tricks, BCD encoding, multi-layer auto-decoding, indexed directory QR reassembly, multi-stage URL encoding chains
 - [encodings-advanced.md](encodings-advanced.md) - Verilog/HDL, Gray code cyclic encoding, RTF custom tag extraction, SMS PDU decoding, multi-encoding sequential solvers, UTF-9, pixel binary encoding, hexadecimal Sudoku + QR assembly, TOPKEK, MaxiCode
+- [audio.md](audio.md) - Audio steganography and signal analysis: Morse code extraction from audio channels with auto-detection, spectrogram analysis, SSTV decoding, amplitude envelope timing classification
 - [rf-sdr.md](rf-sdr.md) - RF/SDR/IQ signal processing (QAM-16, carrier recovery, timing sync)
 - [dns.md](dns.md) - DNS exploitation (ECS spoofing, NSEC walking, IXFR, rebinding, tunneling)
 - [games-and-vms.md](games-and-vms.md) - WASM patching, Roblox place file reversing, PyInstaller, marshal analysis, Python env RCE, Z3 (including boolean logic gate network SAT solving), K8s RBAC, floating-point precision exploitation, custom assembly language sandbox escape via Python MRO chain
@@ -46,7 +49,7 @@ brew install ffmpeg qrencode
 - [linux-privesc.md](linux-privesc.md) - Sudo wildcard parameter injection (fnmatch), crafted pcap for sudoers.d, monit confcheck process injection, Apache -d override, backup cronjob SUID, PostgreSQL COPY TO PROGRAM RCE, PostgreSQL backup credential extraction, NFS share exploitation, SSH Unix socket tunneling, PaperCut Print Deploy privesc, Squid proxy pivoting, Zabbix admin password reset via MySQL, WinSSHTerm credential decryption
 - [ctfd-navigation.md](ctfd-navigation.md) - CTFd platform API navigation without browser: detection, token auth, challenge listing, file download, flag submission, scoreboard, hints, notifications, Python client class
 
-------
+---
 
 ## When to Pivot
 
@@ -54,6 +57,7 @@ brew install ffmpeg qrencode
 - If the challenge is a real binary exploit instead of a jail, toy VM, or encoding problem, switch to `/ctf-pwn` or `/ctf-reverse`.
 - If the input is mostly files, images, audio, or packet captures that need recovery work first, switch to `/ctf-forensics`.
 - For ML/AI techniques (model attacks, adversarial examples, LLM jailbreaking), see `/ctf-ai-ml`.
+- If the NodeJS sandbox uses **vm2** (`npm ls vm2`), check for **CVE-2023-37466** via `Promise[@@species]` with `nesting:true` — the exception handler escapes the context; see `ctf-web/js-sandbox` for the full exploit chain. In misc challenges with bundled JS, always run `npm ls vm2` to detect vulnerable vm2 before trying other escapes.
 
 ## Quick Start Commands
 
@@ -103,7 +107,6 @@ echo "uryyb" | tr 'a-zA-Z' 'n-za-mN-ZA-M'
 ```
 
 **Identify by charset:**
-
 - Base64: `A-Za-z0-9+/=`
 - Base32: `A-Z2-7=` (no lowercase)
 - Hex: `0-9a-fA-F`
@@ -149,7 +152,6 @@ tar -xJf archive.tar.xz   # XZ
 ```
 
 ### Nested Archive Script
-
 ```bash
 while f=$(ls *.tar* *.gz *.bz2 *.xz *.zip *.7z 2>/dev/null|head -1) && [ -n "$f" ]; do
     7z x -y "$f" && rm "$f"
@@ -172,16 +174,30 @@ See [encodings.md](encodings.md) for QR structure, repair techniques, chunk reas
 ## Audio Challenges
 
 ```bash
-sox audio.wav -n spectrogram  # Visual data
-qsstv                          # SSTV decoder
+# Spectrogram (hidden text/images in frequency domain)
+sox audio.wav -n spectrogram -o spec.png
+sox audio.wav -n spectrogram -o spec.png -x 2048 -y 1025  # higher resolution
+
+# Channel inspection (identify stereo vs mono, sample rate, bit depth)
+python3 -c "import wave; w=wave.open('audio.wav'); print(f'channels={w.getnchannels()}, rate={w.getframerate()}, width={w.getsampwidth()}')"
+
+# SSTV (Slow Scan TV decoder)
+qsstv                          # GUI - play audio + use pulseaudio loopback
 ```
+
+**Morse code extraction:** WAV file with Morse beeps hidden on one audio channel. Separate stereo interleaved channels (L=even idx, R=odd idx), auto-detect the Morse channel by peak-to-mean envelope ratio (beep channel = high ratio from alternating loud/silent), compute RMS envelope (50ms window), threshold to segment beeps, classify by duration: dots (~100–150ms) vs dashes (~250–350ms), then use gap timing (short gaps = intra-character, long gaps = inter-character) to group into Morse characters. Full auto-detection extraction script in [audio.md](audio.md#morse-code-in-audio-channel).
+
+**DTMF (phone keypad tones):** Dual-tone multi-frequency signaling decodes to digits, then map to letters via multi-tap keypad. See [encodings-advanced.md](encodings-advanced.md#dtmf-audio-with-multi-tap-phone-keypad-decoding-h4ckc0n-2017).
+
+**Music note steganography:** Note pairs encode nibbles via scale-degree mapping. See [encodings-advanced.md](encodings-advanced.md#music-note-interval-steganography-defcamp-2017).
+
+See [audio.md](audio.md) for full audio analysis techniques.
 
 ## RF / SDR / IQ Signal Processing
 
 See [rf-sdr.md](rf-sdr.md) for full details (IQ formats, QAM-16 demod, carrier/timing recovery).
 
 **Quick reference:**
-
 - **cf32**: `np.fromfile(path, dtype=np.complex64)` | **cs16**: int16 reshape(-1,2) | **cu8**: RTL-SDR raw
 - Circles in constellation = constant frequency offset; Spirals = drifting frequency + gain instability
 - 4-fold ambiguity in DD carrier recovery - try 0/90/180/270 rotation
@@ -264,7 +280,6 @@ new_data = sha.extend(b'extension', b'original_message', len_secret, known_hash_
 **Pattern (flag-irl):** Video of 3D printer fabricating nameplate. Flag is the printed text.
 
 **Technique:** Track nozzle X/Y positions from video frames, filter for print moves (top/text layer only), plot 2D histogram to reveal letter shapes:
-
 ```python
 # 1. Identify text layer frames (e.g., frames 26100-28350)
 # 2. Track print head X position (physical X-axis)
@@ -277,7 +292,7 @@ new_data = sha.extend(b'extension', b'original_message', len_secret, known_hash_
 
 Flags hidden in Discord metadata (roles, animated emoji, embeds). Invoke `/ctf-osint` for Discord API enumeration technique and code (see social-media.md in ctf-osint).
 
-------
+---
 
 ## SUID Binary Exploitation (0xFun 2026)
 
@@ -292,7 +307,7 @@ find / -perm -4000 2>/dev/null
 
 **Reference:** https://gtfobins.github.io/
 
-------
+---
 
 ## Linux Privilege Escalation Quick Checks
 
@@ -349,7 +364,7 @@ Root cronjob copying directories preserves SUID bit but changes ownership to roo
 
 Root process runs scripts from user-owned directory. Modify `server-command`, trigger via Mobility Print API refresh. See [linux-privesc.md](linux-privesc.md#papercut-print-deploy-privilege-escalation-bamboo-htb).
 
-------
+---
 
 ## CTFd Platform Navigation (No Browser)
 
@@ -363,7 +378,7 @@ curl -s -X POST -H "Authorization: Token $CTF_TOKEN" -H "Content-Type: applicati
 
 See [ctfd-navigation.md](ctfd-navigation.md) for full workflow, Python client class, session login, hints, notifications, file download, and troubleshooting.
 
-------
+---
 
 ## Useful One-Liners
 
@@ -408,7 +423,6 @@ print(flag)
 **Pattern (Rear Hatch):** Hidden command prefix triggers `system()` call.
 
 **Common patterns:**
-
 - `strncmp(input, "exec:", 5)` -> runs `system(input + 5)`
 - Hex-encoded comparison strings: `\x65\x78\x65\x63\x3a` = "exec:"
 - Hidden conditions in maintenance/admin functions
@@ -418,7 +432,6 @@ print(flag)
 See [dns.md](dns.md) for full details (ECS spoofing, NSEC walking, IXFR, rebinding, tunneling).
 
 **Quick reference:**
-
 - **ECS spoofing**: `dig @server flag.example.com TXT +subnet=10.13.37.1/24` - try leet-speak IPs (1337)
 - **NSEC walking**: Follow NSEC chain to enumerate DNSSEC zones
 - **IXFR**: `dig @server domain IXFR=0` when AXFR is blocked
@@ -428,7 +441,6 @@ See [dns.md](dns.md) for full details (ECS spoofing, NSEC walking, IXFR, rebindi
 ## Unicode Steganography
 
 ### Variation Selectors Supplement (U+E0100-U+E01EF)
-
 **Patterns (Seen & emoji, Nullcon 2026):** Invisible Variation Selector Supplement characters encode ASCII via codepoint offset.
 
 ```python

@@ -3,7 +3,6 @@
 Continuation of [heap-techniques.md](heap-techniques.md). Part 2 collects CTF-specific UAF, tcache, and custom-allocator variants drawn from individual writeups.
 
 ## Table of Contents
-
 - [UAF Vtable Pointer Encoding Shell Argument (BCTF 2017)](#uaf-vtable-pointer-encoding-shell-argument-bctf-2017)
 - [Uninitialized Chunk Residue Pointer Leak (picoCTF 2018)](#uninitialized-chunk-residue-pointer-leak-picoctf-2018)
 - [tcache strcpy Null-Byte Overflow + Backward Consolidation (HITCON 2018)](#tcache-strcpy-null-byte-overflow--backward-consolidation-hitcon-2018)
@@ -18,7 +17,7 @@ Continuation of [heap-techniques.md](heap-techniques.md). Part 2 collects CTF-sp
 
 For FILE-structure (_IO_FILE) exploitation see [heap-fsop.md](heap-fsop.md). For the foundational houses (Apple 2, Einherjar, Orange, Spirit, Lore, Force), unsafe unlink, tcache stashing, and musl, see [heap-techniques.md](heap-techniques.md).
 
-------
+---
 
 ## UAF Vtable Pointer Encoding Shell Argument (BCTF 2017)
 
@@ -53,7 +52,7 @@ trigger_vtable_call(target_obj)  # calls system("sh")
 
 See [heap-fsop.md](heap-fsop.md) for FILE-structure (_IO_FILE) exploitation: fastbin stdout vtable hijack, _IO_buf_base null-byte overwrite, glibc 2.24+ vtable validation bypass, unsorted-bin attacks on stdin FILE fields, and related UAF/refcount bugs.
 
-------
+---
 
 ## Uninitialized Chunk Residue Pointer Leak (picoCTF 2018)
 
@@ -95,7 +94,7 @@ log.success(f"heap leak: {leak:#x}")
 
 **References:** picoCTF 2018 — Contacts, writeup 11585
 
-------
+---
 
 ## tcache strcpy Null-Byte Overflow + Backward Consolidation (HITCON 2018)
 
@@ -144,7 +143,7 @@ log.success(f"libc base {libc.address:#x}")
 
 **References:** HITCON CTF 2018 — Children Tcache, writeup 11929
 
-------
+---
 
 ## Adjacent-Struct fn-Pointer Overflow for Libc Leak + GOT Overwrite (RITSEC 2018)
 
@@ -168,7 +167,7 @@ io.sendline('delete 0')
 
 **References:** RITSEC CTF 2018 — Yet Another HR Management Framework, writeups 12283, 12287
 
-------
+---
 
 ## Hidden Menu Option 1337 for Tcache Poisoning (FireShell 2019)
 
@@ -190,7 +189,7 @@ shell = malloc(0x20)            # returns bss_target
 
 **References:** FireShell CTF 2019 — babyheap, writeup 12962
 
-------
+---
 
 ## Tcache Double-Free + Fake _IO_FILE Vtable Stdout Hijack (BCTF 2018)
 
@@ -213,7 +212,7 @@ Fake vtable entry: slot for `_IO_file_overflow = system`.
 
 **References:** BCTF 2018 — easiest, writeup 12489
 
-------
+---
 
 ## Tcache-to-Fastbin Promotion Cross-Bin Attack (BCTF 2018)
 
@@ -233,7 +232,7 @@ malloc(size)                                 # returns tcache head = target_hdr
 
 **References:** BCTF 2018 — three/houseofatum, writeups 12476, 12477
 
-------
+---
 
 ## 6-Bit Index OOB + written_bytes Accumulator for Fn-Pointer Increment (Codegate 2019)
 
@@ -261,7 +260,7 @@ payload += cache_qword(0x34, 1)                  # buf -> print_uncomp_fsz
 
 **References:** Codegate CTF 2019 Preliminary — archiver, writeup 13014
 
-------
+---
 
 ## IS_MMAPED Bit-Flip for Unsorted Bin Leak on Calloc'd Chunk (0CTF 2017)
 
@@ -284,7 +283,7 @@ libc_base = leak - main_arena_offset
 
 **References:** 0CTF 2017 Quals — babyheap, writeup 13262
 
-------
+---
 
 ## Filename-Regex-Constrained Fastbin via LSB-Only Heap Pointer Overwrite (BSidesSF 2019)
 
@@ -309,7 +308,7 @@ pc.sendline('RENAME EEE.EXE ' + 'E'*7*8 + 'EEEEE.EXP')
 
 **References:** BSidesSF 2019 — straw_clutcher, writeup 13763
 
-------
+---
 
 ## Custom Allocator Unsafe Unlink to GOT (DEF CON Qualifier 2014)
 
