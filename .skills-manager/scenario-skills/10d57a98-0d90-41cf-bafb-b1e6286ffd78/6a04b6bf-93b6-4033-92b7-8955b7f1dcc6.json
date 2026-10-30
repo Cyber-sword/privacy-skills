@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "scenario_id": "10d57a98-0d90-41cf-bafb-b1e6286ffd78",
+  "skill_id": "6a04b6bf-93b6-4033-92b7-8955b7f1dcc6",
+  "sort_order": 14,
+  "tools": {
+    "claude_code": true,
+    "codebuddy": true,
+    "codex": true,
+    "cursor": true,
+    "deepseek_harness": true,
+    "github_copilot": true,
+    "trae_cn": true,
+    "workbuddy": true,
+    "zcode": true
+  }
+}
