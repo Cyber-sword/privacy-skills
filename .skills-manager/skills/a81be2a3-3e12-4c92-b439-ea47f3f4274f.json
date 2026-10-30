@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a81be2a3-3e12-4c92-b439-ea47f3f4274f",
+  "path": "social-engineering",
+  "path_key": "social-engineering",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

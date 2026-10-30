@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2805c566-844c-4ae5-8790-b3e0acdf597b",
+  "path": "file-access-vuln",
+  "path_key": "file-access-vuln",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

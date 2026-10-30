@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "eac486e2-91cc-4d06-9c32-9c9722816e9f",
+  "path": "security-patterns",
+  "path_key": "security-patterns",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

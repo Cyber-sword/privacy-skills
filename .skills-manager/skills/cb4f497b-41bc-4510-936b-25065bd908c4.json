@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cb4f497b-41bc-4510-936b-25065bd908c4",
+  "path": "pentest-report",
+  "path_key": "pentest-report",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3c158a48-a2e1-42cb-be95-2414fc684b1a",
+  "path": "cloud-attack-methods",
+  "path_key": "cloud-attack-methods",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

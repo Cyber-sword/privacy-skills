@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9a5910a6-4fed-4779-a0e3-1a148262ae0a",
+  "path": "sharp-edges",
+  "path_key": "sharp-edges",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

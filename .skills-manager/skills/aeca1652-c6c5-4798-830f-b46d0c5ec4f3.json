@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "aeca1652-c6c5-4798-830f-b46d0c5ec4f3",
+  "path": "offensive-lateral-movement",
+  "path_key": "offensive-lateral-movement",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

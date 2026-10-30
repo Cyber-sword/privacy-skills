@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b49d0dbd-b198-4960-933d-ed9d05dff5a3",
+  "path": "hunt-cicd",
+  "path_key": "hunt-cicd",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

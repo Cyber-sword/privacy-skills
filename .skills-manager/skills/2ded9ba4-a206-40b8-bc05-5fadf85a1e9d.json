@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2ded9ba4-a206-40b8-bc05-5fadf85a1e9d",
+  "path": "ctf-source-audit",
+  "path_key": "ctf-source-audit",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

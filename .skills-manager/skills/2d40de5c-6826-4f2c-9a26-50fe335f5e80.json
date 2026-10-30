@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2d40de5c-6826-4f2c-9a26-50fe335f5e80",
+  "path": "hunt-websocket",
+  "path_key": "hunt-websocket",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1a2e0f7b-d3e7-48e4-b09e-673823a83b11",
+  "path": "waf-bypass-techniques",
+  "path_key": "waf-bypass-techniques",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

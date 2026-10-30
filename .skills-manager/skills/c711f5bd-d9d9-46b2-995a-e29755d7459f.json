@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c711f5bd-d9d9-46b2-995a-e29755d7459f",
+  "path": "apk-redteam-pipeline",
+  "path_key": "apk-redteam-pipeline",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

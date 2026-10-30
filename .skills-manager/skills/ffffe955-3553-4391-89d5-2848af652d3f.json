@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ffffe955-3553-4391-89d5-2848af652d3f",
+  "path": "offensive-ssrf",
+  "path_key": "offensive-ssrf",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

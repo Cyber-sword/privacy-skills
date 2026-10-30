@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0444de30-de4b-48a0-aac1-638f3186ae39",
+  "path": "auth-sec",
+  "path_key": "auth-sec",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

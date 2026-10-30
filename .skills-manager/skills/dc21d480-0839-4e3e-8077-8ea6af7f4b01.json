@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dc21d480-0839-4e3e-8077-8ea6af7f4b01",
+  "path": "offensive-crash-analysis",
+  "path_key": "offensive-crash-analysis",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

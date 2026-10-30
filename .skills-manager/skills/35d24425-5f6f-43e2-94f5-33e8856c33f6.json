@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "35d24425-5f6f-43e2-94f5-33e8856c33f6",
+  "path": "api-sec",
+  "path_key": "api-sec",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

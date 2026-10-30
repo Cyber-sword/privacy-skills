@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "32f1cd9a-1d98-4393-8600-c99a503d5f3b",
+  "path": "offensive-idor",
+  "path_key": "offensive-idor",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

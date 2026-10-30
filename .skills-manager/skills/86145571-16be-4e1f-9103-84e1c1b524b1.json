@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "86145571-16be-4e1f-9103-84e1c1b524b1",
+  "path": "offensive-jwt",
+  "path_key": "offensive-jwt",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

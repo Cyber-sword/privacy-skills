@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "110772d9-1539-40de-b138-bd587546cedd",
+  "path": "triage-validation",
+  "path_key": "triage-validation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

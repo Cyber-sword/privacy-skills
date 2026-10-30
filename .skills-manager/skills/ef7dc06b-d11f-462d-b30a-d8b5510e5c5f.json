@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ef7dc06b-d11f-462d-b30a-d8b5510e5c5f",
+  "path": "path-traversal-lfi",
+  "path_key": "path-traversal-lfi",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

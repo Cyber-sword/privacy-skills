@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "57f4c629-9984-4346-bb4c-dbae4a351210",
+  "path": "pentest-verification",
+  "path_key": "pentest-verification",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6ac4d0d6-9fdc-4bfe-a76e-49d29f496d20",
+  "path": "api-security-testing",
+  "path_key": "api-security-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

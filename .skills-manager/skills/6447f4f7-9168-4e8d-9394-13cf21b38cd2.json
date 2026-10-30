@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6447f4f7-9168-4e8d-9394-13cf21b38cd2",
+  "path": "offensive-cicd-secrets",
+  "path_key": "offensive-cicd-secrets",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

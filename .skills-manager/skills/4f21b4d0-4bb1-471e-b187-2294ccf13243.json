@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4f21b4d0-4bb1-471e-b187-2294ccf13243",
+  "path": "jadx",
+  "path_key": "jadx",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

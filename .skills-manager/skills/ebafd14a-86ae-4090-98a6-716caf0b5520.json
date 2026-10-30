@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ebafd14a-86ae-4090-98a6-716caf0b5520",
+  "path": "dfir",
+  "path_key": "dfir",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

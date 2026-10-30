@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a8aa2777-8f1c-4ae3-9e54-e481739c4a29",
+  "path": "offensive-persistence",
+  "path_key": "offensive-persistence",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

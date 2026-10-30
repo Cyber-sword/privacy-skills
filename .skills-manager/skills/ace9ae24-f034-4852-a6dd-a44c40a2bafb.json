@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ace9ae24-f034-4852-a6dd-a44c40a2bafb",
+  "path": "active-directory-attack",
+  "path_key": "active-directory-attack",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

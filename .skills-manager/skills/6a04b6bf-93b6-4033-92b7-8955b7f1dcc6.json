@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6a04b6bf-93b6-4033-92b7-8955b7f1dcc6",
+  "path": "game-security-research",
+  "path_key": "game-security-research",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

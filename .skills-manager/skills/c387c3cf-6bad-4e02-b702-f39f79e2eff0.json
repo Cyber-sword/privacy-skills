@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c387c3cf-6bad-4e02-b702-f39f79e2eff0",
+  "path": "offensive-container-escape",
+  "path_key": "offensive-container-escape",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

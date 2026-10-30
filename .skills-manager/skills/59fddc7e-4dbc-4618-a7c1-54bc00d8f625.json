@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "59fddc7e-4dbc-4618-a7c1-54bc00d8f625",
+  "path": "source-code-hunting",
+  "path_key": "source-code-hunting",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

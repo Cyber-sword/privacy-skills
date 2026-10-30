@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d89f644c-a2f1-4ac4-be09-b0344ded5b2b",
+  "path": "hackthebox",
+  "path_key": "hackthebox",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "32606de3-9895-428d-9276-904615a4d9fa",
+  "path": "hunt-xss",
+  "path_key": "hunt-xss",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

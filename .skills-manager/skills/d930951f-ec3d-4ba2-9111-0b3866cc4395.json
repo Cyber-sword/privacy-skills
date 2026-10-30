@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d930951f-ec3d-4ba2-9111-0b3866cc4395",
+  "path": "offensive-bug-identification",
+  "path_key": "offensive-bug-identification",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

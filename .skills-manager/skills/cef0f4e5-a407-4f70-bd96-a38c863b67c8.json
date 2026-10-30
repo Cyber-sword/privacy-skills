@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cef0f4e5-a407-4f70-bd96-a38c863b67c8",
+  "path": "offensive-phishing",
+  "path_key": "offensive-phishing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

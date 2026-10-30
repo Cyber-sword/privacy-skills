@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f2a9a50d-fb7b-435d-be96-ae26ccf44b3d",
+  "path": "hunt-api-misconfig",
+  "path_key": "hunt-api-misconfig",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

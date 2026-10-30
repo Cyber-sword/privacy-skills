@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "369e33bb-3a26-476b-b143-59436b9b3c58",
+  "path": "offensive-lorawan-sub-ghz",
+  "path_key": "offensive-lorawan-sub-ghz",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

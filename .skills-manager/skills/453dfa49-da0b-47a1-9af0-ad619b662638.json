@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "453dfa49-da0b-47a1-9af0-ad619b662638",
+  "path": "offensive-windows-privesc",
+  "path_key": "offensive-windows-privesc",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

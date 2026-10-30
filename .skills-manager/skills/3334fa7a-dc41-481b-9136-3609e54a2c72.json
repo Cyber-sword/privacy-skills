@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3334fa7a-dc41-481b-9136-3609e54a2c72",
+  "path": "offensive-iot",
+  "path_key": "offensive-iot",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b6892a2f-f122-448c-8736-fde59d428a98",
+  "path": "techstack-identification/osint",
+  "path_key": "techstack-identification/osint",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

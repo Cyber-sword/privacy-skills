@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a7564e86-899c-4458-bf45-0b26e60d8429",
+  "path": "hunt-grpc",
+  "path_key": "hunt-grpc",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

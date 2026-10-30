@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d1c43a74-05f0-4f7d-a97d-204cf62fe555",
+  "path": "cve-risk-score",
+  "path_key": "cve-risk-score",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

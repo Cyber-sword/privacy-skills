@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8c9f8a30-4e0c-404b-87cc-0a18c20a9df6",
+  "path": "evidence-hygiene",
+  "path_key": "evidence-hygiene",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

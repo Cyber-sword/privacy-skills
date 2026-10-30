@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f8b138da-58b9-4d31-9d57-58dc814df2d2",
+  "path": "techstack-identification/infra",
+  "path_key": "techstack-identification/infra",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bac3966c-db47-4744-b607-64bdcc897f2a",
+  "path": "offensive-dependency-confusion",
+  "path_key": "offensive-dependency-confusion",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

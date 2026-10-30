@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "589f7194-dec7-4856-bf72-3fb32785cb24",
+  "path": "offensive-bluetooth-classic",
+  "path_key": "offensive-bluetooth-classic",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

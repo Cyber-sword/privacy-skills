@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e6bfee29-52b1-4e75-8fc1-36df923ce959",
+  "path": "deserialization-testing",
+  "path_key": "deserialization-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

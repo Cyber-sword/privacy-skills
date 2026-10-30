@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "182f6b06-437d-4fee-9969-3e6f9d268bb8",
+  "path": "identity-provider-recon",
+  "path_key": "identity-provider-recon",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

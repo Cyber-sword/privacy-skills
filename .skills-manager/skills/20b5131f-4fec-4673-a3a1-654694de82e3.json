@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "20b5131f-4fec-4673-a3a1-654694de82e3",
+  "path": "modern-cpp",
+  "path_key": "modern-cpp",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

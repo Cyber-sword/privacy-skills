@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7e76f3ed-92ba-4c94-ad20-e32bbd31e37a",
+  "path": "ctf-web",
+  "path_key": "ctf-web",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

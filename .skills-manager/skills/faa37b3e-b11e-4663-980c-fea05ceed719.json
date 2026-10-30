@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "faa37b3e-b11e-4663-980c-fea05ceed719",
+  "path": "offensive-file-upload",
+  "path_key": "offensive-file-upload",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

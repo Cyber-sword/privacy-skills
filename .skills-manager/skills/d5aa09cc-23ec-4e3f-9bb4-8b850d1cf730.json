@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d5aa09cc-23ec-4e3f-9bb4-8b850d1cf730",
+  "path": "slicing-code-context",
+  "path_key": "slicing-code-context",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

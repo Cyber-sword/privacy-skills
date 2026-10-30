@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "56c72d8f-1d48-4ccc-b531-17e988fbc465",
+  "path": "offensive-crypto-attacks",
+  "path_key": "offensive-crypto-attacks",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

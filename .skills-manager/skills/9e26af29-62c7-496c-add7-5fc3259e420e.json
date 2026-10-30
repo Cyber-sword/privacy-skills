@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9e26af29-62c7-496c-add7-5fc3259e420e",
+  "path": "offensive-request-smuggling",
+  "path_key": "offensive-request-smuggling",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

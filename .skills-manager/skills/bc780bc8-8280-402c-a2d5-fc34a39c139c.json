@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bc780bc8-8280-402c-a2d5-fc34a39c139c",
+  "path": "hunt-session",
+  "path_key": "hunt-session",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

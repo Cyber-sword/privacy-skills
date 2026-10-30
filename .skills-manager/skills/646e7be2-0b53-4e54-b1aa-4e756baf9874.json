@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "646e7be2-0b53-4e54-b1aa-4e756baf9874",
+  "path": "apktool",
+  "path_key": "apktool",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

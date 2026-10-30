@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c9524a7e-73ff-4a43-8d03-0188d81f7377",
+  "path": "hunt-cors",
+  "path_key": "hunt-cors",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

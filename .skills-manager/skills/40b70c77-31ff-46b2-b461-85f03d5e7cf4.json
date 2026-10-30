@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "40b70c77-31ff-46b2-b461-85f03d5e7cf4",
+  "path": "spring-exploitation",
+  "path_key": "spring-exploitation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

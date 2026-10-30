@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cef1e7c8-93bf-4962-8303-4eab7d52af66",
+  "path": "hunt-graphql",
+  "path_key": "hunt-graphql",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

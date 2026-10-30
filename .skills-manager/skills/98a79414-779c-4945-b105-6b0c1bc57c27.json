@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "98a79414-779c-4945-b105-6b0c1bc57c27",
+  "path": "hunt-ssti",
+  "path_key": "hunt-ssti",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

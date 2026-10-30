@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d868ff4d-4fa6-4400-8db0-48716486845e",
+  "path": "hunt-spa-api",
+  "path_key": "hunt-spa-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

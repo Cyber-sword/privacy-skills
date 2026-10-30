@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "562dc8ca-19c2-4dc9-a9e2-563537447be7",
+  "path": "offensive-edr-evasion",
+  "path_key": "offensive-edr-evasion",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

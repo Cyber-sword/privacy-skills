@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7b7d7a9c-ae0d-4e09-a461-888ea88300d5",
+  "path": "hunt-misc",
+  "path_key": "hunt-misc",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

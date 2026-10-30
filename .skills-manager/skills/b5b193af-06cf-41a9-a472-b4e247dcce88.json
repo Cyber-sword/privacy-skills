@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b5b193af-06cf-41a9-a472-b4e247dcce88",
+  "path": "payloadsallthethings",
+  "path_key": "payloadsallthethings",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

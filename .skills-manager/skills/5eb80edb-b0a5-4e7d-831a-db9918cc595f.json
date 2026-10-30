@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5eb80edb-b0a5-4e7d-831a-db9918cc595f",
+  "path": "osint-methodology",
+  "path_key": "osint-methodology",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

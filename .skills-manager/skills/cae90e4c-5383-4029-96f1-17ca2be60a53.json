@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cae90e4c-5383-4029-96f1-17ca2be60a53",
+  "path": "ctf-solver",
+  "path_key": "ctf-solver",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

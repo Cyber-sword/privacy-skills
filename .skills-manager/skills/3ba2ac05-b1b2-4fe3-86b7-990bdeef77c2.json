@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3ba2ac05-b1b2-4fe3-86b7-990bdeef77c2",
+  "path": "race-condition",
+  "path_key": "race-condition",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

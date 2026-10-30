@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ce4f773c-b40b-4dde-8791-a807507a09c7",
+  "path": "hunt-lfi",
+  "path_key": "hunt-lfi",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

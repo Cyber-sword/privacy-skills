@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4a7636aa-0e53-4b76-886c-c3c2fc73f5aa",
+  "path": "business-logic-vuln",
+  "path_key": "business-logic-vuln",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

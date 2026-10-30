@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c941a231-2011-4dc8-8eb4-de10cb37c57b",
+  "path": "unlimited-attack-scope",
+  "path_key": "unlimited-attack-scope",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

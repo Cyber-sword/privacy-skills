@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f358812b-3746-41bd-9adf-6fa710cf1edf",
+  "path": "recon-fingerprint",
+  "path_key": "recon-fingerprint",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

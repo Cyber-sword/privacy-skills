@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bd44d005-44f2-4743-8dbc-df30f2b592da",
+  "path": "netflows",
+  "path_key": "netflows",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

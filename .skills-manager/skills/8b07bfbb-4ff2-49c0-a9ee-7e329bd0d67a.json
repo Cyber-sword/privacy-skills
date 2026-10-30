@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8b07bfbb-4ff2-49c0-a9ee-7e329bd0d67a",
+  "path": "offensive-exploit-dev-course",
+  "path_key": "offensive-exploit-dev-course",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

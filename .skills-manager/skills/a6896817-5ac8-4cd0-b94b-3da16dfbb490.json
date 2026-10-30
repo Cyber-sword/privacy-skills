@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a6896817-5ac8-4cd0-b94b-3da16dfbb490",
+  "path": "offensive-deserialization",
+  "path_key": "offensive-deserialization",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

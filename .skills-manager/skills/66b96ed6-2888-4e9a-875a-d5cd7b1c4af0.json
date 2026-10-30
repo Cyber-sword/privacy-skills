@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "66b96ed6-2888-4e9a-875a-d5cd7b1c4af0",
+  "path": "recon-port-scan",
+  "path_key": "recon-port-scan",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

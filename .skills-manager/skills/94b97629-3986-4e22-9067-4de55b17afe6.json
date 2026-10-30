@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "94b97629-3986-4e22-9067-4de55b17afe6",
+  "path": "hunt-ato",
+  "path_key": "hunt-ato",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

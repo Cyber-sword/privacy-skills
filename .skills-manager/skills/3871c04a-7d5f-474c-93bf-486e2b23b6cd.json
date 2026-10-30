@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3871c04a-7d5f-474c-93bf-486e2b23b6cd",
+  "path": "offensive-anti-forensics",
+  "path_key": "offensive-anti-forensics",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

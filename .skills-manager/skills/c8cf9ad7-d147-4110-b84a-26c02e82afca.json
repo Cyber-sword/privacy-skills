@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c8cf9ad7-d147-4110-b84a-26c02e82afca",
+  "path": "api-auth-and-jwt-abuse",
+  "path_key": "api-auth-and-jwt-abuse",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

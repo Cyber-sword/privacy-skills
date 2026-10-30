@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c1c6d5ff-8f36-4536-aa71-9fb3dfa14da5",
+  "path": "offensive-oauth",
+  "path_key": "offensive-oauth",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

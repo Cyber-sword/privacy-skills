@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "be5c01d6-f734-49c5-bf40-c379b763e61d",
+  "path": "offensive-wps",
+  "path_key": "offensive-wps",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

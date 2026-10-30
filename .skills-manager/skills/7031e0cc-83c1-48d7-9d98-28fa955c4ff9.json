@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7031e0cc-83c1-48d7-9d98-28fa955c4ff9",
+  "path": "php-audit-skills",
+  "path_key": "php-audit-skills",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

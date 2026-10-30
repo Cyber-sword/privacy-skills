@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c80c5635-359c-48c1-8ce5-61d9117c4bcd",
+  "path": "offensive-data-exfiltration",
+  "path_key": "offensive-data-exfiltration",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

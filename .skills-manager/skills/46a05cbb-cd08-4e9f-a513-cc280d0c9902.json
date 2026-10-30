@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "46a05cbb-cd08-4e9f-a513-cc280d0c9902",
+  "path": "offensive-vuln-classes",
+  "path_key": "offensive-vuln-classes",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f8847e8e-2833-450c-b98a-37340d4bd199",
+  "path": "recon-scope-triage",
+  "path_key": "recon-scope-triage",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

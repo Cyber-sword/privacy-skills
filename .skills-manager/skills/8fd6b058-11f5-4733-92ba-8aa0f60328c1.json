@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8fd6b058-11f5-4733-92ba-8aa0f60328c1",
+  "path": "401-403-bypass-techniques",
+  "path_key": "401-403-bypass-techniques",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

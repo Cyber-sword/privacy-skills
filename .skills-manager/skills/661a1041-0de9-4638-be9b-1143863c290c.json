@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "661a1041-0de9-4638-be9b-1143863c290c",
+  "path": "component-vuln-intel",
+  "path_key": "component-vuln-intel",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

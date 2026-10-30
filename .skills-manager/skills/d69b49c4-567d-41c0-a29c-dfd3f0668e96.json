@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d69b49c4-567d-41c0-a29c-dfd3f0668e96",
+  "path": "ai-threat-testing",
+  "path_key": "ai-threat-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

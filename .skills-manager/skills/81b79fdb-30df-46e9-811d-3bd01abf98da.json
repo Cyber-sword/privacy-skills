@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "81b79fdb-30df-46e9-811d-3bd01abf98da",
+  "path": "ctf-crypto",
+  "path_key": "ctf-crypto",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

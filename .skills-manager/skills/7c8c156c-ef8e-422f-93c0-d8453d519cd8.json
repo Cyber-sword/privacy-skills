@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7c8c156c-ef8e-422f-93c0-d8453d519cd8",
+  "path": "offensive-api-abuse",
+  "path_key": "offensive-api-abuse",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

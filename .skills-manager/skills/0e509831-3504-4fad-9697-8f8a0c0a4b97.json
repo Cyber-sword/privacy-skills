@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0e509831-3504-4fad-9697-8f8a0c0a4b97",
+  "path": "cryptography",
+  "path_key": "cryptography",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

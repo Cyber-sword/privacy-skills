@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c51c61a2-9018-41d1-8a53-b210085dd1b3",
+  "path": "mobile-app-security-testing",
+  "path_key": "mobile-app-security-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

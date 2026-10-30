@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "33d219ef-a970-4ddc-b01b-c700d3f5393d",
+  "path": "github-workflow",
+  "path_key": "github-workflow",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

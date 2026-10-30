@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6b00bfcc-d4e9-4406-a4e5-56c049eb6c18",
+  "path": "semgrep",
+  "path_key": "semgrep",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

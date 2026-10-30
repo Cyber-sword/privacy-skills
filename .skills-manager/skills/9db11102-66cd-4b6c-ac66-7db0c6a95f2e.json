@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9db11102-66cd-4b6c-ac66-7db0c6a95f2e",
+  "path": "offensive-keylogger-arch",
+  "path_key": "offensive-keylogger-arch",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

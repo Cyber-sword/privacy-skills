@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0062e404-5112-4492-b288-4bd1b1163ff0",
+  "path": "ctf-pwn",
+  "path_key": "ctf-pwn",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

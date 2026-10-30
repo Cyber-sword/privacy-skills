@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2b31ac3f-56cc-491b-9e78-56c652c50246",
+  "path": "offensive-wpa-enterprise",
+  "path_key": "offensive-wpa-enterprise",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

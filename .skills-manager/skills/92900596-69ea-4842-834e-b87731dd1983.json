@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "92900596-69ea-4842-834e-b87731dd1983",
+  "path": "hunt-oauth",
+  "path_key": "hunt-oauth",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

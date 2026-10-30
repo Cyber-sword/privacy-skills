@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1bc72e7e-99a6-4270-8cf6-4be846cb9eb9",
+  "path": "ctf-reverse",
+  "path_key": "ctf-reverse",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

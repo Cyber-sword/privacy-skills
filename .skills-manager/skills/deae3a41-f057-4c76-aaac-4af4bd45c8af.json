@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "deae3a41-f057-4c76-aaac-4af4bd45c8af",
+  "path": "pentest-blackboard",
+  "path_key": "pentest-blackboard",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

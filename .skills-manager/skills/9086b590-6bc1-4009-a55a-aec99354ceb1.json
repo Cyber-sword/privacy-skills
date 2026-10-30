@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9086b590-6bc1-4009-a55a-aec99354ceb1",
+  "path": "api-security",
+  "path_key": "api-security",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

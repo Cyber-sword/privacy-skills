@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dfede216-edaa-42ed-892c-2c0c409176d9",
+  "path": "open-sourcing",
+  "path_key": "open-sourcing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

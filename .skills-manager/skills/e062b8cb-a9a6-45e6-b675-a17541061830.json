@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e062b8cb-a9a6-45e6-b675-a17541061830",
+  "path": "initial-access-phishing",
+  "path_key": "initial-access-phishing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

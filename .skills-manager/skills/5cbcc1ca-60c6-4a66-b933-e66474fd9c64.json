@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5cbcc1ca-60c6-4a66-b933-e66474fd9c64",
+  "path": "vulnerability-assessment",
+  "path_key": "vulnerability-assessment",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

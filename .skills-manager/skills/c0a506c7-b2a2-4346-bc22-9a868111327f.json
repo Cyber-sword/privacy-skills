@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c0a506c7-b2a2-4346-bc22-9a868111327f",
+  "path": "hunt-html-injection",
+  "path_key": "hunt-html-injection",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

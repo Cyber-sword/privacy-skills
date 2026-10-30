@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "65b63ca3-ef4e-47e3-8594-c0d3e9bd4753",
+  "path": "offensive-initial-access",
+  "path_key": "offensive-initial-access",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

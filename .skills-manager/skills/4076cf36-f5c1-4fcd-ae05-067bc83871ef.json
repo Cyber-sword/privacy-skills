@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4076cf36-f5c1-4fcd-ae05-067bc83871ef",
+  "path": "cmdi-command-injection",
+  "path_key": "cmdi-command-injection",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6743c621-3953-4f2b-af50-56ac161295f0",
+  "path": "hunt-cloud-misconfig",
+  "path_key": "hunt-cloud-misconfig",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

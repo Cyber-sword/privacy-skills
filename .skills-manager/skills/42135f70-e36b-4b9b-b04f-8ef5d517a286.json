@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "42135f70-e36b-4b9b-b04f-8ef5d517a286",
+  "path": "poc-agent",
+  "path_key": "poc-agent",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

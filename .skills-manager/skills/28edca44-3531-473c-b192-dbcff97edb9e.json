@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "28edca44-3531-473c-b192-dbcff97edb9e",
+  "path": "hunt-auth-bypass",
+  "path_key": "hunt-auth-bypass",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

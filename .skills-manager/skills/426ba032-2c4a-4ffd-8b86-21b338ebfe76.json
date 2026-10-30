@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "426ba032-2c4a-4ffd-8b86-21b338ebfe76",
+  "path": "offensive-parameter-pollution",
+  "path_key": "offensive-parameter-pollution",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

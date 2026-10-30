@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5d271e4c-830a-403d-bcd0-975cefc69ca3",
+  "path": "binary-mobile-reversing",
+  "path_key": "binary-mobile-reversing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

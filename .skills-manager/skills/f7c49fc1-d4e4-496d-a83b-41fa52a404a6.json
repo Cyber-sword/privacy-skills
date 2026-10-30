@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f7c49fc1-d4e4-496d-a83b-41fa52a404a6",
+  "path": "offensive-social-engineering",
+  "path_key": "offensive-social-engineering",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

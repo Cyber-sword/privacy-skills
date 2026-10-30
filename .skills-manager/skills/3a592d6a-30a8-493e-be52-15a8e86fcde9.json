@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3a592d6a-30a8-493e-be52-15a8e86fcde9",
+  "path": "ctf-writeup",
+  "path_key": "ctf-writeup",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

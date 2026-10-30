@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "40b5eff0-67c1-4730-8d8d-31cb17acad83",
+  "path": "codeql",
+  "path_key": "codeql",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

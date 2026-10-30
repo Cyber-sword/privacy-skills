@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f1ef4774-311f-4868-abbc-9fe25a1b06e6",
+  "path": "offensive-xss",
+  "path_key": "offensive-xss",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

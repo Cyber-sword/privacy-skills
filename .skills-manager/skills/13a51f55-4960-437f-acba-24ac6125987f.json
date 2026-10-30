@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "13a51f55-4960-437f-acba-24ac6125987f",
+  "path": "techstack-identification/correlation",
+  "path_key": "techstack-identification/correlation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

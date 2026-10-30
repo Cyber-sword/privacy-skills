@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b4345b96-86a4-4b14-abe8-bafbd0423dd4",
+  "path": "hunt-cache-poison",
+  "path_key": "hunt-cache-poison",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

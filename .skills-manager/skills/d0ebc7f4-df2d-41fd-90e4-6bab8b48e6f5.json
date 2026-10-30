@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d0ebc7f4-df2d-41fd-90e4-6bab8b48e6f5",
+  "path": "hunt-rag-vector",
+  "path_key": "hunt-rag-vector",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

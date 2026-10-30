@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d4ea4cbb-d877-4217-b1a7-a451da293058",
+  "path": "hunt-dispatch",
+  "path_key": "hunt-dispatch",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

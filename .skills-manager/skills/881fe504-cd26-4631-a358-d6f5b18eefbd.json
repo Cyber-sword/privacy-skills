@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "881fe504-cd26-4631-a358-d6f5b18eefbd",
+  "path": "wsdiscovery",
+  "path_key": "wsdiscovery",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

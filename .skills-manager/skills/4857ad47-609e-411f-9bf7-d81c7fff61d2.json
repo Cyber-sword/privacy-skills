@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4857ad47-609e-411f-9bf7-d81c7fff61d2",
+  "path": "dwarf-expert",
+  "path_key": "dwarf-expert",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

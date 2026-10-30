@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cf43f691-984b-4ba2-9c9f-ab2e1ce659b1",
+  "path": "hunt-open-redirect",
+  "path_key": "hunt-open-redirect",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

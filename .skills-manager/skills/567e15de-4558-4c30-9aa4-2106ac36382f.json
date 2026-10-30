@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "567e15de-4558-4c30-9aa4-2106ac36382f",
+  "path": "techstack-identification/backend",
+  "path_key": "techstack-identification/backend",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

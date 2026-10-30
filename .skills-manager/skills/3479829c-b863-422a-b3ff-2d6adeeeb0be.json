@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3479829c-b863-422a-b3ff-2d6adeeeb0be",
+  "path": "hunt-aspnet",
+  "path_key": "hunt-aspnet",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

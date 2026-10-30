@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b9364e8c-3075-4149-a563-d72ac18ac3ce",
+  "path": "jndi-injection",
+  "path_key": "jndi-injection",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a4c47540-0e56-4ff1-bbc1-b0ebddcaf39b",
+  "path": "offensive-krack-fragattacks",
+  "path_key": "offensive-krack-fragattacks",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

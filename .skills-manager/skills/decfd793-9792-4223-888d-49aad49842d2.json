@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "decfd793-9792-4223-888d-49aad49842d2",
+  "path": "fastjson-exploitation",
+  "path_key": "fastjson-exploitation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

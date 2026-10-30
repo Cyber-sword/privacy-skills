@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a8519925-f397-4da6-bcaa-5caa4763defb",
+  "path": "offensive-linux-privesc",
+  "path_key": "offensive-linux-privesc",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

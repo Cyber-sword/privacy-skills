@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d43c11fe-029a-4a06-9fd1-70e9329643f6",
+  "path": "offensive-cicd-pipeline",
+  "path_key": "offensive-cicd-pipeline",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

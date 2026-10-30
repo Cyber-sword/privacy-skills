@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ada6d2ce-b30f-4510-be2b-cc2b5378b09c",
+  "path": "hunt-business-logic",
+  "path_key": "hunt-business-logic",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

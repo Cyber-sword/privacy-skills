@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "26209ac1-d7e3-4ed4-a196-97ccdab203d6",
+  "path": "api-authorization-and-bola",
+  "path_key": "api-authorization-and-bola",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

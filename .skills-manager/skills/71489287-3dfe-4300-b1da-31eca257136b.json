@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "71489287-3dfe-4300-b1da-31eca257136b",
+  "path": "offensive-exploit-development",
+  "path_key": "offensive-exploit-development",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "92d6ebcd-a693-46a5-90f0-a146220f336a",
+  "path": "hunt-host-header",
+  "path_key": "hunt-host-header",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

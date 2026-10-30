@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "533083f0-8192-4cca-bb0e-efe61c29f963",
+  "path": "hunt-laravel",
+  "path_key": "hunt-laravel",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

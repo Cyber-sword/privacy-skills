@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f25930c9-34b3-4675-9ded-e1c3711e4b6a",
+  "path": "modern-python",
+  "path_key": "modern-python",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

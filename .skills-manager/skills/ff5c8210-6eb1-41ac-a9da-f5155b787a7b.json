@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ff5c8210-6eb1-41ac-a9da-f5155b787a7b",
+  "path": "iotnet",
+  "path_key": "iotnet",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

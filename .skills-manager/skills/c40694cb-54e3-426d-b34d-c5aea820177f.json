@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c40694cb-54e3-426d-b34d-c5aea820177f",
+  "path": "rev-unicorn-debug",
+  "path_key": "rev-unicorn-debug",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

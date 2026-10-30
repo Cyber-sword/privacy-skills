@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "65a814e8-63b2-4f34-b5b7-ab47c9e4c93f",
+  "path": "hunt-clickjacking",
+  "path_key": "hunt-clickjacking",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

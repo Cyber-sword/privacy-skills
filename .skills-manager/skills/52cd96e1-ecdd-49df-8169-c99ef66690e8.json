@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "52cd96e1-ecdd-49df-8169-c99ef66690e8",
+  "path": "hunt-deserialization",
+  "path_key": "hunt-deserialization",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

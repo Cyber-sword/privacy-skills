@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a800e33d-65a6-4ec0-9c8e-fab4eaa2baab",
+  "path": "rev-idapython",
+  "path_key": "rev-idapython",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

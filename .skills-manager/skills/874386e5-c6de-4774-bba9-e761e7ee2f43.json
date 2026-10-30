@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "874386e5-c6de-4774-bba9-e761e7ee2f43",
+  "path": "offensive-cloud",
+  "path_key": "offensive-cloud",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

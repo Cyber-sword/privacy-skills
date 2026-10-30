@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2c75987e-b6cf-46be-8571-e90b545dc818",
+  "path": "kali-pentest-zh",
+  "path_key": "kali-pentest-zh",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

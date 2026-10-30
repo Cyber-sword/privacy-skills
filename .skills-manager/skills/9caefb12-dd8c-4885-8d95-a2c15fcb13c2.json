@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9caefb12-dd8c-4885-8d95-a2c15fcb13c2",
+  "path": "jtagprobe",
+  "path_key": "jtagprobe",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

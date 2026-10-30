@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "19e5e93a-e2fb-4819-ac1b-cf3ba0dbb4bd",
+  "path": "hunt-saml",
+  "path_key": "hunt-saml",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

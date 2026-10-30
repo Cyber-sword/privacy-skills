@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d7930d95-8fd4-4bcc-8e93-830f684886d8",
+  "path": "attack-path-stitcher",
+  "path_key": "attack-path-stitcher",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0464a2e3-a0ae-4092-a15c-1071102f83bd",
+  "path": "offensive-tls-attacks",
+  "path_key": "offensive-tls-attacks",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

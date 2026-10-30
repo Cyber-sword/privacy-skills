@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "05aede1c-c741-43f9-a293-5d5f492253e1",
+  "path": "offensive-evil-twin",
+  "path_key": "offensive-evil-twin",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

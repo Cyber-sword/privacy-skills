@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5438a1f4-06cd-440f-99d8-9947579d789a",
+  "path": "offensive-netexec",
+  "path_key": "offensive-netexec",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "59d1e42b-8be0-41f2-94f5-af220d2d5a63",
+  "path": "skill-update",
+  "path_key": "skill-update",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

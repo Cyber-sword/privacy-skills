@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9b73a92a-6499-4528-8fef-5d86bd0354d1",
+  "path": "offensive-fuzzing",
+  "path_key": "offensive-fuzzing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

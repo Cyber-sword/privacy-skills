@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3004dec0-12df-4608-ab06-2ba97d4c0b22",
+  "path": "sec-phase-router",
+  "path_key": "sec-phase-router",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

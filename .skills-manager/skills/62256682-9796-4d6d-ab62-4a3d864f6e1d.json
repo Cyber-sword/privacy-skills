@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "62256682-9796-4d6d-ab62-4a3d864f6e1d",
+  "path": "incident-response",
+  "path_key": "incident-response",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

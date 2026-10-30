@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3eb56a90-d6f6-4205-bc68-0f17a44f9598",
+  "path": "recon-dir-scan",
+  "path_key": "recon-dir-scan",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

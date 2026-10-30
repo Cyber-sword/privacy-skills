@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "67134d47-29ac-4705-8c4e-bb1ce53a9099",
+  "path": "rev-frida",
+  "path_key": "rev-frida",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

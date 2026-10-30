@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ee26b99a-eb63-4118-9f4c-c92cb6bac004",
+  "path": "hunt-http-smuggling",
+  "path_key": "hunt-http-smuggling",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

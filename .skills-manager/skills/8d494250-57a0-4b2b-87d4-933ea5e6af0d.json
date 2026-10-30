@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8d494250-57a0-4b2b-87d4-933ea5e6af0d",
+  "path": "recon-subdomain",
+  "path_key": "recon-subdomain",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7fd8501e-8ed9-4a86-b6ca-951a1d29ae74",
+  "path": "offensive-mobile",
+  "path_key": "offensive-mobile",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

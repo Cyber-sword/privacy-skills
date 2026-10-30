@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "faefb8b3-e6ec-4d9a-97ff-aecf492e46d9",
+  "path": "log4shell-exploitation",
+  "path_key": "log4shell-exploitation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

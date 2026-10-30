@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3514d8ac-3e77-4830-83a5-ec2834c0f071",
+  "path": "pentest-agent-os",
+  "path_key": "pentest-agent-os",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

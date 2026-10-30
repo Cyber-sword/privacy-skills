@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "34b9d394-590e-40bd-a5eb-87fbfd903887",
+  "path": "split-to-prs",
+  "path_key": "split-to-prs",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

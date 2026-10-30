@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e82948e7-5e08-496d-8854-467e8606a6f5",
+  "path": "prototype-pollution",
+  "path_key": "prototype-pollution",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

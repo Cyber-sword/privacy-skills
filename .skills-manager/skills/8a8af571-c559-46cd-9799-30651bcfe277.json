@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8a8af571-c559-46cd-9799-30651bcfe277",
+  "path": "multi-agent-analysis",
+  "path_key": "multi-agent-analysis",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

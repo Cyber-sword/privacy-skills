@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "829bc325-94cc-4e42-b421-aa03b71c120c",
+  "path": "hunt-exceptional-conditions",
+  "path_key": "hunt-exceptional-conditions",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

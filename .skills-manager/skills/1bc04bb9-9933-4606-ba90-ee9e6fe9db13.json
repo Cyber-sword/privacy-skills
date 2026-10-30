@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1bc04bb9-9933-4606-ba90-ee9e6fe9db13",
+  "path": "offensive-ssti",
+  "path_key": "offensive-ssti",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

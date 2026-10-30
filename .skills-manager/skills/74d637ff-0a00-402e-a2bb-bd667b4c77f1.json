@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "74d637ff-0a00-402e-a2bb-bd667b4c77f1",
+  "path": "hunt-nosqli",
+  "path_key": "hunt-nosqli",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

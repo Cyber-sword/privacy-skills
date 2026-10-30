@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2143b522-6046-496b-b1e3-f68229ae6c70",
+  "path": "sql-injection-testing",
+  "path_key": "sql-injection-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e2e85554-a2cc-4990-85d1-595a33515711",
+  "path": "techstack-identification/frontend",
+  "path_key": "techstack-identification/frontend",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

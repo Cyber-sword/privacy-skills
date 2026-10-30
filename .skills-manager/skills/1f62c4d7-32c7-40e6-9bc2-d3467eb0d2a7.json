@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1f62c4d7-32c7-40e6-9bc2-d3467eb0d2a7",
+  "path": "file-upload-testing",
+  "path_key": "file-upload-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

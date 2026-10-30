@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9bd46ddd-34ce-4fb6-83b1-92bcf5fc9107",
+  "path": "src-6k-vuln-hunting",
+  "path_key": "src-6k-vuln-hunting",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

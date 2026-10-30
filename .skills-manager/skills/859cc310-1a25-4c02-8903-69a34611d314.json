@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "859cc310-1a25-4c02-8903-69a34611d314",
+  "path": "hunt-mfa-bypass",
+  "path_key": "hunt-mfa-bypass",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

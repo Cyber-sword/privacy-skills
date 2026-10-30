@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "523a95a5-c37a-445b-9d96-353d616b1a94",
+  "path": "offensive-advanced-redteam",
+  "path_key": "offensive-advanced-redteam",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

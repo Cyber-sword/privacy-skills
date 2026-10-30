@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1bec7f51-d4b6-48fd-862a-c88e3381c5cb",
+  "path": "hunt-tls-network",
+  "path_key": "hunt-tls-network",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

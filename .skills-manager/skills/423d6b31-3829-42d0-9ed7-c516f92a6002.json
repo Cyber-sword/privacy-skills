@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "423d6b31-3829-42d0-9ed7-c516f92a6002",
+  "path": "offensive-xxe",
+  "path_key": "offensive-xxe",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

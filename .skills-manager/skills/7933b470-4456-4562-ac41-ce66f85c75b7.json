@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7933b470-4456-4562-ac41-ce66f85c75b7",
+  "path": "hunt-xxe",
+  "path_key": "hunt-xxe",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

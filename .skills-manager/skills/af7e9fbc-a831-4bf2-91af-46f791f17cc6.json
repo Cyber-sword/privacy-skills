@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "af7e9fbc-a831-4bf2-91af-46f791f17cc6",
+  "path": "capability-primitive-search",
+  "path_key": "capability-primitive-search",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

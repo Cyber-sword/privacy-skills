@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7d2e7639-2b0c-436c-95e6-071b3a426a26",
+  "path": "hunt-csrf",
+  "path_key": "hunt-csrf",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

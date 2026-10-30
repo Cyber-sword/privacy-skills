@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "5432fada-30d7-40ed-961b-1ba762f103aa",
+  "path": "hunt-file-upload",
+  "path_key": "hunt-file-upload",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

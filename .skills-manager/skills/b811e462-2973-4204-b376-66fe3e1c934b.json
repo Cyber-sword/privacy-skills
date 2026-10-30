@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b811e462-2973-4204-b376-66fe3e1c934b",
+  "path": "hunt-race-condition",
+  "path_key": "hunt-race-condition",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

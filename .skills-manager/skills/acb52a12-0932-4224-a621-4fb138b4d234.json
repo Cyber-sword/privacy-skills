@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "acb52a12-0932-4224-a621-4fb138b4d234",
+  "path": "hunt-nodejs",
+  "path_key": "hunt-nodejs",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

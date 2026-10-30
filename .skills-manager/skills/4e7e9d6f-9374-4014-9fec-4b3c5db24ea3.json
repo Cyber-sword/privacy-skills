@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4e7e9d6f-9374-4014-9fec-4b3c5db24ea3",
+  "path": "offensive-bluetooth-ble",
+  "path_key": "offensive-bluetooth-ble",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

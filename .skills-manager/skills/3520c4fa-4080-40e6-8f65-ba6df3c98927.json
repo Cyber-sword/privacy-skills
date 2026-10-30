@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3520c4fa-4080-40e6-8f65-ba6df3c98927",
+  "path": "oauth-oidc-misconfiguration",
+  "path_key": "oauth-oidc-misconfiguration",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "774c104f-2dec-4724-abd8-e70ff553439d",
+  "path": "hunt-llm-ai",
+  "path_key": "hunt-llm-ai",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

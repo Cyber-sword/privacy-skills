@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4e00854e-dde4-4f43-a010-42cdbc0504c8",
+  "path": "offensive-race-condition",
+  "path_key": "offensive-race-condition",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

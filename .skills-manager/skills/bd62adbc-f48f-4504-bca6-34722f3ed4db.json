@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bd62adbc-f48f-4504-bca6-34722f3ed4db",
+  "path": "bug-bounty",
+  "path_key": "bug-bounty",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

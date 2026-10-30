@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4754387b-0245-4e9e-a9d7-4853ce73e85d",
+  "path": "hunt-springboot",
+  "path_key": "hunt-springboot",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

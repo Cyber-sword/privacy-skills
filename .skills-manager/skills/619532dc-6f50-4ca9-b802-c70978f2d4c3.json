@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "619532dc-6f50-4ca9-b802-c70978f2d4c3",
+  "path": "hunt-jwt-crypto",
+  "path_key": "hunt-jwt-crypto",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6e81a0d7-1751-4ba0-a654-2f31471f925b",
+  "path": "hunt-fintech-graphql",
+  "path_key": "hunt-fintech-graphql",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

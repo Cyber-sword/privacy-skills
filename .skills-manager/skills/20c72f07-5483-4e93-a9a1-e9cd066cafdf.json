@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "20c72f07-5483-4e93-a9a1-e9cd066cafdf",
+  "path": "offensive-supply-chain",
+  "path_key": "offensive-supply-chain",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

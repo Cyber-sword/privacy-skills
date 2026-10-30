@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bce89621-5f57-4709-a194-df8f578e89b3",
+  "path": "hunt-sharepoint",
+  "path_key": "hunt-sharepoint",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

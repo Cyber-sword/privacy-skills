@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "23bd0db3-f6d4-4871-95f2-311993d15d90",
+  "path": "ctf-forensics",
+  "path_key": "ctf-forensics",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

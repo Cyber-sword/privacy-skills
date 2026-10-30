@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d72baded-cca4-422a-84c0-23bf823bbcf8",
+  "path": "offensive-open-redirect",
+  "path_key": "offensive-open-redirect",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

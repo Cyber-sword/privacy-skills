@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ac24dca6-cdd1-4e0a-b91f-4f6d5f02a0a2",
+  "path": "offensive-sqli",
+  "path_key": "offensive-sqli",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

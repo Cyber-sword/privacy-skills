@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4d6c375a-ca49-4365-ac23-207e0a677915",
+  "path": "techstack-identification/security",
+  "path_key": "techstack-identification/security",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

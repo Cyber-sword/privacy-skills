@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "300992c4-bb9b-4c5c-b298-eac32872de8c",
+  "path": "nsauditor-ai",
+  "path_key": "nsauditor-ai",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

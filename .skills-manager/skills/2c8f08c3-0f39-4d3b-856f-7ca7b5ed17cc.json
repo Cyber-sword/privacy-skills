@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2c8f08c3-0f39-4d3b-856f-7ca7b5ed17cc",
+  "path": "container-security-testing",
+  "path_key": "container-security-testing",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

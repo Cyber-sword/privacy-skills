@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "547898cc-37cb-43d1-9a20-8d7c58b526e2",
+  "path": "offensive-reporting",
+  "path_key": "offensive-reporting",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "87faf2bb-3eec-455a-ba4b-65c9bc1e5a46",
+  "path": "hello-js-reverse-skill",
+  "path_key": "hello-js-reverse-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

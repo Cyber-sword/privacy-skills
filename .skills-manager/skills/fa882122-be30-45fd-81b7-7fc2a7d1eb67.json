@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "fa882122-be30-45fd-81b7-7fc2a7d1eb67",
+  "path": "offensive-osint-methodology",
+  "path_key": "offensive-osint-methodology",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

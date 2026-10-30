@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "bba8b1dc-e679-421d-bfe9-14d1906900e8",
+  "path": "offensive-network-attacks",
+  "path_key": "offensive-network-attacks",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2bedab9e-dea3-43b7-9678-1be6bbf2773d",
+  "path": "hunt-source-leak",
+  "path_key": "hunt-source-leak",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

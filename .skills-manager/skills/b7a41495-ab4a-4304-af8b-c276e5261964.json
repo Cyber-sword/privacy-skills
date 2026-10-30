@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b7a41495-ab4a-4304-af8b-c276e5261964",
+  "path": "offensive-basic-exploitation",
+  "path_key": "offensive-basic-exploitation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
