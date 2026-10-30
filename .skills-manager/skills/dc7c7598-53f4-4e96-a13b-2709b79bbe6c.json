@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dc7c7598-53f4-4e96-a13b-2709b79bbe6c",
+  "path": "offensive-zigbee-thread-matter-2",
+  "path_key": "offensive-zigbee-thread-matter-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "62e9a43c-45e2-4a5e-8b86-ee9989549108",
+  "path": "jwt-oauth-token-attacks-2",
+  "path_key": "jwt-oauth-token-attacks-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4d3ff71d-ef08-4aee-b99f-86738e1dc0b1",
+  "path": "offensive-fuzzing-course-2",
+  "path_key": "offensive-fuzzing-course-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

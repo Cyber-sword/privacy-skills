@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c59b1601-3cc3-4366-94bf-17f13220bda3",
+  "path": "ga-monthly-report",
+  "path_key": "ga-monthly-report",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

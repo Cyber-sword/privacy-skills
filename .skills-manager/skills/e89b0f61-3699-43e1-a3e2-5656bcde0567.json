@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e89b0f61-3699-43e1-a3e2-5656bcde0567",
+  "path": "ctf-ai-ml-2",
+  "path_key": "ctf-ai-ml-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

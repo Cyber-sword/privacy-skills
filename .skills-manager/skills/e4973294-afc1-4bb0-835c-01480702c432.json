@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e4973294-afc1-4bb0-835c-01480702c432",
+  "path": "goal-prompt-2",
+  "path_key": "goal-prompt-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

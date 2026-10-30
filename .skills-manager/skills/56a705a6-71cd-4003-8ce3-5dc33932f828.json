@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "56a705a6-71cd-4003-8ce3-5dc33932f828",
+  "path": "offensive-wpa2-psk-2",
+  "path_key": "offensive-wpa2-psk-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "729482a2-4ecc-46e4-b6cf-f7a38ec999ed",
+  "path": "xxe-injection-testing-2",
+  "path_key": "xxe-injection-testing-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ab07e3e8-629b-4cc0-be40-2c0c411e8472",
+  "path": "hunt-ntlm-info-2",
+  "path_key": "hunt-ntlm-info-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

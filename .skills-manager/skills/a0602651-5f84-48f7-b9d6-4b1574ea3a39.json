@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a0602651-5f84-48f7-b9d6-4b1574ea3a39",
+  "path": "offensive-c2-frameworks-2",
+  "path_key": "offensive-c2-frameworks-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

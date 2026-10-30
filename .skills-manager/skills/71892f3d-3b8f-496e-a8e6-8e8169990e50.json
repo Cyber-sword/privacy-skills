@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "71892f3d-3b8f-496e-a8e6-8e8169990e50",
+  "path": "audit-skills-2",
+  "path_key": "audit-skills-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

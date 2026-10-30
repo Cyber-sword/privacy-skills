@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6756be09-d801-4cca-9196-93d1d356bc63",
+  "path": "specialized-attack-playbooks-2",
+  "path_key": "specialized-attack-playbooks-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

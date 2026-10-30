@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "258d31aa-a03a-4fb4-bf19-df1328516076",
+  "path": "injection-checking-2",
+  "path_key": "injection-checking-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

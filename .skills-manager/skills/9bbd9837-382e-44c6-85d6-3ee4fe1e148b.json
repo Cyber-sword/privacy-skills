@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9bbd9837-382e-44c6-85d6-3ee4fe1e148b",
+  "path": "proxy-tool-bootstrap-2",
+  "path_key": "proxy-tool-bootstrap-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4cf27fce-7c76-4ae4-9349-1ffaac44c9fb",
+  "path": "ctf-flag-verification",
+  "path_key": "ctf-flag-verification",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

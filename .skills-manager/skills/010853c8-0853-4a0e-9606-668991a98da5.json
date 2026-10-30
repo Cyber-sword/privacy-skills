@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "010853c8-0853-4a0e-9606-668991a98da5",
+  "path": "offensive-mitigations-2",
+  "path_key": "offensive-mitigations-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

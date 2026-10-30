@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2f49215c-c1fa-4fb3-ba33-0a1fccb60984",
+  "path": "api-recon-and-docs-2",
+  "path_key": "api-recon-and-docs-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

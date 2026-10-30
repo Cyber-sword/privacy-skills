@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "52395a80-37f5-443a-b63d-b1b3563d94f7",
+  "path": "hunt-sqli-2",
+  "path_key": "hunt-sqli-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

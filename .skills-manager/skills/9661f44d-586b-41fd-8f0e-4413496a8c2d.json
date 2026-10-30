@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9661f44d-586b-41fd-8f0e-4413496a8c2d",
+  "path": "attack-surface-recon-2",
+  "path_key": "attack-surface-recon-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

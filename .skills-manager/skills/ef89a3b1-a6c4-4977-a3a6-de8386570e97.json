@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ef89a3b1-a6c4-4977-a3a6-de8386570e97",
+  "path": "hunt-idor-2",
+  "path_key": "hunt-idor-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

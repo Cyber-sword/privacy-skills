@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "4d2effe9-fb08-474c-af5c-6ff364246313",
+  "path": "offensive-wpa3-sae-2",
+  "path_key": "offensive-wpa3-sae-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

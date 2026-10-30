@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "931da8f1-0a3f-4773-9631-807e46c0edb0",
+  "path": "-communitytools-custom-main",
+  "path_key": "-communitytools-custom-main",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

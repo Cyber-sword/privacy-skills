@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6f3d0190-4194-4d76-bf9a-a3a84d748563",
+  "path": "offensive-api-security-2",
+  "path_key": "offensive-api-security-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

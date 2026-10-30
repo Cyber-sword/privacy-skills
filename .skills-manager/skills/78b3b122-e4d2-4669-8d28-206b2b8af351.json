@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "78b3b122-e4d2-4669-8d28-206b2b8af351",
+  "path": "offensive-wifi-recon-2",
+  "path_key": "offensive-wifi-recon-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

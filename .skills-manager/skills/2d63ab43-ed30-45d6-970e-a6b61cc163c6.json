@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "2d63ab43-ed30-45d6-970e-a6b61cc163c6",
+  "path": "org-attack-surface-2",
+  "path_key": "org-attack-surface-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

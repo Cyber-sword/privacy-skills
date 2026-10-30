@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dfcde0d3-d2de-48f0-9c2c-3c3da8ecbd29",
+  "path": "offensive-toctou-2",
+  "path_key": "offensive-toctou-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

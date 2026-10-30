@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c48389b6-2f44-48d7-b588-b95ae2af803e",
+  "path": "ghost-bits-cast-attack-2",
+  "path_key": "ghost-bits-cast-attack-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

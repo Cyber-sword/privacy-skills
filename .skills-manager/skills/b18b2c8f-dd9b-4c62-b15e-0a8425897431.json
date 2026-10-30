@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "b18b2c8f-dd9b-4c62-b15e-0a8425897431",
+  "path": "business-logic-testing-2",
+  "path_key": "business-logic-testing-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

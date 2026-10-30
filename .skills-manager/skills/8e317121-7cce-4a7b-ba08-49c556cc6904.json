@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8e317121-7cce-4a7b-ba08-49c556cc6904",
+  "path": "cloud-security-audit-2",
+  "path_key": "cloud-security-audit-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

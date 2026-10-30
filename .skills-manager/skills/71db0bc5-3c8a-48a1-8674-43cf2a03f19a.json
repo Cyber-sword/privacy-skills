@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "71db0bc5-3c8a-48a1-8674-43cf2a03f19a",
+  "path": "network-penetration-testing-2",
+  "path_key": "network-penetration-testing-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

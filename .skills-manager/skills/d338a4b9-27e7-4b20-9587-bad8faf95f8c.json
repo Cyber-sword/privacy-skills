@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "d338a4b9-27e7-4b20-9587-bad8faf95f8c",
+  "path": "authenticated-session-acquisition-2",
+  "path_key": "authenticated-session-acquisition-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

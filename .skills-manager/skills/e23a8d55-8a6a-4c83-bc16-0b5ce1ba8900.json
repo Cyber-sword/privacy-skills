@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e23a8d55-8a6a-4c83-bc16-0b5ce1ba8900",
+  "path": "offensive-rce-2",
+  "path_key": "offensive-rce-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

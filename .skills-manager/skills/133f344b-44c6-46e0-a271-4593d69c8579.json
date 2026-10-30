@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "133f344b-44c6-46e0-a271-4593d69c8579",
+  "path": "redteam-opsec-2",
+  "path_key": "redteam-opsec-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

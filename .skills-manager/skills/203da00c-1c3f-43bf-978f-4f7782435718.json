@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "203da00c-1c3f-43bf-978f-4f7782435718",
+  "path": "solve-challenge-2",
+  "path_key": "solve-challenge-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "fada0bc9-948e-42d6-ada6-f0ab57c33258",
+  "path": "hunt-k8s-2",
+  "path_key": "hunt-k8s-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a1235eb8-b6f4-4500-8887-2e40db041c69",
+  "path": "xss-testing-2",
+  "path_key": "xss-testing-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

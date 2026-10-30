@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "67372a65-0b1e-45b5-8ea7-202c3cd23bf3",
+  "path": "secure-code-review-2",
+  "path_key": "secure-code-review-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

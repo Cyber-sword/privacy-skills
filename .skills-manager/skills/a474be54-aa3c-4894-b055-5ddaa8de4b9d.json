@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a474be54-aa3c-4894-b055-5ddaa8de4b9d",
+  "path": "SecSkills-1.2.0",
+  "path_key": "secskills-1.2.0",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "45ea295e-067c-4b21-999c-f87624ad3534",
+  "path": "fp-check-2",
+  "path_key": "fp-check-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

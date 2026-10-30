@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0b5fc400-4f89-469c-bfe9-ff434a37818f",
+  "path": "redteam-mindset-2",
+  "path_key": "redteam-mindset-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

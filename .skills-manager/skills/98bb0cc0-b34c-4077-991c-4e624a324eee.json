@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "98bb0cc0-b34c-4077-991c-4e624a324eee",
+  "path": "hunt-shadow-api-2",
+  "path_key": "hunt-shadow-api-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

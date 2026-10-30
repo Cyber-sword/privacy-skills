@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a79fa1c1-3e40-4b86-a9a5-044589d646cd",
+  "path": "hunt-ldap-2",
+  "path_key": "hunt-ldap-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

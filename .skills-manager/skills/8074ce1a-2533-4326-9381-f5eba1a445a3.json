@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8074ce1a-2533-4326-9381-f5eba1a445a3",
+  "path": "api-agent-2",
+  "path_key": "api-agent-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a415aaf4-e37b-4999-b871-c42d09c63d9f",
+  "path": "cve-poc-generator-2",
+  "path_key": "cve-poc-generator-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

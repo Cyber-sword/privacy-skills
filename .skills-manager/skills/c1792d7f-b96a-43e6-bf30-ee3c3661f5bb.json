@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c1792d7f-b96a-43e6-bf30-ee3c3661f5bb",
+  "path": "offensive-waf-bypass-2",
+  "path_key": "offensive-waf-bypass-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

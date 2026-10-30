@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6869a2eb-2821-4352-aaef-a204affd493f",
+  "path": "variant-analysis-2",
+  "path_key": "variant-analysis-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

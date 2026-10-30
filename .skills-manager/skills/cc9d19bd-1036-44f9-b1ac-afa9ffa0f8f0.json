@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cc9d19bd-1036-44f9-b1ac-afa9ffa0f8f0",
+  "path": "hunt-brute-force-2",
+  "path_key": "hunt-brute-force-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

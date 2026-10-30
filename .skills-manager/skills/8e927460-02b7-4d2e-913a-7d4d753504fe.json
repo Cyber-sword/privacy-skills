@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "8e927460-02b7-4d2e-913a-7d4d753504fe",
+  "path": "hunt-nextjs-2",
+  "path_key": "hunt-nextjs-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

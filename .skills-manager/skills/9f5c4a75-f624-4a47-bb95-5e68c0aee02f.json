@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "9f5c4a75-f624-4a47-bb95-5e68c0aee02f",
+  "path": "offensive-business-logic-2",
+  "path_key": "offensive-business-logic-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "7851bc62-0ee1-4321-854a-e0fa0716de31",
+  "path": "hunt-captcha-bypass-2",
+  "path_key": "hunt-captcha-bypass-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

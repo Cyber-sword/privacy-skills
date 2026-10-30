@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0feb206f-a6d7-465a-afa0-f5986c90ef50",
+  "path": "ssrf-testing-2",
+  "path_key": "ssrf-testing-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "e011e1a7-5dd6-4990-922d-4a46150159ba",
+  "path": "hunt-forgot-password-2",
+  "path_key": "hunt-forgot-password-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

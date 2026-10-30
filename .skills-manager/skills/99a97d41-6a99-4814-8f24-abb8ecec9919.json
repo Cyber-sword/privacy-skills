@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "99a97d41-6a99-4814-8f24-abb8ecec9919",
+  "path": "create-rule-2",
+  "path_key": "create-rule-2",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
